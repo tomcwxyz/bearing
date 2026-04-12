@@ -11,3 +11,9 @@ node_modules
 # env files
 .env.local
 .env*.local
+
+# playwright screenshots
+.playwright-mcp
+
+# typescript build info
+tsconfig.tsbuildinfo
