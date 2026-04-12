@@ -1,6 +1,10 @@
 import { neon } from '@neondatabase/serverless'
 
-const sql = neon(process.env.NEON_DATABASE_URL!)
+function getDb() {
+  const url = process.env.NEON_DATABASE_URL
+  if (!url) throw new Error('NEON_DATABASE_URL is not set')
+  return neon(url)
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -35,7 +39,7 @@ export interface RecommendationInput {
 
 /** Insert a new task row and return its UUID. */
 export async function createTask(params: TaskParams): Promise<string> {
-  const rows = await sql`
+  const rows = await getDb()`
     INSERT INTO tasks (
       description_hash,
       task_type,
@@ -73,7 +77,7 @@ export async function updateTaskPriorities(
   taskId: string,
   priorityOrder: string[],
 ): Promise<void> {
-  await sql`
+  await getDb()`
     UPDATE tasks
     SET priority_order = ${JSON.stringify(priorityOrder)}
     WHERE id = ${taskId}
@@ -82,7 +86,7 @@ export async function updateTaskPriorities(
 
 /** Fetch a single task by ID. Returns undefined if not found. */
 export async function getTask(taskId: string) {
-  const rows = await sql`
+  const rows = await getDb()`
     SELECT * FROM tasks WHERE id = ${taskId}
   `
   return rows[0] ?? undefined
@@ -98,7 +102,7 @@ export async function saveRecommendations(
   models: RecommendationInput[],
 ): Promise<void> {
   for (const model of models) {
-    await sql`
+    await getDb()`
       INSERT INTO recommendations (
         task_id, model_slug, rank, weighted_score, factor_scores, reasoning
       ) VALUES (
@@ -124,7 +128,7 @@ export async function saveSelection(
   recommendedRank: number | null,
   source: string = 'recommend',
 ): Promise<string> {
-  const rows = await sql`
+  const rows = await getDb()`
     INSERT INTO selections (task_id, model_slug, recommended_rank, source)
     VALUES (${taskId}, ${modelSlug}, ${recommendedRank}, ${source})
     RETURNING id
@@ -144,7 +148,7 @@ export async function saveOutcome(
   failureReason: string | null,
   feedback: string | null,
 ): Promise<void> {
-  await sql`
+  await getDb()`
     INSERT INTO outcomes (task_id, selection_id, success, failure_reason, feedback)
     VALUES (${taskId}, ${selectionId}, ${success}, ${failureReason}, ${feedback})
   `
