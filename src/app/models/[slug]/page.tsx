@@ -16,10 +16,18 @@ const capabilityLabels: Record<Capability, string> = {
   computer_use: 'Computer Use',
 }
 
-const tierColour: Record<string, string> = {
-  frontier: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
-  mid: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
-  light: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
+function tierColour(tier: string): string {
+  if (tier === 'flagship') return 'bg-coral/10 text-coral'
+  if (tier === 'balanced') return 'bg-teal/10 text-teal'
+  if (tier === 'budget') return 'bg-amber/10 text-amber'
+  if (tier === 'reasoning') return 'bg-navy/10 text-navy'
+  if (tier.startsWith('open_source')) return 'bg-teal/10 text-teal'
+  if (tier.startsWith('sustainable')) return 'bg-teal/10 text-teal'
+  if (tier.startsWith('enterprise')) return 'bg-navy/10 text-navy'
+  if (tier === 'frontier') return 'bg-coral/10 text-coral'
+  if (tier === 'mid') return 'bg-teal/10 text-teal'
+  if (tier === 'light') return 'bg-amber/10 text-amber'
+  return 'bg-teal/10 text-teal'
 }
 
 const taskLabels: Record<string, string> = {
@@ -55,7 +63,7 @@ export default async function ModelDetailPage({
       <div className="w-full max-w-3xl">
         <Link
           href="/models"
-          className="mb-6 inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          className="mb-6 inline-flex items-center gap-1 text-sm text-teal hover:text-teal-light"
         >
           &larr; All models
         </Link>
@@ -63,13 +71,13 @@ export default async function ModelDetailPage({
         {/* Header */}
         <div className="mt-2 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+            <h1 className="font-display text-4xl text-navy">
               {model.name}
             </h1>
-            <p className="mt-1 text-zinc-500 dark:text-zinc-400">{model.provider}</p>
+            <p className="mt-1 text-grey-blue text-lg">{model.provider}</p>
           </div>
           <span
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${tierColour[model.tier] ?? tierColour.light}`}
+            className={`shrink-0 font-mono text-xs px-2 py-0.5 rounded-full ${tierColour(model.tier)}`}
           >
             {model.tier}
           </span>
@@ -81,7 +89,7 @@ export default async function ModelDetailPage({
             {model.capabilities.map((cap) => (
               <span
                 key={cap}
-                className="rounded-full bg-zinc-100 px-3 py-1 text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                className="bg-navy text-cream font-mono text-sm px-3 py-1 rounded-full"
               >
                 {capabilityLabels[cap] ?? cap}
               </span>
@@ -92,14 +100,14 @@ export default async function ModelDetailPage({
         {/* Strengths & Weaknesses */}
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
           <Section title="Strengths">
-            <ul className="list-inside list-disc space-y-1 text-sm text-zinc-700 dark:text-zinc-300">
+            <ul className="list-inside list-disc space-y-1 text-sm text-navy marker:text-grey-blue">
               {model.strengths.map((s) => (
                 <li key={s}>{s}</li>
               ))}
             </ul>
           </Section>
           <Section title="Weaknesses">
-            <ul className="list-inside list-disc space-y-1 text-sm text-zinc-700 dark:text-zinc-300">
+            <ul className="list-inside list-disc space-y-1 text-sm text-navy marker:text-grey-blue">
               {model.weaknesses.map((w) => (
                 <li key={w}>{w}</li>
               ))}
@@ -133,13 +141,13 @@ export default async function ModelDetailPage({
             />
           </div>
           <div className="mt-3 flex items-center gap-2 text-sm">
-            <span className="font-medium text-zinc-900 dark:text-zinc-100">Composite:</span>
-            <span className="text-zinc-700 dark:text-zinc-300">
+            <span className="font-medium text-navy">Composite:</span>
+            <span className="font-mono font-bold text-teal text-xl">
               {formatScore(t.transparency_score)}
             </span>
           </div>
           {t.notes && (
-            <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t.notes}</p>
+            <p className="mt-2 text-grey-blue italic text-sm">{t.notes}</p>
           )}
         </Section>
 
@@ -164,13 +172,13 @@ export default async function ModelDetailPage({
             />
           </div>
           <div className="mt-3 flex items-center gap-2 text-sm">
-            <span className="font-medium text-zinc-900 dark:text-zinc-100">Composite:</span>
-            <span className="text-zinc-700 dark:text-zinc-300">
+            <span className="font-medium text-navy">Composite:</span>
+            <span className="font-mono font-bold text-teal text-xl">
               {formatScore(s.sustainability_score)}
             </span>
           </div>
           {s.notes && (
-            <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{s.notes}</p>
+            <p className="mt-2 text-grey-blue italic text-sm">{s.notes}</p>
           )}
         </Section>
 
@@ -179,16 +187,16 @@ export default async function ModelDetailPage({
           <div className="space-y-3">
             {Object.entries(model.task_fitness).map(([task, score]) => (
               <div key={task} className="flex items-center gap-3">
-                <span className="w-28 shrink-0 text-sm text-zinc-600 dark:text-zinc-400">
+                <span className="w-28 shrink-0 text-sm text-grey-blue">
                   {taskLabels[task] ?? task}
                 </span>
-                <div className="relative h-2.5 flex-1 rounded-full bg-zinc-100 dark:bg-zinc-800">
+                <div className="relative h-2.5 flex-1 rounded-full bg-cream-dark">
                   <div
-                    className="absolute inset-y-0 left-0 rounded-full bg-zinc-700 dark:bg-zinc-300"
+                    className="absolute inset-y-0 left-0 rounded-full bg-teal"
                     style={{ width: `${score * 100}%` }}
                   />
                 </div>
-                <span className="w-10 text-right text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
+                <span className="w-10 text-right font-mono text-xs tabular-nums text-grey-blue">
                   {(score * 100).toFixed(0)}%
                 </span>
               </div>
@@ -203,7 +211,7 @@ export default async function ModelDetailPage({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mt-8">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+      <h2 className="mb-3 font-display text-lg text-navy uppercase tracking-wider">
         {title}
       </h2>
       {children}
@@ -214,8 +222,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-zinc-500 dark:text-zinc-400">{label}</p>
-      <p className="font-medium text-zinc-900 dark:text-zinc-100">{value}</p>
+      <p className="text-grey-blue">{label}</p>
+      <p className="font-mono text-xl text-navy">{value}</p>
     </div>
   )
 }

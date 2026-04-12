@@ -15,10 +15,19 @@ const capabilityLabels: Record<Capability, string> = {
   computer_use: 'Computer Use',
 }
 
-const tierColour: Record<string, string> = {
-  frontier: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
-  mid: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
-  light: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
+function tierColour(tier: string): string {
+  if (tier === 'flagship') return 'bg-coral/10 text-coral'
+  if (tier === 'balanced') return 'bg-teal/10 text-teal'
+  if (tier === 'budget') return 'bg-amber/10 text-amber'
+  if (tier === 'reasoning') return 'bg-navy/10 text-navy'
+  if (tier.startsWith('open_source')) return 'bg-teal/10 text-teal'
+  if (tier.startsWith('sustainable')) return 'bg-teal/10 text-teal'
+  if (tier.startsWith('enterprise')) return 'bg-navy/10 text-navy'
+  // fallback for legacy tiers
+  if (tier === 'frontier') return 'bg-coral/10 text-coral'
+  if (tier === 'mid') return 'bg-teal/10 text-teal'
+  if (tier === 'light') return 'bg-amber/10 text-amber'
+  return 'bg-teal/10 text-teal'
 }
 
 export default function ModelsPage() {
@@ -28,10 +37,10 @@ export default function ModelsPage() {
   return (
     <div className="flex flex-1 flex-col items-center px-4 py-12 sm:py-16">
       <div className="w-full max-w-5xl">
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+        <h1 className="font-display text-4xl text-navy">
           Model Registry
         </h1>
-        <p className="mt-2 text-zinc-500 dark:text-zinc-400">
+        <p className="mt-2 text-grey-blue">
           {models.length} models across {providers.size} providers
         </p>
 
@@ -40,19 +49,19 @@ export default function ModelsPage() {
             <Link
               key={model.slug}
               href={`/models/${model.slug}`}
-              className="group rounded-lg border border-zinc-200 bg-white p-5 transition-colors hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-500"
+              className="group bg-white border border-cream-dark rounded-xl shadow-sm hover:border-teal hover:shadow-md transition-all p-5"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-base font-semibold text-zinc-900 group-hover:text-zinc-700 dark:text-zinc-100 dark:group-hover:text-zinc-300">
+                  <h2 className="font-display font-bold text-navy">
                     {model.name}
                   </h2>
-                  <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
+                  <p className="mt-0.5 text-grey-blue text-sm">
                     {model.provider}
                   </p>
                 </div>
                 <span
-                  className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${tierColour[model.tier] ?? tierColour.light}`}
+                  className={`shrink-0 font-mono text-xs px-2 py-0.5 rounded-full ${tierColour(model.tier)}`}
                 >
                   {model.tier}
                 </span>
@@ -62,19 +71,19 @@ export default function ModelsPage() {
                 {model.capabilities.slice(0, 4).map((cap) => (
                   <span
                     key={cap}
-                    className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                    className="font-mono text-xs bg-cream-dark text-navy px-2 py-0.5 rounded"
                   >
                     {capabilityLabels[cap] ?? cap}
                   </span>
                 ))}
                 {model.capabilities.length > 4 && (
-                  <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-800 dark:text-zinc-500">
+                  <span className="font-mono text-xs bg-cream-dark text-navy px-2 py-0.5 rounded">
                     +{model.capabilities.length - 4}
                   </span>
                 )}
               </div>
 
-              <div className="mt-3 flex gap-4 text-xs text-zinc-500 dark:text-zinc-400">
+              <div className="mt-3 flex gap-4 font-mono text-sm text-grey-blue">
                 <span>${model.pricing.input_per_1m}/1M in</span>
                 <span>${model.pricing.output_per_1m}/1M out</span>
               </div>

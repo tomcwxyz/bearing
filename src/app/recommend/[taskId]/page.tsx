@@ -103,12 +103,12 @@ export default function ClarificationPage() {
 
   if (error && !ready) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-zinc-50 dark:bg-black">
+      <div className="flex flex-1 items-center justify-center">
         <div className="max-w-md px-6 text-center">
-          <p className="text-lg text-zinc-600 dark:text-zinc-400">{error}</p>
+          <p className="text-lg text-coral">{error}</p>
           <a
             href="/"
-            className="mt-6 inline-block rounded-full bg-zinc-900 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="mt-6 inline-block rounded-full bg-navy text-cream px-6 py-2.5 text-sm font-medium transition-colors hover:bg-navy-light"
           >
             Start over
           </a>
@@ -119,29 +119,29 @@ export default function ClarificationPage() {
 
   if (!ready) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-zinc-50 dark:bg-black">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-100" />
+      <div className="flex flex-1 items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-cream-dark border-t-teal" />
       </div>
     )
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center bg-zinc-50 dark:bg-black">
+    <div className="flex flex-1 flex-col items-center">
       <main className="flex w-full max-w-2xl flex-col gap-8 px-6 py-16 sm:py-24">
         <div>
-          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm font-medium text-grey-blue">
             Round {round} of 2
           </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+          <h1 className="mt-2 font-display text-2xl text-navy">
             A few quick questions
           </h1>
-          <p className="mt-2 text-base text-zinc-500 dark:text-zinc-400">
+          <p className="mt-2 text-base text-grey-blue">
             Help us understand your task better so we can recommend the right model.
           </p>
         </div>
 
         {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+          <div className="rounded-lg border border-coral/30 bg-coral/5 px-4 py-3 text-sm text-coral">
             {error}
           </div>
         )}
@@ -149,7 +149,7 @@ export default function ClarificationPage() {
         <div className="flex flex-col gap-8">
           {questions.map((q, qi) => (
             <div key={`${round}-${qi}`} className="flex flex-col gap-3">
-              <h2 className="text-base font-medium text-zinc-900 dark:text-zinc-100">
+              <h2 className="font-display text-navy font-medium">
                 {q.question}
               </h2>
               <div className="flex flex-wrap gap-2">
@@ -162,8 +162,8 @@ export default function ClarificationPage() {
                       disabled={loading}
                       className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
                         selected
-                          ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                          : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:bg-zinc-800'
+                          ? 'bg-navy text-cream border-navy'
+                          : 'border-cream-dark text-navy hover:border-teal hover:text-teal'
                       } ${loading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                     >
                       {option}
@@ -177,8 +177,8 @@ export default function ClarificationPage() {
 
         {loading && (
           <div className="flex items-center gap-3 pt-4">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-100" />
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-cream-dark border-t-teal" />
+            <p className="text-sm text-teal">
               Re-classifying your task...
             </p>
           </div>
