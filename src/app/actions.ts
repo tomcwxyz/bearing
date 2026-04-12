@@ -200,3 +200,95 @@ export async function submitOutcome(
     return { error: error instanceof Error ? error.message : 'Failed to submit outcome.' }
   }
 }
+
+// ---------------------------------------------------------------------------
+// 7. submitValidation
+// ---------------------------------------------------------------------------
+
+export async function submitValidation(formData: FormData) {
+  try {
+    const modelSlug = formData.get('modelSlug') as string
+    const description = formData.get('description') as string
+
+    if (!modelSlug?.trim() || !description?.trim()) {
+      return { error: 'Please provide both a model and task description.' }
+    }
+
+    const classification = await classifyTask(description.trim())
+
+    const descriptionHash = createHash('sha256')
+      .update(description.trim().toLowerCase())
+      .digest('hex')
+
+    const taskId = await createTask({
+      descriptionHash,
+      taskType: classification.task_type,
+      taskSubtype: classification.task_subtype ?? undefined,
+      complexity: classification.complexity,
+      inputLength: classification.input_length,
+      needsVision: classification.needs_vision,
+      needsTools: classification.needs_tools,
+      needsCode: classification.needs_code,
+      isRecurring: classification.is_recurring,
+      mode: 'validate',
+      classificationConfidence: classification.confidence,
+    })
+
+    // Use default priorities for validate mode
+    const defaultPriorities: Factor[] = ['quality', 'capability', 'cost', 'transparency', 'privacy', 'sustainability', 'speed']
+    await updateTaskPriorities(taskId, defaultPriorities)
+
+    redirect(`/validate/${taskId}/results?model=${encodeURIComponent(modelSlug)}`)
+  } catch (error) {
+    if (isRedirectError(error)) throw error
+    return { error: error instanceof Error ? error.message : 'Failed to submit validation.' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 8. getValidationResults
+// ---------------------------------------------------------------------------
+
+export async function getValidationResults(taskId: string, currentModelSlug: string) {
+  try {
+    const task = await getTask(taskId)
+    if (!task) return { error: 'Task not found.' }
+
+    const priorityOrder: Factor[] = task.priority_order
+      ? (typeof task.priority_order === 'string' ? JSON.parse(task.priority_order) : task.priority_order)
+      : ['quality', 'capability', 'cost', 'transparency', 'privacy', 'sustainability', 'speed']
+
+    const models = scoreModels({
+      taskType: task.task_type,
+      complexity: task.complexity,
+      inputLength: task.input_length,
+      needsVision: task.needs_vision,
+      needsTools: task.needs_tools,
+      needsCode: task.needs_code,
+      priorityOrder,
+    })
+
+    // Find the current model's position
+    const currentModelIndex = models.findIndex(m => m.slug === currentModelSlug)
+    const currentModel = currentModelIndex >= 0 ? models[currentModelIndex] : null
+    const currentModelRank = currentModelIndex >= 0 ? currentModelIndex + 1 : null
+
+    // Determine assessment
+    let assessment: 'good_fit' | 'overpaying' | 'better_options'
+    if (!currentModel) {
+      assessment = 'better_options' // model not in registry or excluded by capabilities
+    } else if (currentModelRank === 1) {
+      assessment = 'good_fit'
+    } else if (currentModelRank! <= 3 && currentModel.factorScores.cost < 0.5) {
+      assessment = 'overpaying' // ranked ok but expensive
+    } else if (currentModelRank! <= 3) {
+      assessment = 'good_fit'
+    } else {
+      assessment = 'better_options'
+    }
+
+    return { task, models, currentModel, currentModelRank, assessment }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Failed to get validation results.' }
+  }
+}
