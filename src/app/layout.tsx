@@ -1,11 +1,6 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Bearing — Find the right AI model",
@@ -19,8 +14,38 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+    <html lang="en" className="h-full antialiased">
+      <body className="min-h-full flex flex-col font-body">
+        <header className="bg-navy text-cream border-b border-navy-light">
+          <nav className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+            <Link href="/" className="font-display text-xl font-bold tracking-tight">
+              Bearing
+            </Link>
+            <div className="flex items-center gap-6 text-sm font-medium">
+              <Link href="/models" className="hover:text-grey-blue-light transition-colors">
+                Models
+              </Link>
+              <Link href="/about" className="hover:text-grey-blue-light transition-colors">
+                About
+              </Link>
+            </div>
+          </nav>
+        </header>
+
+        <main className="flex-1">{children}</main>
+
+        <footer className="border-t border-cream-dark px-6 py-6 text-center text-sm text-grey-blue">
+          Built by{" "}
+          <a
+            href="https://good-ship.co.uk"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-navy transition-colors"
+          >
+            The Good Ship
+          </a>
+        </footer>
+      </body>
     </html>
   );
 }
