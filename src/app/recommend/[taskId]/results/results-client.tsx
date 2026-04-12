@@ -89,7 +89,7 @@ export function ResultsClient({ taskId, models, reasoning }: ResultsClientProps)
                     {model.name}
                   </h3>
                 </div>
-                <p className="mt-0.5 ml-9 text-grey-blue text-sm">
+                <p className="mt-0.5 ml-9 text-navy/60 text-sm">
                   {model.provider}
                 </p>
               </div>
@@ -103,7 +103,7 @@ export function ResultsClient({ taskId, models, reasoning }: ResultsClientProps)
 
             {/* Reasoning */}
             {reasoning[model.slug] && (
-              <p className="mb-4 ml-9 text-grey-blue italic text-sm">
+              <p className="mb-4 ml-9 text-navy/70 italic text-sm leading-relaxed">
                 {reasoning[model.slug]}
               </p>
             )}
@@ -115,7 +115,7 @@ export function ResultsClient({ taskId, models, reasoning }: ResultsClientProps)
                 const pct = Math.round(score * 100)
                 return (
                   <div key={factor} className="flex items-center gap-3">
-                    <span className="w-28 shrink-0 text-grey-blue text-xs font-mono">
+                    <span className="w-28 shrink-0 text-navy/60 text-xs font-mono">
                       {FACTOR_LABELS[factor]}
                     </span>
                     <div className="flex-1 h-2 rounded-full bg-cream-dark">
@@ -124,7 +124,7 @@ export function ResultsClient({ taskId, models, reasoning }: ResultsClientProps)
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="w-8 shrink-0 text-right text-grey-blue text-xs font-mono">
+                    <span className="w-8 shrink-0 text-right text-navy/70 text-xs font-mono font-semibold">
                       {pct}
                     </span>
                   </div>
@@ -134,7 +134,7 @@ export function ResultsClient({ taskId, models, reasoning }: ResultsClientProps)
 
             {/* Cost + action */}
             <div className="flex items-center justify-between ml-9">
-              <p className="font-mono text-sm text-grey-blue">
+              <p className="font-mono text-sm text-navy/60">
                 ~${model.estimatedCost.toFixed(4)} per task
               </p>
               <button
