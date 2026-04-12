@@ -48,8 +48,8 @@ Mark tasks with:
 - [x] Validate mode (model autocomplete, 3-state assessment)
 - [x] Persistent feedback URLs (bookmarkable link after selection)
 - [x] Home page Validate tab wired up
-- [ ] `/models` polish and filtering
-- [ ] Open source repo polish (README, LICENSE, CONTRIBUTING)
+- [x] `/models` polish and filtering (search, provider/capability filter pills)
+- [x] Open source repo polish (README, LICENSE, CONTRIBUTING)
 
 ## Sprint 3: Compare + Public Dataset (planned, not started)
 
