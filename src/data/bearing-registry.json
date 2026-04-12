@@ -1,11 +1,11 @@
 {
   "meta": {
     "name": "Bearing Model Registry",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "updated": "2026-04-12",
     "maintainer": "The Good Ship · good-ship.co.uk",
     "license": "CC BY-NC 4.0",
-    "notes": "v0.2.0 adds transparency as a scoring factor (referencing Stanford FMTI 2025), expands sustainability from single score to three sub-dimensions (inference_energy, training_footprint, provider_infrastructure), adds GreenPT (GreenL/GreenR) and IBM Granite 3.3. Total: 17 models across 8 providers."
+    "notes": "v0.3.0 adds 7 new models: Mistral OCR, Codestral, Devstral, Kimi K2, Qwen 3, MiniMax-M1, DeepSeek R1 0528. Total: 24 models across 11 providers."
   },
   "scoring_methodology": {
     "description": "Each model receives per-factor scores from 0.0 to 1.0 across seven dimensions. Combined using user-defined priority weights to produce a ranked recommendation list.",
@@ -1007,6 +1007,403 @@
         "sustainability_score": 0.57,
         "notes": "Published some training compute/energy. Smaller models run on consumer hardware."
       }
+    },
+    "mistral-ocr": {
+      "name": "Mistral OCR (Pixtral Large)",
+      "provider": "Mistral",
+      "tier": "specialist_vision",
+      "pricing": {
+        "input_per_1m": 2.0,
+        "output_per_1m": 6.0
+      },
+      "context_window": 128000,
+      "capabilities": [
+        "vision",
+        "tools",
+        "structured_output",
+        "multilingual"
+      ],
+      "strengths": [
+        "Best-in-class document/PDF OCR",
+        "Structured data extraction from images",
+        "Multilingual document processing",
+        "Handles complex layouts/tables"
+      ],
+      "weaknesses": [
+        "Specialist model — not for general chat",
+        "Higher cost than general models for non-vision tasks"
+      ],
+      "task_fitness": {
+        "summarise": 0.7,
+        "generate": 0.6,
+        "extract": 0.95,
+        "code": 0.5,
+        "analyse": 0.75,
+        "translate": 0.7,
+        "conversation": 0.5,
+        "vision": 0.95
+      },
+      "speed_score": 0.6,
+      "privacy_score": 0.85,
+      "transparency": {
+        "open_weights": 0.7,
+        "open_training_data": 0.3,
+        "open_methodology": 0.5,
+        "licence_openness": 0.7,
+        "provider_disclosure": 0.2,
+        "fmti_company_score": 15,
+        "transparency_score": 0.48,
+        "notes": "Open weights with registration. FMTI 15."
+      },
+      "sustainability": {
+        "inference_energy": 0.5,
+        "training_footprint": null,
+        "provider_infrastructure": 0.4,
+        "sustainability_score": 0.45,
+        "notes": "EU-based. Vision models require more compute."
+      }
+    },
+    "codestral-25.01": {
+      "name": "Codestral",
+      "provider": "Mistral",
+      "tier": "specialist_code",
+      "pricing": {
+        "input_per_1m": 0.3,
+        "output_per_1m": 0.9
+      },
+      "context_window": 256000,
+      "capabilities": [
+        "code",
+        "tools",
+        "structured_output",
+        "multilingual"
+      ],
+      "strengths": [
+        "Purpose-built for code",
+        "Fill-in-the-middle support",
+        "256K context",
+        "80+ languages",
+        "Very competitive pricing"
+      ],
+      "weaknesses": [
+        "Code specialist only",
+        "No vision",
+        "Not for general text tasks"
+      ],
+      "task_fitness": {
+        "summarise": 0.5,
+        "generate": 0.45,
+        "extract": 0.6,
+        "code": 0.95,
+        "analyse": 0.6,
+        "translate": 0.55,
+        "conversation": 0.4,
+        "vision": 0.0
+      },
+      "speed_score": 0.8,
+      "privacy_score": 0.85,
+      "transparency": {
+        "open_weights": 1.0,
+        "open_training_data": 0.3,
+        "open_methodology": 0.5,
+        "licence_openness": 0.7,
+        "provider_disclosure": 0.2,
+        "fmti_company_score": 15,
+        "transparency_score": 0.54,
+        "notes": "Open weights. Mistral FMTI 15."
+      },
+      "sustainability": {
+        "inference_energy": 0.6,
+        "training_footprint": null,
+        "provider_infrastructure": 0.4,
+        "sustainability_score": 0.5,
+        "notes": "EU-based. Efficient for code tasks."
+      }
+    },
+    "devstral": {
+      "name": "Devstral",
+      "provider": "Mistral",
+      "tier": "specialist_code",
+      "pricing": {
+        "input_per_1m": 0.2,
+        "output_per_1m": 0.6
+      },
+      "context_window": 128000,
+      "capabilities": [
+        "code",
+        "tools",
+        "structured_output"
+      ],
+      "strengths": [
+        "Agentic coding specialist",
+        "Small model (24B)",
+        "Excellent for tool use and code agents",
+        "Open weights",
+        "Very cheap"
+      ],
+      "weaknesses": [
+        "Smaller than Codestral",
+        "No vision",
+        "Narrow focus"
+      ],
+      "task_fitness": {
+        "summarise": 0.4,
+        "generate": 0.4,
+        "extract": 0.55,
+        "code": 0.88,
+        "analyse": 0.5,
+        "translate": 0.4,
+        "conversation": 0.35,
+        "vision": 0.0
+      },
+      "speed_score": 0.85,
+      "privacy_score": 0.85,
+      "transparency": {
+        "open_weights": 1.0,
+        "open_training_data": 0.3,
+        "open_methodology": 0.5,
+        "licence_openness": 1.0,
+        "provider_disclosure": 0.2,
+        "fmti_company_score": 15,
+        "transparency_score": 0.6,
+        "notes": "Apache 2.0 + open weights. Mistral FMTI 15."
+      },
+      "sustainability": {
+        "inference_energy": 0.7,
+        "training_footprint": null,
+        "provider_infrastructure": 0.4,
+        "sustainability_score": 0.55,
+        "notes": "Small 24B model = efficient inference."
+      }
+    },
+    "kimi-k2": {
+      "name": "Kimi K2",
+      "provider": "Moonshot AI",
+      "tier": "flagship",
+      "pricing": {
+        "input_per_1m": 0.6,
+        "output_per_1m": 2.0
+      },
+      "context_window": 128000,
+      "capabilities": [
+        "vision",
+        "tools",
+        "code",
+        "extended_thinking",
+        "structured_output",
+        "multilingual"
+      ],
+      "strengths": [
+        "MoE architecture (1T params, 32B active)",
+        "Excellent agentic capabilities",
+        "Strong coding",
+        "Very competitive pricing for flagship quality"
+      ],
+      "weaknesses": [
+        "Newer provider — smaller ecosystem",
+        "China-based data jurisdiction"
+      ],
+      "task_fitness": {
+        "summarise": 0.82,
+        "generate": 0.8,
+        "extract": 0.85,
+        "code": 0.9,
+        "analyse": 0.85,
+        "translate": 0.82,
+        "conversation": 0.78,
+        "vision": 0.78
+      },
+      "speed_score": 0.7,
+      "privacy_score": 0.3,
+      "transparency": {
+        "open_weights": 1.0,
+        "open_training_data": 0.3,
+        "open_methodology": 0.7,
+        "licence_openness": 0.7,
+        "provider_disclosure": 0.2,
+        "fmti_company_score": null,
+        "transparency_score": 0.58,
+        "notes": "Open weights with licence restrictions. Not scored by FMTI."
+      },
+      "sustainability": {
+        "inference_energy": 0.5,
+        "training_footprint": null,
+        "provider_infrastructure": 0.2,
+        "sustainability_score": 0.35,
+        "notes": "MoE efficient at inference. No provider energy data."
+      }
+    },
+    "qwen-3-235b": {
+      "name": "Qwen 3 235B",
+      "provider": "Alibaba (via hosted providers)",
+      "tier": "flagship",
+      "pricing": {
+        "input_per_1m": 0.4,
+        "output_per_1m": 1.2
+      },
+      "context_window": 128000,
+      "capabilities": [
+        "vision",
+        "tools",
+        "code",
+        "extended_thinking",
+        "structured_output",
+        "multilingual"
+      ],
+      "strengths": [
+        "Hybrid thinking (toggle reasoning on/off)",
+        "Excellent multilingual",
+        "MoE (22B active)",
+        "Strong benchmark scores",
+        "Apache 2.0"
+      ],
+      "weaknesses": [
+        "128K context limit",
+        "Self-hosting needs significant GPU"
+      ],
+      "task_fitness": {
+        "summarise": 0.85,
+        "generate": 0.82,
+        "extract": 0.85,
+        "code": 0.88,
+        "analyse": 0.88,
+        "translate": 0.92,
+        "conversation": 0.82,
+        "vision": 0.8
+      },
+      "speed_score": 0.65,
+      "privacy_score": 0.95,
+      "transparency": {
+        "open_weights": 1.0,
+        "open_training_data": 0.3,
+        "open_methodology": 0.7,
+        "licence_openness": 1.0,
+        "provider_disclosure": 0.2,
+        "fmti_company_score": 30,
+        "transparency_score": 0.64,
+        "notes": "Apache 2.0, open weights. Alibaba FMTI 30."
+      },
+      "sustainability": {
+        "inference_energy": 0.5,
+        "training_footprint": null,
+        "provider_infrastructure": null,
+        "sustainability_score": 0.5,
+        "notes": "MoE efficient. Depends on hosting."
+      }
+    },
+    "minimax-m1": {
+      "name": "MiniMax-M1",
+      "provider": "MiniMax",
+      "tier": "balanced",
+      "pricing": {
+        "input_per_1m": 0.3,
+        "output_per_1m": 1.1
+      },
+      "context_window": 1000000,
+      "capabilities": [
+        "vision",
+        "tools",
+        "code",
+        "long_context",
+        "extended_thinking",
+        "structured_output",
+        "multilingual"
+      ],
+      "strengths": [
+        "1M context window",
+        "Lightning-based linear attention (efficient long context)",
+        "Strong reasoning",
+        "Competitive pricing"
+      ],
+      "weaknesses": [
+        "Smaller provider ecosystem",
+        "Less community validation"
+      ],
+      "task_fitness": {
+        "summarise": 0.82,
+        "generate": 0.78,
+        "extract": 0.82,
+        "code": 0.8,
+        "analyse": 0.82,
+        "translate": 0.78,
+        "conversation": 0.78,
+        "vision": 0.75
+      },
+      "speed_score": 0.7,
+      "privacy_score": 0.5,
+      "transparency": {
+        "open_weights": 0.7,
+        "open_training_data": 0.3,
+        "open_methodology": 0.5,
+        "licence_openness": 0.7,
+        "provider_disclosure": 0.2,
+        "fmti_company_score": null,
+        "transparency_score": 0.48,
+        "notes": "Open weights with restrictions. Not FMTI-scored."
+      },
+      "sustainability": {
+        "inference_energy": 0.5,
+        "training_footprint": null,
+        "provider_infrastructure": 0.2,
+        "sustainability_score": 0.35,
+        "notes": "Linear attention is efficient. No provider data."
+      }
+    },
+    "deepseek-r1-0528": {
+      "name": "DeepSeek R1 0528",
+      "provider": "DeepSeek",
+      "tier": "reasoning",
+      "pricing": {
+        "input_per_1m": 0.55,
+        "output_per_1m": 2.19
+      },
+      "context_window": 128000,
+      "capabilities": [
+        "tools",
+        "code",
+        "extended_thinking",
+        "structured_output"
+      ],
+      "strengths": [
+        "Major upgrade over R1 — better instruction following",
+        "Fewer reasoning loops",
+        "Agentic tool use",
+        "MIT licensed"
+      ],
+      "weaknesses": [
+        "No vision",
+        "Higher output cost (chain-of-thought)",
+        "Data jurisdiction"
+      ],
+      "task_fitness": {
+        "summarise": 0.75,
+        "generate": 0.72,
+        "extract": 0.78,
+        "code": 0.9,
+        "analyse": 0.92,
+        "translate": 0.68,
+        "conversation": 0.68,
+        "vision": 0.0
+      },
+      "speed_score": 0.45,
+      "privacy_score": 0.3,
+      "transparency": {
+        "open_weights": 1.0,
+        "open_training_data": 0.3,
+        "open_methodology": 0.7,
+        "licence_openness": 1.0,
+        "provider_disclosure": 0.2,
+        "fmti_company_score": 30,
+        "transparency_score": 0.64,
+        "notes": "MIT licence + open weights. DeepSeek FMTI 30."
+      },
+      "sustainability": {
+        "inference_energy": 0.35,
+        "training_footprint": null,
+        "provider_infrastructure": 0.2,
+        "sustainability_score": 0.28,
+        "notes": "Reasoning = more tokens = higher energy."
+      }
     }
   },
   "changelog": [
@@ -1019,6 +1416,11 @@
       "date": "2026-04-12",
       "version": "0.2.0",
       "changes": "Added transparency factor (5 sub-dimensions, FMTI reference). Expanded sustainability (3 sub-dimensions). Added GreenPT GreenL/GreenR, IBM Granite 3.3. 17 models, 8 providers."
+    },
+    {
+      "date": "2026-04-12",
+      "version": "0.3.0",
+      "changes": "Added 7 models: Mistral OCR, Codestral, Devstral, Kimi K2, Qwen 3 235B, MiniMax-M1, DeepSeek R1 0528. 24 models, 11 providers. Added specialist tiers."
     }
   ]
 }
