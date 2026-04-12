@@ -32,7 +32,7 @@ Implementation plan: `docs/plans/2026-04-12-bearing-sprint1.md`
 - [x] Task 14: Models registry page
 - [x] Task 15: About page
 - [x] Task 16: End-to-end smoke test
-- [~] Task 17: Deploy to Vercel ← CURRENT (needs Neon migration + Vercel link)
+- [~] Task 17: Deploy to Vercel (needs Neon migration + Vercel link)
 - [x] Task 18: Update project files
 
 Mark tasks with:
@@ -41,10 +41,13 @@ Mark tasks with:
 - `[x]` complete
 - `[!]` blocked — note why
 
-## Sprint 2: Validate + Feedback Loop (planned, not started)
+## Sprint 2: Validate + Feedback Loop
 
-- [ ] Validate mode (model autocomplete, assessment logic)
-- [ ] Outcome feedback flow (persistent URLs)
+- [x] Visual design system (Fraunces/DM Sans/JetBrains Mono, navy/cream/teal palette)
+- [x] Restyle all pages with brand design
+- [x] Validate mode (model autocomplete, 3-state assessment)
+- [x] Persistent feedback URLs (bookmarkable link after selection)
+- [x] Home page Validate tab wired up
 - [ ] `/models` polish and filtering
 - [ ] Open source repo polish (README, LICENSE, CONTRIBUTING)
 
