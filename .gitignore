@@ -1,0 +1,13 @@
+CLAUDE.local.md
+HANDOFF.md
+.claude/settings.local.json
+
+# dependencies
+node_modules
+
+# next.js
+.next
+
+# env files
+.env.local
+.env*.local

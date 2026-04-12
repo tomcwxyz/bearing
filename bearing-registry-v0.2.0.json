@@ -1,0 +1,1024 @@
+{
+  "meta": {
+    "name": "Bearing Model Registry",
+    "version": "0.2.0",
+    "updated": "2026-04-12",
+    "maintainer": "The Good Ship · good-ship.co.uk",
+    "license": "CC BY-NC 4.0",
+    "notes": "v0.2.0 adds transparency as a scoring factor (referencing Stanford FMTI 2025), expands sustainability from single score to three sub-dimensions (inference_energy, training_footprint, provider_infrastructure), adds GreenPT (GreenL/GreenR) and IBM Granite 3.3. Total: 17 models across 8 providers."
+  },
+  "scoring_methodology": {
+    "description": "Each model receives per-factor scores from 0.0 to 1.0 across seven dimensions. Combined using user-defined priority weights to produce a ranked recommendation list.",
+    "factors": {
+      "cost": "Inverse-normalised against cheapest model. Lower cost = higher score.",
+      "speed": "Based on latency tiers and inference benchmarks. 1.0 = sub-second.",
+      "quality": "Composite of benchmark performance weighted toward task type. Weakest signal — will improve with outcome data.",
+      "privacy": "Based on data retention policies. 1.0 = no retention, no training on inputs.",
+      "sustainability": "Composite of inference_energy, training_footprint, provider_infrastructure.",
+      "transparency": "Composite of open_weights, open_training_data, open_methodology, licence_openness, provider_disclosure.",
+      "capability": "Binary pass/fail for hard requirements. Graduated for soft matches."
+    },
+    "default_weights": {
+      "quality": 0.25,
+      "capability": 0.2,
+      "cost": 0.2,
+      "transparency": 0.1,
+      "privacy": 0.1,
+      "sustainability": 0.1,
+      "speed": 0.05
+    }
+  },
+  "transparency_methodology": {
+    "description": "Transparency scored across five dimensions, each 0.0-1.0. Composite = mean of all five.",
+    "fmti_reference": "Stanford CRFM FMTI 2025. 100 indicators, 13 companies. Average: 40.69/100. IBM: 95, AI21 Labs: 72, Writer: 67, Anthropic: 37, Google: 36, Amazon: 36, OpenAI: 35, DeepSeek: 30, Meta: 30, Alibaba: 30, Mistral: 15, xAI: 14, Midjourney: 14.",
+    "fmti_criticism": "EleutherAI argues FMTI measures commercial documentation rather than genuine openness, biased against open-source projects. Bearing weights actual accessibility alongside documentation.",
+    "dimensions": {
+      "open_weights": "1.0=fully downloadable; 0.7=with registration; 0.3=API only; 0.0=closed",
+      "open_training_data": "1.0=documented+accessible; 0.7=documented not accessible; 0.3=vague; 0.0=none",
+      "open_methodology": "1.0=full reproducible paper; 0.7=substantial blog/card; 0.3=marketing only; 0.0=none",
+      "licence_openness": "1.0=MIT/Apache; 0.7=open with restrictions; 0.3=proprietary clear terms; 0.0=restrictive",
+      "provider_disclosure": "1.0=FMTI 80+; 0.7=FMTI 50-79; 0.4=FMTI 30-49; 0.2=FMTI 15-29; 0.0=FMTI <15"
+    }
+  },
+  "sustainability_methodology": {
+    "description": "Three sub-dimensions, each 0.0-1.0. Composite = mean of available (nulls excluded).",
+    "dimensions": {
+      "inference_energy": "1.0=published per-query metrics; 0.8=very small/efficient; 0.6=MoE; 0.4=standard large; null=no data",
+      "training_footprint": "1.0=published with offsets; 0.7=published; 0.4=estimated; 0.0=no info; null=no data",
+      "provider_infrastructure": "1.0=100% renewable+heat recovery; 0.8=100% renewable; 0.6=significant commitment+reporting; 0.4=some renewable; 0.2=none; null=no data"
+    }
+  },
+  "models": {
+    "claude-opus-4.6": {
+      "name": "Claude Opus 4.6",
+      "provider": "Anthropic",
+      "tier": "flagship",
+      "pricing": {
+        "input_per_1m": 5.0,
+        "output_per_1m": 25.0
+      },
+      "context_window": 1000000,
+      "capabilities": [
+        "vision",
+        "tools",
+        "code",
+        "long_context",
+        "extended_thinking",
+        "structured_output",
+        "multilingual"
+      ],
+      "strengths": [
+        "Deepest reasoning",
+        "Best for complex multi-step tasks",
+        "1M context at standard pricing"
+      ],
+      "weaknesses": [
+        "Most expensive Anthropic model",
+        "Slower than Sonnet/Haiku"
+      ],
+      "task_fitness": {
+        "summarise": 0.9,
+        "generate": 0.95,
+        "extract": 0.9,
+        "code": 0.92,
+        "analyse": 0.95,
+        "translate": 0.85,
+        "conversation": 0.9,
+        "vision": 0.85
+      },
+      "speed_score": 0.4,
+      "privacy_score": 0.9,
+      "transparency": {
+        "open_weights": 0.0,
+        "open_training_data": 0.0,
+        "open_methodology": 0.5,
+        "licence_openness": 0.3,
+        "provider_disclosure": 0.4,
+        "fmti_company_score": 37,
+        "transparency_score": 0.24,
+        "notes": "Anthropic FMTI 37. No transparency report submitted. Publishes model cards. No training data disclosure."
+      },
+      "sustainability": {
+        "inference_energy": null,
+        "training_footprint": null,
+        "provider_infrastructure": 0.3,
+        "sustainability_score": 0.3,
+        "notes": "No published energy data. No specific renewable energy commitments for AI compute."
+      }
+    },
+    "claude-sonnet-4.6": {
+      "name": "Claude Sonnet 4.6",
+      "provider": "Anthropic",
+      "tier": "balanced",
+      "pricing": {
+        "input_per_1m": 3.0,
+        "output_per_1m": 15.0
+      },
+      "context_window": 1000000,
+      "capabilities": [
+        "vision",
+        "tools",
+        "code",
+        "long_context",
+        "extended_thinking",
+        "structured_output",
+        "multilingual"
+      ],
+      "strengths": [
+        "Best balance of cost/speed/quality at Anthropic",
+        "128K max output",
+        "Strong instruction following"
+      ],
+      "weaknesses": [
+        "Not the cheapest for simple tasks"
+      ],
+      "task_fitness": {
+        "summarise": 0.88,
+        "generate": 0.9,
+        "extract": 0.88,
+        "code": 0.9,
+        "analyse": 0.88,
+        "translate": 0.82,
+        "conversation": 0.88,
+        "vision": 0.82
+      },
+      "speed_score": 0.65,
+      "privacy_score": 0.9,
+      "transparency": {
+        "open_weights": 0.0,
+        "open_training_data": 0.0,
+        "open_methodology": 0.5,
+        "licence_openness": 0.3,
+        "provider_disclosure": 0.4,
+        "fmti_company_score": 37,
+        "transparency_score": 0.24,
+        "notes": "Anthropic FMTI 37. No transparency report submitted. Publishes model cards. No training data disclosure."
+      },
+      "sustainability": {
+        "inference_energy": null,
+        "training_footprint": null,
+        "provider_infrastructure": 0.3,
+        "sustainability_score": 0.3,
+        "notes": "No published energy data. No specific renewable energy commitments for AI compute."
+      }
+    },
+    "claude-haiku-4.5": {
+      "name": "Claude Haiku 4.5",
+      "provider": "Anthropic",
+      "tier": "budget",
+      "pricing": {
+        "input_per_1m": 1.0,
+        "output_per_1m": 5.0
+      },
+      "context_window": 200000,
+      "capabilities": [
+        "vision",
+        "tools",
+        "code",
+        "extended_thinking",
+        "structured_output",
+        "multilingual"
+      ],
+      "strengths": [
+        "Fast and cheap",
+        "Good for most simple tasks",
+        "Matches Sonnet 4 on coding"
+      ],
+      "weaknesses": [
+        "200K context limit",
+        "Weaker on complex reasoning"
+      ],
+      "task_fitness": {
+        "summarise": 0.78,
+        "generate": 0.75,
+        "extract": 0.82,
+        "code": 0.8,
+        "analyse": 0.72,
+        "translate": 0.75,
+        "conversation": 0.78,
+        "vision": 0.75
+      },
+      "speed_score": 0.9,
+      "privacy_score": 0.9,
+      "transparency": {
+        "open_weights": 0.0,
+        "open_training_data": 0.0,
+        "open_methodology": 0.5,
+        "licence_openness": 0.3,
+        "provider_disclosure": 0.4,
+        "fmti_company_score": 37,
+        "transparency_score": 0.24,
+        "notes": "Anthropic FMTI 37. No transparency report submitted. Publishes model cards. No training data disclosure."
+      },
+      "sustainability": {
+        "inference_energy": 0.5,
+        "training_footprint": null,
+        "provider_infrastructure": 0.3,
+        "sustainability_score": 0.4,
+        "notes": "Smaller model = more efficient inference"
+      }
+    },
+    "gpt-5.4": {
+      "name": "GPT-5.4",
+      "provider": "OpenAI",
+      "tier": "flagship",
+      "pricing": {
+        "input_per_1m": 2.5,
+        "output_per_1m": 15.0
+      },
+      "context_window": 1000000,
+      "capabilities": [
+        "vision",
+        "tools",
+        "code",
+        "long_context",
+        "extended_thinking",
+        "structured_output",
+        "computer_use",
+        "multilingual"
+      ],
+      "strengths": [
+        "Broadest capability set",
+        "Strong coding and computer use",
+        "1M context"
+      ],
+      "weaknesses": [
+        "Premium pricing on output-heavy tasks"
+      ],
+      "task_fitness": {
+        "summarise": 0.88,
+        "generate": 0.88,
+        "extract": 0.9,
+        "code": 0.93,
+        "analyse": 0.9,
+        "translate": 0.85,
+        "conversation": 0.85,
+        "vision": 0.88
+      },
+      "speed_score": 0.55,
+      "privacy_score": 0.7,
+      "transparency": {
+        "open_weights": 0.0,
+        "open_training_data": 0.0,
+        "open_methodology": 0.5,
+        "licence_openness": 0.3,
+        "provider_disclosure": 0.4,
+        "fmti_company_score": 35,
+        "transparency_score": 0.24,
+        "notes": "OpenAI FMTI 35. Publishes system cards. No training data disclosure. Score dropped from 2024."
+      },
+      "sustainability": {
+        "inference_energy": null,
+        "training_footprint": null,
+        "provider_infrastructure": 0.4,
+        "sustainability_score": 0.4,
+        "notes": "Microsoft Azure partnership includes renewable energy goals. Indirect claims only."
+      }
+    },
+    "gpt-5.4-mini": {
+      "name": "GPT-5.4 Mini",
+      "provider": "OpenAI",
+      "tier": "balanced",
+      "pricing": {
+        "input_per_1m": 0.75,
+        "output_per_1m": 4.5
+      },
+      "context_window": 400000,
+      "capabilities": [
+        "vision",
+        "tools",
+        "code",
+        "structured_output",
+        "multilingual"
+      ],
+      "strengths": [
+        "Excellent cost/performance",
+        "Near GPT-5.4 on coding",
+        "Fast",
+        "400K context"
+      ],
+      "weaknesses": [
+        "Not as strong on complex reasoning as full 5.4"
+      ],
+      "task_fitness": {
+        "summarise": 0.82,
+        "generate": 0.8,
+        "extract": 0.85,
+        "code": 0.88,
+        "analyse": 0.78,
+        "translate": 0.8,
+        "conversation": 0.8,
+        "vision": 0.82
+      },
+      "speed_score": 0.85,
+      "privacy_score": 0.7,
+      "transparency": {
+        "open_weights": 0.0,
+        "open_training_data": 0.0,
+        "open_methodology": 0.5,
+        "licence_openness": 0.3,
+        "provider_disclosure": 0.4,
+        "fmti_company_score": 35,
+        "transparency_score": 0.24,
+        "notes": "OpenAI FMTI 35. Publishes system cards. No training data disclosure. Score dropped from 2024."
+      },
+      "sustainability": {
+        "inference_energy": 0.5,
+        "training_footprint": null,
+        "provider_infrastructure": 0.4,
+        "sustainability_score": 0.45,
+        "notes": "Smaller model = more efficient. Azure renewable commitments."
+      }
+    },
+    "gpt-5.4-nano": {
+      "name": "GPT-5.4 Nano",
+      "provider": "OpenAI",
+      "tier": "budget",
+      "pricing": {
+        "input_per_1m": 0.2,
+        "output_per_1m": 1.25
+      },
+      "context_window": 400000,
+      "capabilities": [
+        "vision",
+        "tools",
+        "structured_output"
+      ],
+      "strengths": [
+        "Extremely cheap",
+        "Very fast",
+        "Good for classification and extraction"
+      ],
+      "weaknesses": [
+        "Weakest reasoning",
+        "Not for complex or creative tasks"
+      ],
+      "task_fitness": {
+        "summarise": 0.7,
+        "generate": 0.55,
+        "extract": 0.78,
+        "code": 0.6,
+        "analyse": 0.55,
+        "translate": 0.65,
+        "conversation": 0.6,
+        "vision": 0.7
+      },
+      "speed_score": 0.95,
+      "privacy_score": 0.7,
+      "transparency": {
+        "open_weights": 0.0,
+        "open_training_data": 0.0,
+        "open_methodology": 0.3,
+        "licence_openness": 0.3,
+        "provider_disclosure": 0.4,
+        "fmti_company_score": 35,
+        "transparency_score": 0.2,
+        "notes": "Smallest OpenAI model. Less documented than flagship."
+      },
+      "sustainability": {
+        "inference_energy": 0.8,
+        "training_footprint": null,
+        "provider_infrastructure": 0.4,
+        "sustainability_score": 0.6,
+        "notes": "Smallest OpenAI model = most efficient inference."
+      }
+    },
+    "gemini-3.1-pro": {
+      "name": "Gemini 3.1 Pro",
+      "provider": "Google",
+      "tier": "flagship",
+      "pricing": {
+        "input_per_1m": 2.0,
+        "output_per_1m": 12.0
+      },
+      "context_window": 1000000,
+      "capabilities": [
+        "vision",
+        "tools",
+        "code",
+        "long_context",
+        "extended_thinking",
+        "structured_output",
+        "multilingual",
+        "audio",
+        "video"
+      ],
+      "strengths": [
+        "Broadest multimodal (text/image/audio/video)",
+        "Competitive pricing",
+        "1M context"
+      ],
+      "weaknesses": [
+        "Long context pricing doubles above 200K",
+        "Privacy varies by tier"
+      ],
+      "task_fitness": {
+        "summarise": 0.88,
+        "generate": 0.85,
+        "extract": 0.88,
+        "code": 0.88,
+        "analyse": 0.9,
+        "translate": 0.88,
+        "conversation": 0.82,
+        "vision": 0.92
+      },
+      "speed_score": 0.5,
+      "privacy_score": 0.55,
+      "transparency": {
+        "open_weights": 0.0,
+        "open_training_data": 0.0,
+        "open_methodology": 0.5,
+        "licence_openness": 0.3,
+        "provider_disclosure": 0.4,
+        "fmti_company_score": 36,
+        "transparency_score": 0.24,
+        "notes": "Google FMTI 36. Dropped 6 points from 2024. Model cards but limited training data disclosure."
+      },
+      "sustainability": {
+        "inference_energy": 0.5,
+        "training_footprint": 0.4,
+        "provider_infrastructure": 0.6,
+        "sustainability_score": 0.5,
+        "notes": "Custom TPUs. Google committed to 24/7 carbon-free energy by 2030. Best mainstream sustainability disclosure."
+      }
+    },
+    "gemini-3-flash": {
+      "name": "Gemini 3 Flash",
+      "provider": "Google",
+      "tier": "balanced",
+      "pricing": {
+        "input_per_1m": 0.5,
+        "output_per_1m": 3.0
+      },
+      "context_window": 1000000,
+      "capabilities": [
+        "vision",
+        "tools",
+        "code",
+        "long_context",
+        "extended_thinking",
+        "structured_output",
+        "multilingual",
+        "audio",
+        "video"
+      ],
+      "strengths": [
+        "Excellent cost/performance",
+        "Pro-grade reasoning at Flash pricing",
+        "Full multimodal"
+      ],
+      "weaknesses": [
+        "Not quite Pro quality on hardest reasoning"
+      ],
+      "task_fitness": {
+        "summarise": 0.85,
+        "generate": 0.8,
+        "extract": 0.85,
+        "code": 0.85,
+        "analyse": 0.82,
+        "translate": 0.85,
+        "conversation": 0.8,
+        "vision": 0.88
+      },
+      "speed_score": 0.88,
+      "privacy_score": 0.55,
+      "transparency": {
+        "open_weights": 0.0,
+        "open_training_data": 0.0,
+        "open_methodology": 0.5,
+        "licence_openness": 0.3,
+        "provider_disclosure": 0.4,
+        "fmti_company_score": 36,
+        "transparency_score": 0.24,
+        "notes": "Google FMTI 36. Dropped 6 points from 2024. Model cards but limited training data disclosure."
+      },
+      "sustainability": {
+        "inference_energy": 0.7,
+        "training_footprint": null,
+        "provider_infrastructure": 0.6,
+        "sustainability_score": 0.65,
+        "notes": "Flash models designed for efficiency. TPU infrastructure."
+      }
+    },
+    "gemini-2.5-flash-lite": {
+      "name": "Gemini 2.5 Flash-Lite",
+      "provider": "Google",
+      "tier": "budget",
+      "pricing": {
+        "input_per_1m": 0.1,
+        "output_per_1m": 0.4
+      },
+      "context_window": 1000000,
+      "capabilities": [
+        "vision",
+        "tools",
+        "structured_output",
+        "multilingual"
+      ],
+      "strengths": [
+        "Cheapest mainstream model from major provider",
+        "1M context"
+      ],
+      "weaknesses": [
+        "Limited reasoning",
+        "Not for complex tasks"
+      ],
+      "task_fitness": {
+        "summarise": 0.65,
+        "generate": 0.5,
+        "extract": 0.72,
+        "code": 0.5,
+        "analyse": 0.45,
+        "translate": 0.6,
+        "conversation": 0.55,
+        "vision": 0.6
+      },
+      "speed_score": 0.95,
+      "privacy_score": 0.5,
+      "transparency": {
+        "open_weights": 0.0,
+        "open_training_data": 0.0,
+        "open_methodology": 0.3,
+        "licence_openness": 0.3,
+        "provider_disclosure": 0.4,
+        "fmti_company_score": 36,
+        "transparency_score": 0.2,
+        "notes": "Lightest Google model."
+      },
+      "sustainability": {
+        "inference_energy": 0.85,
+        "training_footprint": null,
+        "provider_infrastructure": 0.6,
+        "sustainability_score": 0.72,
+        "notes": "Lightest Google model. Designed for efficiency on TPU."
+      }
+    },
+    "deepseek-v4": {
+      "name": "DeepSeek V4",
+      "provider": "DeepSeek",
+      "tier": "balanced",
+      "pricing": {
+        "input_per_1m": 0.3,
+        "output_per_1m": 0.5
+      },
+      "context_window": 128000,
+      "capabilities": [
+        "tools",
+        "code",
+        "structured_output",
+        "multilingual"
+      ],
+      "strengths": [
+        "Extraordinary cost/performance",
+        "Strong coding",
+        "MIT licensed",
+        "Open weights"
+      ],
+      "weaknesses": [
+        "No vision",
+        "128K context",
+        "China-based data jurisdiction consideration"
+      ],
+      "task_fitness": {
+        "summarise": 0.8,
+        "generate": 0.75,
+        "extract": 0.82,
+        "code": 0.88,
+        "analyse": 0.78,
+        "translate": 0.8,
+        "conversation": 0.72,
+        "vision": 0.0
+      },
+      "speed_score": 0.7,
+      "privacy_score": 0.3,
+      "transparency": {
+        "open_weights": 1.0,
+        "open_training_data": 0.3,
+        "open_methodology": 0.7,
+        "licence_openness": 1.0,
+        "provider_disclosure": 0.2,
+        "fmti_company_score": 30,
+        "transparency_score": 0.64,
+        "notes": "MIT licence + open weights. But FMTI 30 due to minimal corporate disclosure. Open weights != corporate transparency."
+      },
+      "sustainability": {
+        "inference_energy": 0.6,
+        "training_footprint": null,
+        "provider_infrastructure": 0.2,
+        "sustainability_score": 0.4,
+        "notes": "MoE (activates 37B of 671B) is efficient. No provider energy data."
+      }
+    },
+    "deepseek-r1": {
+      "name": "DeepSeek R1",
+      "provider": "DeepSeek",
+      "tier": "reasoning",
+      "pricing": {
+        "input_per_1m": 0.55,
+        "output_per_1m": 2.19
+      },
+      "context_window": 128000,
+      "capabilities": [
+        "tools",
+        "code",
+        "extended_thinking",
+        "structured_output"
+      ],
+      "strengths": [
+        "Excellent reasoning at fraction of frontier pricing",
+        "Strong maths/logic",
+        "MIT licensed"
+      ],
+      "weaknesses": [
+        "No vision",
+        "Higher output cost (chain-of-thought)",
+        "Data jurisdiction"
+      ],
+      "task_fitness": {
+        "summarise": 0.72,
+        "generate": 0.7,
+        "extract": 0.75,
+        "code": 0.85,
+        "analyse": 0.88,
+        "translate": 0.65,
+        "conversation": 0.65,
+        "vision": 0.0
+      },
+      "speed_score": 0.45,
+      "privacy_score": 0.3,
+      "transparency": {
+        "open_weights": 1.0,
+        "open_training_data": 0.3,
+        "open_methodology": 0.7,
+        "licence_openness": 1.0,
+        "provider_disclosure": 0.2,
+        "fmti_company_score": 30,
+        "transparency_score": 0.64,
+        "notes": "MIT licence + open weights. But FMTI 30 due to minimal corporate disclosure. Open weights != corporate transparency."
+      },
+      "sustainability": {
+        "inference_energy": 0.4,
+        "training_footprint": null,
+        "provider_infrastructure": 0.2,
+        "sustainability_score": 0.3,
+        "notes": "Reasoning = more tokens = higher energy per query."
+      }
+    },
+    "llama-4-maverick": {
+      "name": "Llama 4 Maverick",
+      "provider": "Meta (via hosted providers)",
+      "tier": "open_source_flagship",
+      "pricing": {
+        "input_per_1m": 0.27,
+        "output_per_1m": 0.85
+      },
+      "context_window": 1000000,
+      "capabilities": [
+        "vision",
+        "tools",
+        "code",
+        "long_context",
+        "structured_output",
+        "multilingual"
+      ],
+      "strengths": [
+        "Open weights — full control",
+        "1M context",
+        "Strong multilingual",
+        "Can self-host"
+      ],
+      "weaknesses": [
+        "Quality varies by provider",
+        "Self-hosting needs GPUs",
+        "Meta licence has restrictions"
+      ],
+      "task_fitness": {
+        "summarise": 0.82,
+        "generate": 0.78,
+        "extract": 0.8,
+        "code": 0.8,
+        "analyse": 0.78,
+        "translate": 0.85,
+        "conversation": 0.78,
+        "vision": 0.75
+      },
+      "speed_score": 0.65,
+      "privacy_score": 0.95,
+      "transparency": {
+        "open_weights": 0.7,
+        "open_training_data": 0.3,
+        "open_methodology": 0.5,
+        "licence_openness": 0.7,
+        "provider_disclosure": 0.3,
+        "fmti_company_score": 30,
+        "transparency_score": 0.5,
+        "notes": "Open weights with registration. Meta Community Licence restricts competitors. FMTI 30 — open model but opaque company."
+      },
+      "sustainability": {
+        "inference_energy": 0.4,
+        "training_footprint": null,
+        "provider_infrastructure": null,
+        "sustainability_score": 0.4,
+        "notes": "Depends on hosting provider. Self-hosted on renewable = high."
+      }
+    },
+    "mistral-medium-3": {
+      "name": "Mistral Medium 3",
+      "provider": "Mistral",
+      "tier": "balanced",
+      "pricing": {
+        "input_per_1m": 0.4,
+        "output_per_1m": 2.0
+      },
+      "context_window": 131000,
+      "capabilities": [
+        "tools",
+        "code",
+        "structured_output",
+        "multilingual"
+      ],
+      "strengths": [
+        "EU-based — EU data processing",
+        "Apache 2.0",
+        "Good multilingual",
+        "Competitive pricing"
+      ],
+      "weaknesses": [
+        "No vision",
+        "131K context limit",
+        "Smaller ecosystem"
+      ],
+      "task_fitness": {
+        "summarise": 0.78,
+        "generate": 0.75,
+        "extract": 0.8,
+        "code": 0.82,
+        "analyse": 0.75,
+        "translate": 0.82,
+        "conversation": 0.75,
+        "vision": 0.0
+      },
+      "speed_score": 0.75,
+      "privacy_score": 0.85,
+      "transparency": {
+        "open_weights": 1.0,
+        "open_training_data": 0.3,
+        "open_methodology": 0.5,
+        "licence_openness": 1.0,
+        "provider_disclosure": 0.2,
+        "fmti_company_score": 15,
+        "transparency_score": 0.6,
+        "notes": "Apache 2.0 + open weights. But FMTI 15 — dropped 37 pts from 2024. Open weights != corporate transparency."
+      },
+      "sustainability": {
+        "inference_energy": 0.6,
+        "training_footprint": null,
+        "provider_infrastructure": 0.4,
+        "sustainability_score": 0.5,
+        "notes": "EU-based. Smaller models more efficient. No published energy data."
+      }
+    },
+    "qwen-2.5-72b": {
+      "name": "Qwen 2.5 72B",
+      "provider": "Alibaba (via hosted providers)",
+      "tier": "open_source_balanced",
+      "pricing": {
+        "input_per_1m": 0.3,
+        "output_per_1m": 0.8
+      },
+      "context_window": 128000,
+      "capabilities": [
+        "tools",
+        "code",
+        "structured_output",
+        "multilingual"
+      ],
+      "strengths": [
+        "Best multilingual open-source",
+        "128K context",
+        "Strong non-English"
+      ],
+      "weaknesses": [
+        "No vision",
+        "Older model",
+        "Commercial licence restrictions"
+      ],
+      "task_fitness": {
+        "summarise": 0.78,
+        "generate": 0.75,
+        "extract": 0.78,
+        "code": 0.78,
+        "analyse": 0.75,
+        "translate": 0.9,
+        "conversation": 0.75,
+        "vision": 0.0
+      },
+      "speed_score": 0.6,
+      "privacy_score": 0.95,
+      "transparency": {
+        "open_weights": 0.7,
+        "open_training_data": 0.3,
+        "open_methodology": 0.5,
+        "licence_openness": 0.5,
+        "provider_disclosure": 0.2,
+        "fmti_company_score": 30,
+        "transparency_score": 0.44,
+        "notes": "Alibaba FMTI 30 (first year). Open weights with commercial restrictions."
+      },
+      "sustainability": {
+        "inference_energy": 0.5,
+        "training_footprint": null,
+        "provider_infrastructure": null,
+        "sustainability_score": 0.5,
+        "notes": "Depends on hosting infrastructure."
+      }
+    },
+    "greenpt-greenl": {
+      "name": "GreenPT GreenL (Mistral Small 3.2 24B)",
+      "provider": "GreenPT",
+      "tier": "sustainable_balanced",
+      "pricing": {
+        "input_per_1m": 0.25,
+        "output_per_1m": 0.8
+      },
+      "context_window": 131000,
+      "capabilities": [
+        "tools",
+        "code",
+        "structured_output",
+        "multilingual"
+      ],
+      "strengths": [
+        "100% renewable energy inference",
+        "Heat recovery — server heat heats buildings",
+        "Real-time energy metrics (mWh/100 tokens)",
+        "EU-hosted GDPR compliant",
+        "No external API calls",
+        "Open source model"
+      ],
+      "weaknesses": [
+        "Smaller model (24B) — not frontier quality",
+        "No vision",
+        "Subscription required for API",
+        "Training not on green infrastructure"
+      ],
+      "task_fitness": {
+        "summarise": 0.72,
+        "generate": 0.68,
+        "extract": 0.75,
+        "code": 0.72,
+        "analyse": 0.65,
+        "translate": 0.75,
+        "conversation": 0.7,
+        "vision": 0.0
+      },
+      "speed_score": 0.8,
+      "privacy_score": 0.95,
+      "transparency": {
+        "open_weights": 1.0,
+        "open_training_data": 0.3,
+        "open_methodology": 0.5,
+        "licence_openness": 1.0,
+        "provider_disclosure": 0.8,
+        "fmti_company_score": null,
+        "transparency_score": 0.72,
+        "notes": "Not scored by FMTI (too small). Publishes real-time energy metrics. Fully open source models. Transparent about limitations."
+      },
+      "sustainability": {
+        "inference_energy": 1.0,
+        "training_footprint": 0.3,
+        "provider_infrastructure": 1.0,
+        "sustainability_score": 0.77,
+        "notes": "100% renewable inference. Heat recovery for community heating. Published mWh/100 tokens. Training not on green infra (acknowledged)."
+      }
+    },
+    "greenpt-greenr": {
+      "name": "GreenPT GreenR (GPT-OSS 120B)",
+      "provider": "GreenPT",
+      "tier": "sustainable_flagship",
+      "pricing": {
+        "input_per_1m": 0.35,
+        "output_per_1m": 0.95
+      },
+      "context_window": 128000,
+      "capabilities": [
+        "tools",
+        "code",
+        "structured_output",
+        "multilingual"
+      ],
+      "strengths": [
+        "Larger model — better reasoning than GreenL",
+        "100% renewable energy inference",
+        "Heat recovery",
+        "Real-time energy metrics",
+        "EU-hosted GDPR compliant"
+      ],
+      "weaknesses": [
+        "Not frontier-class (120B)",
+        "No vision",
+        "Subscription required",
+        "Training not on green infrastructure"
+      ],
+      "task_fitness": {
+        "summarise": 0.78,
+        "generate": 0.75,
+        "extract": 0.8,
+        "code": 0.78,
+        "analyse": 0.75,
+        "translate": 0.78,
+        "conversation": 0.75,
+        "vision": 0.0
+      },
+      "speed_score": 0.65,
+      "privacy_score": 0.95,
+      "transparency": {
+        "open_weights": 1.0,
+        "open_training_data": 0.3,
+        "open_methodology": 0.5,
+        "licence_openness": 1.0,
+        "provider_disclosure": 0.8,
+        "fmti_company_score": null,
+        "transparency_score": 0.72,
+        "notes": "Same transparency profile as GreenL."
+      },
+      "sustainability": {
+        "inference_energy": 0.8,
+        "training_footprint": 0.2,
+        "provider_infrastructure": 1.0,
+        "sustainability_score": 0.67,
+        "notes": "Same green infra as GreenL. Larger model = slightly higher per-query energy. 120B training footprint larger."
+      }
+    },
+    "ibm-granite-3.3": {
+      "name": "IBM Granite 3.3",
+      "provider": "IBM",
+      "tier": "enterprise_transparent",
+      "pricing": {
+        "input_per_1m": 0.2,
+        "output_per_1m": 0.8
+      },
+      "context_window": 128000,
+      "capabilities": [
+        "tools",
+        "code",
+        "structured_output",
+        "multilingual"
+      ],
+      "strengths": [
+        "Highest transparency score ever (FMTI 95)",
+        "Apache 2.0 — fully open",
+        "Full training data documentation",
+        "Enterprise audit trails",
+        "Smaller models available"
+      ],
+      "weaknesses": [
+        "Not frontier quality",
+        "No vision in base",
+        "Smaller ecosystem",
+        "Less consumer documentation"
+      ],
+      "task_fitness": {
+        "summarise": 0.72,
+        "generate": 0.68,
+        "extract": 0.78,
+        "code": 0.75,
+        "analyse": 0.72,
+        "translate": 0.7,
+        "conversation": 0.68,
+        "vision": 0.0
+      },
+      "speed_score": 0.75,
+      "privacy_score": 0.9,
+      "transparency": {
+        "open_weights": 1.0,
+        "open_training_data": 1.0,
+        "open_methodology": 1.0,
+        "licence_openness": 1.0,
+        "provider_disclosure": 1.0,
+        "fmti_company_score": 95,
+        "transparency_score": 1.0,
+        "notes": "FMTI 95/100 — highest ever. Perfect 100 on 10/14 dimensions. Full training data documentation. Apache 2.0."
+      },
+      "sustainability": {
+        "inference_energy": 0.7,
+        "training_footprint": 0.5,
+        "provider_infrastructure": 0.5,
+        "sustainability_score": 0.57,
+        "notes": "Published some training compute/energy. Smaller models run on consumer hardware."
+      }
+    }
+  },
+  "changelog": [
+    {
+      "date": "2026-04-12",
+      "version": "0.1.0",
+      "changes": "Initial registry. 15 models."
+    },
+    {
+      "date": "2026-04-12",
+      "version": "0.2.0",
+      "changes": "Added transparency factor (5 sub-dimensions, FMTI reference). Expanded sustainability (3 sub-dimensions). Added GreenPT GreenL/GreenR, IBM Granite 3.3. 17 models, 8 providers."
+    }
+  ]
+}
