@@ -51,14 +51,15 @@ Mark tasks with:
 - [x] `/models` polish and filtering (search, provider/capability filter pills)
 - [x] Open source repo polish (README, LICENSE, CONTRIBUTING)
 
-## Sprint 3: Compare + Public Dataset (planned, not started)
+## Sprint 3: Compare + Public Dataset
 
-- [ ] Magic link auth (Resend)
-- [ ] Compare mode (dual API calls via OpenRouter, side-by-side)
-- [ ] Rate limiting (2/day)
-- [ ] Content filter on prompts
-- [ ] Public dataset export (CSV, JSON, API)
-- [ ] `/data` page
+- [x] Magic link auth (Resend, signed tokens, 15min expiry, 30-day session)
+- [x] Compare mode (OpenRouter dual calls, model pair selection, side-by-side display)
+- [x] Rate limiting (2 comparisons/day per user)
+- [x] Content filter on prompts (Haiku + 2000 token cap)
+- [x] Preference capture (model_a / model_b / tie + reason)
+- [x] Public dataset export (CSV + JSON, /api/dataset and /api/dataset/comparisons)
+- [x] `/data` page (methodology, schema, download links)
 
 ## Sprint 4: Registry to DB + Learn (planned, not started)
 
