@@ -31,8 +31,8 @@ describe('scoreModels', () => {
       needsCode: false,
       priorityOrder: defaultPriority,
     })
-    // DeepSeek V4 has no vision — should be excluded
-    const deepseek = results.find(m => m.slug === 'deepseek-v4')
+    // DeepSeek V3.1 has no vision — should be excluded
+    const deepseek = results.find(m => m.slug === 'deepseek-v3.1')
     expect(deepseek).toBeUndefined()
     // Claude Sonnet 4.6 has vision — should be included
     const sonnet = results.find(m => m.slug === 'claude-sonnet-4.6')
