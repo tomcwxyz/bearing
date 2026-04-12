@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { submitTask } from './actions'
 
 export default function Home() {
@@ -73,10 +74,16 @@ export default function Home() {
         </div>
 
         {mode === 'validate' ? (
-          <div className="rounded-lg border border-cream-dark bg-cream p-8 text-center">
-            <p className="text-sm text-grey-blue">
-              Coming in Sprint 2
+          <div className="rounded-lg border border-cream-dark bg-white p-8 text-center">
+            <p className="mb-4 text-grey-blue">
+              Already using a model? Check if it&apos;s the best fit for your task.
             </p>
+            <Link
+              href="/validate"
+              className="inline-block rounded-lg bg-navy px-6 py-3 font-display text-sm font-semibold text-cream transition-colors hover:bg-navy-light"
+            >
+              Check my model
+            </Link>
           </div>
         ) : (
           <form action={handleSubmit}>

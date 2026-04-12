@@ -33,6 +33,7 @@ interface ResultsClientProps {
 
 export function ResultsClient({ taskId, models, reasoning }: ResultsClientProps) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
+  const [selectionId, setSelectionId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -44,6 +45,7 @@ export function ResultsClient({ taskId, models, reasoning }: ResultsClientProps)
         setError(result.error)
       } else {
         setSelectedSlug(modelSlug)
+        setSelectionId(result.selectionId ?? null)
       }
     })
   }
@@ -153,6 +155,23 @@ export function ResultsClient({ taskId, models, reasoning }: ResultsClientProps)
           </div>
         )
       })}
+
+      {selectionId && (
+        <div className="mt-8 rounded-lg border border-teal/30 bg-teal/5 p-6 text-center">
+          <p className="mb-3 font-display text-navy">
+            Try it out, then let us know how it went
+          </p>
+          <a
+            href={`/recommend/${taskId}/feedback?selectionId=${selectionId}`}
+            className="inline-block rounded-lg border border-navy px-6 py-2.5 font-display text-sm font-semibold text-navy transition-colors hover:bg-navy hover:text-cream"
+          >
+            Give feedback
+          </a>
+          <p className="mt-2 text-xs text-grey-blue">
+            Bookmark this link to come back later
+          </p>
+        </div>
+      )}
     </div>
   )
 }
