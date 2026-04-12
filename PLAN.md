@@ -16,24 +16,24 @@ Implementation plan: `docs/plans/2026-04-12-bearing-sprint1.md`
 
 ## Sprint 1: Core Recommend Flow
 
-- [ ] Task 1: Project scaffold (Next.js, Tailwind, deps)
-- [ ] Task 2: Registry types and loader
-- [ ] Task 3: Priority weight conversion
-- [ ] Task 4: Scoring engine (7-factor, pure function)
-- [ ] Task 5: Database schema and connection
-- [ ] Task 6: Classification module (Haiku)
-- [ ] Task 7: Reasoning module (Haiku)
-- [ ] Task 8: Server actions
-- [ ] Task 9: Home page — task input
-- [ ] Task 10: Clarification page
-- [ ] Task 11: Priority ranking page
-- [ ] Task 12: Results page
-- [ ] Task 13: Feedback page
-- [ ] Task 14: Models registry page
-- [ ] Task 15: About page
-- [ ] Task 16: End-to-end smoke test
-- [ ] Task 17: Deploy to Vercel
-- [ ] Task 18: Update project files
+- [x] Task 1: Project scaffold (Next.js 16, Tailwind v4, deps)
+- [x] Task 2: Registry types and loader
+- [x] Task 3: Priority weight conversion
+- [x] Task 4: Scoring engine (7-factor, pure function)
+- [x] Task 5: Database schema and connection
+- [x] Task 6: Classification module (Haiku)
+- [x] Task 7: Reasoning module (Haiku)
+- [x] Task 8: Server actions
+- [x] Task 9: Home page — task input
+- [x] Task 10: Clarification page
+- [x] Task 11: Priority ranking page
+- [x] Task 12: Results page
+- [x] Task 13: Feedback page
+- [x] Task 14: Models registry page
+- [x] Task 15: About page
+- [x] Task 16: End-to-end smoke test
+- [~] Task 17: Deploy to Vercel ← CURRENT (needs Neon migration + Vercel link)
+- [x] Task 18: Update project files
 
 Mark tasks with:
 - `[ ]` not started

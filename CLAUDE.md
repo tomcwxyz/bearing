@@ -58,7 +58,7 @@ AI model recommendation tool — helps people choose the right model for their t
 
 > Updated: 2026-04-12
 > Current focus: Sprint 1 — Core Recommend flow
-> Status: Plan complete, implementation not started
+> Status: Implementation complete, awaiting DB migration + deploy
 
 See PLAN.md for task tracking, STATE.md for system state, HANDOFF.md for session notes.
 

@@ -13,44 +13,50 @@ stateDiagram-v2
     Testing --> Deploying: tests pass
     Deploying --> Live: deployed
     
-    note right of Planning: ← WE ARE HERE
+    note right of Testing: ← WE ARE HERE
 ```
-
-Update this diagram as the project progresses. Move the `← WE ARE HERE` marker. Add substates for complex phases.
 
 ## Component Status
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| [Component 1] | ⏳ Not started | |
-| [Component 2] | ⏳ Not started | |
-| [Component 3] | ⏳ Not started | |
-
-Status markers:
-- ⏳ Not started
-- 🔧 In progress
-- ✅ Done
-- 🚫 Blocked — note why
-- ⚠️ Needs attention
+| Registry loader | ✅ Done | 17 models, typed, tested |
+| Weight conversion | ✅ Done | Blended rank/default approach, tested |
+| Scoring engine | ✅ Done | 7-factor, pure function, tested |
+| Classification (Haiku) | ✅ Done | Prompt in src/prompts/classify.md |
+| Reasoning (Haiku) | ✅ Done | Prompt in src/prompts/reason.md |
+| Database schema | ✅ Done | Migration ready, lazy connection |
+| Server actions | ✅ Done | 6 actions for full recommend flow |
+| Home page | ✅ Done | Mode tabs, task input |
+| Clarification page | ✅ Done | Tappable options, 2-round max |
+| Priority ranking | ✅ Done | Drag + tap-to-move, 7 factors |
+| Results page | ✅ Done | Ranked cards, factor bars, reasoning |
+| Feedback page | ✅ Done | Thumbs + failure reasons |
+| Models registry | ✅ Done | Grid + detail pages for all 17 |
+| About page | ✅ Done | Privacy, open source, Good Ship |
+| Validate mode | ⏳ Not started | Sprint 2 |
+| Compare mode | ⏳ Not started | Sprint 3 |
+| Public dataset | ⏳ Not started | Sprint 3 |
+| Visual design | ⏳ Not started | Use impeccable/frontend-design |
 
 ## Data Flow
 
 ```mermaid
 flowchart LR
-    A[Input] --> B[Process]
-    B --> C[Output]
+    A[User Input] --> B[Haiku Classification]
+    B --> C[Priority Ranking]
+    C --> D[Scoring Engine]
+    D --> E[Haiku Reasoning]
+    E --> F[Ranked Results]
+    F --> G[Selection → DB]
+    G --> H[Outcome Feedback → DB]
 ```
-
-Add a data flow or architecture diagram when the system has multiple components that interact.
 
 ## Dependencies
 
 | Dependency | Status | Notes |
 |------------|--------|-------|
-| [External API / service] | [Working / Down / Not set up] | |
-| [Database] | | |
-
-<!--
-Keep this file as the single source of truth for "where are we?"
-The /status command reads this file.
--->
+| Neon Postgres | Not set up | Migration ready, need to run against real DB |
+| Anthropic API | Ready | Key available for Haiku classification |
+| OpenRouter API | Ready | Key available for Compare mode (Sprint 3) |
+| Vercel | Not deployed | Build passes, ready to deploy |
