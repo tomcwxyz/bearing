@@ -1,0 +1,29 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - navigation [ref=e3]:
+      - link "Bearing" [ref=e4] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e5]:
+        - link "Models" [ref=e6] [cursor=pointer]:
+          - /url: /models
+        - link "About" [ref=e7] [cursor=pointer]:
+          - /url: /about
+  - main [ref=e8]:
+    - generic [ref=e10]:
+      - heading "Bearing" [level=1] [ref=e11]
+      - paragraph [ref=e12]: Chart your course to the right AI model
+      - generic [ref=e13]:
+        - button "Recommend" [ref=e14]
+        - button "Validate" [ref=e15]
+      - generic [ref=e16]:
+        - generic [ref=e17]: What do you want to use AI for?
+        - textbox "What do you want to use AI for?" [ref=e18]:
+          - /placeholder: e.g. Summarise long legal contracts into plain-English bullet points
+        - button "Find my model" [ref=e19]
+  - contentinfo [ref=e20]:
+    - text: Built by
+    - link "The Good Ship" [ref=e21] [cursor=pointer]:
+      - /url: https://good-ship.co.uk
+  - button "Open Next.js Dev Tools" [ref=e27] [cursor=pointer]:
+    - img [ref=e28]
+  - alert [ref=e31]

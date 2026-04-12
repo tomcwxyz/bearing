@@ -46,17 +46,18 @@ Your priority ranking shifts the weights. The scoring function is a pure, tested
 
 ## Model registry
 
-24 models across 11 providers:
+29 models across 12 providers:
 
 - **Anthropic**: Claude Opus 4.6, Sonnet 4.6, Haiku 4.5
 - **OpenAI**: GPT-5.4, GPT-5.4 Mini, GPT-5.4 Nano
 - **Google**: Gemini 3.1 Pro, Gemini 3 Flash, Gemini 2.5 Flash-Lite
-- **DeepSeek**: V4, R1, R1 0528
+- **DeepSeek**: V3.1, V3.2, R1, R1 0528
 - **Meta**: Llama 4 Maverick
 - **Mistral**: Medium 3, OCR (Pixtral Large), Codestral, Devstral
-- **Alibaba**: Qwen 2.5 72B, Qwen 3 235B
-- **Moonshot AI**: Kimi K2
-- **MiniMax**: MiniMax-M1
+- **Alibaba**: Qwen 2.5 72B, Qwen 3 235B, Qwen 3.5 397B
+- **Moonshot AI**: Kimi K2, Kimi K2.5
+- **MiniMax**: M2.5, M2.7
+- **xAI**: Grok 4
 - **GreenPT**: GreenL, GreenR
 - **IBM**: Granite 3.3
 

@@ -1,0 +1,127 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - navigation [ref=e3]:
+      - link "Bearing" [ref=e4] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e5]:
+        - link "Models" [ref=e6] [cursor=pointer]:
+          - /url: /models
+        - link "About" [ref=e7] [cursor=pointer]:
+          - /url: /about
+  - main [ref=e8]:
+    - generic [ref=e10]:
+      - link "← All models" [ref=e11] [cursor=pointer]:
+        - /url: /models
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - heading "Claude Sonnet 4.6" [level=1] [ref=e14]
+          - paragraph [ref=e15]: Anthropic
+        - generic [ref=e16]: balanced
+      - generic [ref=e17]:
+        - heading "Capabilities" [level=2] [ref=e18]
+        - generic [ref=e19]:
+          - generic [ref=e20]: Vision
+          - generic [ref=e21]: Tools
+          - generic [ref=e22]: Code
+          - generic [ref=e23]: Long Context
+          - generic [ref=e24]: Extended Thinking
+          - generic [ref=e25]: Structured Output
+          - generic [ref=e26]: Multilingual
+      - generic [ref=e27]:
+        - generic [ref=e28]:
+          - heading "Strengths" [level=2] [ref=e29]
+          - list [ref=e30]:
+            - listitem [ref=e31]: Best balance of cost/speed/quality at Anthropic
+            - listitem [ref=e32]: 128K max output
+            - listitem [ref=e33]: Strong instruction following
+        - generic [ref=e34]:
+          - heading "Weaknesses" [level=2] [ref=e35]
+          - list [ref=e36]:
+            - listitem [ref=e37]: Not the cheapest for simple tasks
+      - generic [ref=e38]:
+        - heading "Pricing" [level=2] [ref=e39]
+        - generic [ref=e40]:
+          - generic [ref=e41]:
+            - paragraph [ref=e42]: Input / 1M tokens
+            - paragraph [ref=e43]: $3
+          - generic [ref=e44]:
+            - paragraph [ref=e45]: Output / 1M tokens
+            - paragraph [ref=e46]: $15
+          - generic [ref=e47]:
+            - paragraph [ref=e48]: Context window
+            - paragraph [ref=e49]: 1,000k
+      - generic [ref=e50]:
+        - heading "Transparency" [level=2] [ref=e51]
+        - generic [ref=e52]:
+          - generic [ref=e53]:
+            - paragraph [ref=e54]: Open weights
+            - paragraph [ref=e55]: 0.0 / 10
+          - generic [ref=e56]:
+            - paragraph [ref=e57]: Open training data
+            - paragraph [ref=e58]: 0.0 / 10
+          - generic [ref=e59]:
+            - paragraph [ref=e60]: Open methodology
+            - paragraph [ref=e61]: 5.0 / 10
+          - generic [ref=e62]:
+            - paragraph [ref=e63]: Licence openness
+            - paragraph [ref=e64]: 3.0 / 10
+          - generic [ref=e65]:
+            - paragraph [ref=e66]: Provider disclosure
+            - paragraph [ref=e67]: 4.0 / 10
+          - generic [ref=e68]:
+            - paragraph [ref=e69]: FMTI company score
+            - paragraph [ref=e70]: 370.0 / 10
+        - generic [ref=e71]:
+          - generic [ref=e72]: "Composite:"
+          - generic [ref=e73]: 2.4 / 10
+        - paragraph [ref=e74]: Anthropic FMTI 37. No transparency report submitted. Publishes model cards. No training data disclosure.
+      - generic [ref=e75]:
+        - heading "Sustainability" [level=2] [ref=e76]
+        - generic [ref=e77]:
+          - generic [ref=e78]:
+            - paragraph [ref=e79]: Inference energy
+            - paragraph [ref=e80]: N/A
+          - generic [ref=e81]:
+            - paragraph [ref=e82]: Training footprint
+            - paragraph [ref=e83]: N/A
+          - generic [ref=e84]:
+            - paragraph [ref=e85]: Provider infrastructure
+            - paragraph [ref=e86]: 3.0 / 10
+        - generic [ref=e87]:
+          - generic [ref=e88]: "Composite:"
+          - generic [ref=e89]: 3.0 / 10
+        - paragraph [ref=e90]: No published energy data. No specific renewable energy commitments for AI compute.
+      - generic [ref=e91]:
+        - heading "Task Fitness" [level=2] [ref=e92]
+        - generic [ref=e93]:
+          - generic [ref=e94]:
+            - generic [ref=e95]: Summarise
+            - generic [ref=e98]: 88%
+          - generic [ref=e99]:
+            - generic [ref=e100]: Generate
+            - generic [ref=e103]: 90%
+          - generic [ref=e104]:
+            - generic [ref=e105]: Extract
+            - generic [ref=e108]: 88%
+          - generic [ref=e109]:
+            - generic [ref=e110]: Code
+            - generic [ref=e113]: 90%
+          - generic [ref=e114]:
+            - generic [ref=e115]: Analyse
+            - generic [ref=e118]: 88%
+          - generic [ref=e119]:
+            - generic [ref=e120]: Translate
+            - generic [ref=e123]: 82%
+          - generic [ref=e124]:
+            - generic [ref=e125]: Conversation
+            - generic [ref=e128]: 88%
+          - generic [ref=e129]:
+            - generic [ref=e130]: Vision
+            - generic [ref=e133]: 82%
+  - contentinfo [ref=e134]:
+    - text: Built by
+    - link "The Good Ship" [ref=e135] [cursor=pointer]:
+      - /url: https://good-ship.co.uk
+  - button "Open Next.js Dev Tools" [ref=e141] [cursor=pointer]:
+    - img [ref=e142]
+  - alert [ref=e145]

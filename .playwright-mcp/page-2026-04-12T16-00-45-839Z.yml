@@ -1,0 +1,28 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - heading "About Bearing" [level=1] [ref=e4]
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "What is Bearing?" [level=2] [ref=e7]
+        - paragraph [ref=e8]: Bearing is an AI model recommendation tool. Describe what you want to use AI for, tell us what matters most to you, and Bearing will rank the best models for your specific task -- with transparent, explainable scoring.
+      - generic [ref=e9]:
+        - heading "How it works" [level=2] [ref=e10]
+        - list [ref=e11]:
+          - listitem [ref=e12]: Describe -- tell us what you want to use AI for in plain language.
+          - listitem [ref=e13]: Clarify -- answer a few quick questions so we understand your task better.
+          - listitem [ref=e14]: Rank your priorities -- drag factors like cost, speed, quality, privacy, and sustainability into the order that matters to you.
+          - listitem [ref=e15]: Get results -- receive a ranked shortlist of models with scores you can inspect and understand.
+      - generic [ref=e16]:
+        - heading "How your data is used" [level=2] [ref=e17]
+        - paragraph [ref=e18]: We anonymise all task descriptions before storing them and never keep the raw text you type. Aggregated, anonymised data may be used to improve our recommendations over time -- but your individual inputs are never shared or sold.
+      - generic [ref=e19]:
+        - heading "Open source" [level=2] [ref=e20]
+        - paragraph [ref=e21]: Bearing is open source. The model registry, scoring methodology, and full source code are publicly available so you can verify how recommendations are generated.
+      - paragraph [ref=e23]:
+        - text: Built by
+        - link "The Good Ship" [ref=e24] [cursor=pointer]:
+          - /url: https://good-ship.co.uk
+        - text: · good-ship.co.uk
+  - button "Open Next.js Dev Tools" [ref=e30] [cursor=pointer]:
+    - img [ref=e31]
+  - alert [ref=e34]

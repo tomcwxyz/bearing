@@ -1,0 +1,115 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - link "← All models" [ref=e4] [cursor=pointer]:
+      - /url: /models
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "IBM Granite 3.3" [level=1] [ref=e7]
+        - paragraph [ref=e8]: IBM
+      - generic [ref=e9]: enterprise_transparent
+    - generic [ref=e10]:
+      - heading "Capabilities" [level=2] [ref=e11]
+      - generic [ref=e12]:
+        - generic [ref=e13]: Tools
+        - generic [ref=e14]: Code
+        - generic [ref=e15]: Structured Output
+        - generic [ref=e16]: Multilingual
+    - generic [ref=e17]:
+      - generic [ref=e18]:
+        - heading "Strengths" [level=2] [ref=e19]
+        - list [ref=e20]:
+          - listitem [ref=e21]: Highest transparency score ever (FMTI 95)
+          - listitem [ref=e22]: Apache 2.0 — fully open
+          - listitem [ref=e23]: Full training data documentation
+          - listitem [ref=e24]: Enterprise audit trails
+          - listitem [ref=e25]: Smaller models available
+      - generic [ref=e26]:
+        - heading "Weaknesses" [level=2] [ref=e27]
+        - list [ref=e28]:
+          - listitem [ref=e29]: Not frontier quality
+          - listitem [ref=e30]: No vision in base
+          - listitem [ref=e31]: Smaller ecosystem
+          - listitem [ref=e32]: Less consumer documentation
+    - generic [ref=e33]:
+      - heading "Pricing" [level=2] [ref=e34]
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - paragraph [ref=e37]: Input / 1M tokens
+          - paragraph [ref=e38]: $0.2
+        - generic [ref=e39]:
+          - paragraph [ref=e40]: Output / 1M tokens
+          - paragraph [ref=e41]: $0.8
+        - generic [ref=e42]:
+          - paragraph [ref=e43]: Context window
+          - paragraph [ref=e44]: 128k
+    - generic [ref=e45]:
+      - heading "Transparency" [level=2] [ref=e46]
+      - generic [ref=e47]:
+        - generic [ref=e48]:
+          - paragraph [ref=e49]: Open weights
+          - paragraph [ref=e50]: 10.0 / 10
+        - generic [ref=e51]:
+          - paragraph [ref=e52]: Open training data
+          - paragraph [ref=e53]: 10.0 / 10
+        - generic [ref=e54]:
+          - paragraph [ref=e55]: Open methodology
+          - paragraph [ref=e56]: 10.0 / 10
+        - generic [ref=e57]:
+          - paragraph [ref=e58]: Licence openness
+          - paragraph [ref=e59]: 10.0 / 10
+        - generic [ref=e60]:
+          - paragraph [ref=e61]: Provider disclosure
+          - paragraph [ref=e62]: 10.0 / 10
+        - generic [ref=e63]:
+          - paragraph [ref=e64]: FMTI company score
+          - paragraph [ref=e65]: 950.0 / 10
+      - generic [ref=e66]:
+        - generic [ref=e67]: "Composite:"
+        - generic [ref=e68]: 10.0 / 10
+      - paragraph [ref=e69]: FMTI 95/100 — highest ever. Perfect 100 on 10/14 dimensions. Full training data documentation. Apache 2.0.
+    - generic [ref=e70]:
+      - heading "Sustainability" [level=2] [ref=e71]
+      - generic [ref=e72]:
+        - generic [ref=e73]:
+          - paragraph [ref=e74]: Inference energy
+          - paragraph [ref=e75]: 7.0 / 10
+        - generic [ref=e76]:
+          - paragraph [ref=e77]: Training footprint
+          - paragraph [ref=e78]: 5.0 / 10
+        - generic [ref=e79]:
+          - paragraph [ref=e80]: Provider infrastructure
+          - paragraph [ref=e81]: 5.0 / 10
+      - generic [ref=e82]:
+        - generic [ref=e83]: "Composite:"
+        - generic [ref=e84]: 5.7 / 10
+      - paragraph [ref=e85]: Published some training compute/energy. Smaller models run on consumer hardware.
+    - generic [ref=e86]:
+      - heading "Task Fitness" [level=2] [ref=e87]
+      - generic [ref=e88]:
+        - generic [ref=e89]:
+          - generic [ref=e90]: Summarise
+          - generic [ref=e93]: 72%
+        - generic [ref=e94]:
+          - generic [ref=e95]: Generate
+          - generic [ref=e98]: 68%
+        - generic [ref=e99]:
+          - generic [ref=e100]: Extract
+          - generic [ref=e103]: 78%
+        - generic [ref=e104]:
+          - generic [ref=e105]: Code
+          - generic [ref=e108]: 75%
+        - generic [ref=e109]:
+          - generic [ref=e110]: Analyse
+          - generic [ref=e113]: 72%
+        - generic [ref=e114]:
+          - generic [ref=e115]: Translate
+          - generic [ref=e118]: 70%
+        - generic [ref=e119]:
+          - generic [ref=e120]: Conversation
+          - generic [ref=e123]: 68%
+        - generic [ref=e124]:
+          - generic [ref=e125]: Vision
+          - generic [ref=e127]: 0%
+  - button "Open Next.js Dev Tools" [ref=e133] [cursor=pointer]:
+    - img [ref=e134]
+  - alert [ref=e137]
