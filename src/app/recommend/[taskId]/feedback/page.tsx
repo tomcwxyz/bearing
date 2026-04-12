@@ -53,11 +53,11 @@ export default function FeedbackPage() {
 
   if (submitted) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-zinc-50 dark:bg-black">
+      <div className="flex flex-1 items-center justify-center">
         <div className="max-w-md px-6 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-teal-light">
             <svg
-              className="h-6 w-6 text-emerald-600 dark:text-emerald-400"
+              className="h-6 w-6 text-teal"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={2}
@@ -66,15 +66,15 @@ export default function FeedbackPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+          <h1 className="text-xl font-semibold tracking-tight font-display text-teal">
             Thanks for your feedback
           </h1>
-          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="mt-2 text-sm text-grey-blue">
             Your input helps us improve recommendations for everyone.
           </p>
           <a
             href="/"
-            className="mt-6 inline-block rounded-full bg-zinc-900 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="mt-6 inline-block rounded-full bg-navy px-6 py-2.5 text-sm font-medium font-display text-cream transition-colors hover:bg-navy-light"
           >
             Back to home
           </a>
@@ -86,19 +86,19 @@ export default function FeedbackPage() {
   const canSubmit = success !== null && (success || failureReason !== null)
 
   return (
-    <div className="flex flex-1 flex-col items-center bg-zinc-50 dark:bg-black">
+    <div className="flex flex-1 flex-col items-center">
       <main className="flex w-full max-w-2xl flex-col gap-8 px-6 py-16 sm:py-24">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+          <h1 className="text-2xl font-semibold tracking-tight font-display text-navy">
             How did it go?
           </h1>
-          <p className="mt-2 text-base text-zinc-500 dark:text-zinc-400">
+          <p className="mt-2 text-base text-grey-blue">
             Let us know how the recommended model worked for your task.
           </p>
         </div>
 
         {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+          <div className="rounded-lg border border-coral bg-coral/5 px-4 py-3 text-sm text-coral">
             {error}
           </div>
         )}
@@ -112,8 +112,8 @@ export default function FeedbackPage() {
             }}
             className={`flex flex-1 flex-col items-center gap-2 rounded-xl border-2 px-6 py-6 text-sm font-medium transition-colors ${
               success === true
-                ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300'
-                : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-800'
+                ? 'border-teal bg-teal text-cream'
+                : 'border-teal text-teal hover:bg-teal hover:text-cream'
             } cursor-pointer`}
           >
             <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -125,8 +125,8 @@ export default function FeedbackPage() {
             onClick={() => setSuccess(false)}
             className={`flex flex-1 flex-col items-center gap-2 rounded-xl border-2 px-6 py-6 text-sm font-medium transition-colors ${
               success === false
-                ? 'border-red-500 bg-red-50 text-red-700 dark:border-red-400 dark:bg-red-950/40 dark:text-red-300'
-                : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-800'
+                ? 'border-coral bg-coral text-cream'
+                : 'border-coral text-coral hover:bg-coral hover:text-cream'
             } cursor-pointer`}
           >
             <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -139,7 +139,7 @@ export default function FeedbackPage() {
         {/* Failure reason pills */}
         {success === false && (
           <div className="flex flex-col gap-3">
-            <h2 className="text-base font-medium text-zinc-900 dark:text-zinc-100">
+            <h2 className="text-base font-medium text-navy">
               What went wrong?
             </h2>
             <div className="flex flex-wrap gap-2">
@@ -151,8 +151,8 @@ export default function FeedbackPage() {
                     onClick={() => setFailureReason(reason)}
                     className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
                       selected
-                        ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                        : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:bg-zinc-800'
+                        ? 'bg-navy text-cream border-navy'
+                        : 'border-cream-dark text-navy hover:border-navy'
                     } cursor-pointer`}
                   >
                     {reason}
@@ -168,7 +168,7 @@ export default function FeedbackPage() {
           <div className="flex flex-col gap-2">
             <label
               htmlFor="feedback"
-              className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              className="text-sm font-medium text-navy"
             >
               Anything else?
             </label>
@@ -178,7 +178,7 @@ export default function FeedbackPage() {
               onChange={(e) => setFeedback(e.target.value)}
               rows={3}
               placeholder="Optional — tell us more about your experience"
-              className="resize-none rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-colors focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-zinc-500"
+              className="resize-none rounded-lg border border-cream-dark bg-white px-4 py-3 text-sm text-navy placeholder-grey-blue outline-none transition-colors focus:ring-teal focus:border-teal"
             />
           </div>
         )}
@@ -188,10 +188,10 @@ export default function FeedbackPage() {
           <button
             onClick={handleSubmit}
             disabled={!canSubmit || submitting}
-            className={`self-start rounded-full px-8 py-2.5 text-sm font-medium transition-colors ${
+            className={`self-start rounded-full px-8 py-2.5 text-sm font-medium font-display transition-colors ${
               canSubmit && !submitting
-                ? 'bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 cursor-pointer'
-                : 'bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600 cursor-not-allowed'
+                ? 'bg-navy text-cream hover:bg-navy-light cursor-pointer'
+                : 'bg-navy text-cream opacity-40 cursor-not-allowed'
             }`}
           >
             {submitting ? 'Submitting...' : 'Submit feedback'}

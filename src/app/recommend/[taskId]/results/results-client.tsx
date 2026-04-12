@@ -51,7 +51,7 @@ export function ResultsClient({ taskId, models, reasoning }: ResultsClientProps)
   return (
     <div className="space-y-4">
       {error && (
-        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        <p className="text-sm text-coral">{error}</p>
       )}
 
       {models.map((model, index) => {
@@ -64,10 +64,10 @@ export function ResultsClient({ taskId, models, reasoning }: ResultsClientProps)
         return (
           <div
             key={model.slug}
-            className={`rounded-lg border p-5 transition-colors ${
+            className={`rounded-xl border p-5 transition-colors shadow-sm ${
               isTop
-                ? 'border-zinc-900 bg-zinc-50 dark:border-zinc-100 dark:bg-zinc-800/50'
-                : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800'
+                ? 'border-coral border-2 bg-coral/5'
+                : 'bg-white border-cream-dark'
             }`}
           >
             {/* Header row */}
@@ -75,33 +75,33 @@ export function ResultsClient({ taskId, models, reasoning }: ResultsClientProps)
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-mono text-lg font-bold ${
                       isTop
-                        ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                        : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300'
+                        ? 'bg-coral text-white'
+                        : 'bg-cream-dark text-navy'
                     }`}
                   >
                     {rank}
                   </span>
-                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                  <h3 className="font-display text-xl font-bold text-navy">
                     {model.name}
                   </h3>
                 </div>
-                <p className="mt-0.5 ml-9 text-sm text-zinc-500 dark:text-zinc-400">
+                <p className="mt-0.5 ml-9 text-grey-blue text-sm">
                   {model.provider}
                 </p>
               </div>
               <div className="shrink-0 text-right">
-                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+                <p className="font-mono text-3xl font-bold text-navy">
                   {matchPercent}%
                 </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">match</p>
+                <p className="text-grey-blue text-xs">match</p>
               </div>
             </div>
 
             {/* Reasoning */}
             {reasoning[model.slug] && (
-              <p className="mb-4 ml-9 text-sm text-zinc-600 dark:text-zinc-300">
+              <p className="mb-4 ml-9 text-grey-blue italic text-sm">
                 {reasoning[model.slug]}
               </p>
             )}
@@ -113,20 +113,16 @@ export function ResultsClient({ taskId, models, reasoning }: ResultsClientProps)
                 const pct = Math.round(score * 100)
                 return (
                   <div key={factor} className="flex items-center gap-3">
-                    <span className="w-28 shrink-0 text-xs text-zinc-500 dark:text-zinc-400">
+                    <span className="w-28 shrink-0 text-grey-blue text-xs font-mono">
                       {FACTOR_LABELS[factor]}
                     </span>
-                    <div className="flex-1 h-2 rounded-full bg-zinc-100 dark:bg-zinc-700">
+                    <div className="flex-1 h-2 rounded-full bg-cream-dark">
                       <div
-                        className={`h-2 rounded-full ${
-                          isTop
-                            ? 'bg-zinc-900 dark:bg-zinc-100'
-                            : 'bg-zinc-400 dark:bg-zinc-400'
-                        }`}
+                        className="h-2 rounded-full bg-teal"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="w-8 shrink-0 text-right text-xs text-zinc-500 dark:text-zinc-400">
+                    <span className="w-8 shrink-0 text-right text-grey-blue text-xs font-mono">
                       {pct}
                     </span>
                   </div>
@@ -136,21 +132,19 @@ export function ResultsClient({ taskId, models, reasoning }: ResultsClientProps)
 
             {/* Cost + action */}
             <div className="flex items-center justify-between ml-9">
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              <p className="font-mono text-sm text-grey-blue">
                 ~${model.estimatedCost.toFixed(4)} per task
               </p>
               <button
                 type="button"
                 onClick={() => handleSelect(model.slug, rank)}
                 disabled={isPending || isDisabled}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                className={`rounded-lg px-4 py-2 text-sm font-medium font-display transition-colors ${
                   isSelected
-                    ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 cursor-default'
+                    ? 'bg-teal text-cream cursor-default'
                     : isDisabled
-                      ? 'bg-zinc-100 text-zinc-400 dark:bg-zinc-700 dark:text-zinc-500 cursor-not-allowed'
-                      : isTop
-                        ? 'bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200'
-                        : 'bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600'
+                      ? 'bg-navy text-cream opacity-40 cursor-not-allowed'
+                      : 'bg-navy text-cream hover:bg-navy-light'
                 }`}
               >
                 {isSelected ? 'Selected' : 'Use this one'}

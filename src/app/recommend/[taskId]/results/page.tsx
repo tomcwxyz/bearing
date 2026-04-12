@@ -9,8 +9,8 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
     return (
       <main className="min-h-screen p-8">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-2xl font-bold mb-2 text-zinc-900 dark:text-zinc-50">Something went wrong</h2>
-          <p className="text-zinc-600 dark:text-zinc-400">{result.error}</p>
+          <h2 className="text-2xl font-bold mb-2 font-display text-navy">Something went wrong</h2>
+          <p className="text-grey-blue">{result.error}</p>
         </div>
       </main>
     )
@@ -25,8 +25,8 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto">
-        <h2 className="text-2xl font-bold mb-2 text-zinc-900 dark:text-zinc-50">Your results</h2>
-        <p className="text-zinc-600 dark:text-zinc-400 mb-8">
+        <h2 className="text-2xl font-bold mb-2 font-display text-navy">Your results</h2>
+        <p className="text-grey-blue mb-8">
           Ranked for <strong>{task.task_type}</strong> tasks based on your priorities
         </p>
         <ResultsClient taskId={taskId} models={models} reasoning={reasoning} />
