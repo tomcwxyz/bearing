@@ -153,3 +153,86 @@ export async function saveOutcome(
     VALUES (${taskId}, ${selectionId}, ${success}, ${failureReason}, ${feedback})
   `
 }
+
+// ---------------------------------------------------------------------------
+// Comparisons
+// ---------------------------------------------------------------------------
+
+/** Create a comparison record. Returns the comparison UUID. */
+export async function createComparison(
+  taskId: string,
+  userId: string,
+  modelASlug: string,
+  modelBSlug: string,
+): Promise<string> {
+  const rows = await getDb()`
+    INSERT INTO comparisons (task_id, user_id, model_a_slug, model_b_slug)
+    VALUES (${taskId}, ${userId}, ${modelASlug}, ${modelBSlug})
+    RETURNING id
+  `
+  return rows[0].id as string
+}
+
+/** Store the prompt hash on a comparison after content filter passes. */
+export async function updateComparisonPrompt(
+  comparisonId: string,
+  promptHash: string,
+): Promise<void> {
+  await getDb()`
+    UPDATE comparisons
+    SET prompt_hash = ${promptHash}
+    WHERE id = ${comparisonId}
+  `
+}
+
+/** Record the user's preference on a comparison. */
+export async function updateComparisonPreference(
+  comparisonId: string,
+  preferred: string,
+  reason: string | null,
+): Promise<void> {
+  await getDb()`
+    UPDATE comparisons
+    SET preferred = ${preferred}, preference_reason = ${reason}
+    WHERE id = ${comparisonId}
+  `
+}
+
+/** Get the user's comparison count and date for rate limiting. */
+export async function getUserComparisonCount(
+  userId: string,
+): Promise<{ count: number; date: string | null }> {
+  const rows = await getDb()`
+    SELECT comparisons_today, last_comparison_date
+    FROM users
+    WHERE id = ${userId}
+  `
+  if (rows.length === 0) return { count: 0, date: null }
+  return {
+    count: rows[0].comparisons_today ?? 0,
+    date: rows[0].last_comparison_date ?? null,
+  }
+}
+
+/** Increment the user's daily comparison count, resetting if it's a new day. */
+export async function incrementUserComparisons(userId: string): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10)
+  await getDb()`
+    UPDATE users
+    SET
+      comparisons_today = CASE
+        WHEN last_comparison_date = ${today} THEN comparisons_today + 1
+        ELSE 1
+      END,
+      last_comparison_date = ${today}
+    WHERE id = ${userId}
+  `
+}
+
+/** Get a comparison record by ID. */
+export async function getComparison(comparisonId: string) {
+  const rows = await getDb()`
+    SELECT * FROM comparisons WHERE id = ${comparisonId}
+  `
+  return rows[0] ?? undefined
+}

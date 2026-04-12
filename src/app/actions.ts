@@ -5,7 +5,7 @@ import { isRedirectError } from 'next/dist/client/components/redirect-error'
 import { createHash } from 'crypto'
 import { neon } from '@neondatabase/serverless'
 
-import { sendMagicLink } from '@/lib/auth'
+import { sendMagicLink, getCurrentUser } from '@/lib/auth'
 import { classifyTask, type ClarificationAnswer } from '@/lib/classification'
 import { scoreModels } from '@/lib/scoring'
 import { generateReasoning } from '@/lib/reasoning'
@@ -16,7 +16,15 @@ import {
   saveRecommendations,
   saveSelection,
   saveOutcome,
+  createComparison,
+  updateComparisonPrompt,
+  updateComparisonPreference,
+  getUserComparisonCount,
+  incrementUserComparisons,
+  getComparison,
 } from '@/lib/db'
+import { callModel } from '@/lib/openrouter'
+import { filterPrompt } from '@/lib/content-filter'
 import type { Factor } from '@/lib/registry'
 
 // ---------------------------------------------------------------------------
@@ -306,4 +314,107 @@ export async function getValidationResults(taskId: string, currentModelSlug: str
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Failed to get validation results.' }
   }
+}
+
+// ---------------------------------------------------------------------------
+// 10. startComparison
+// ---------------------------------------------------------------------------
+
+export async function startComparison(
+  taskId: string,
+  modelASlug: string,
+  modelBSlug: string,
+) {
+  try {
+    const user = await getCurrentUser()
+    if (!user) return { error: 'You must be signed in to compare models.' }
+
+    const today = new Date().toISOString().slice(0, 10)
+    const { count, date } = await getUserComparisonCount(user.id)
+
+    if (date === today && count >= 2) {
+      return { error: "You've used your 2 daily comparisons" }
+    }
+
+    const comparisonId = await createComparison(taskId, user.id, modelASlug, modelBSlug)
+    return { comparisonId }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Failed to start comparison.' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 11. runComparison
+// ---------------------------------------------------------------------------
+
+export async function runComparison(comparisonId: string, prompt: string) {
+  try {
+    const user = await getCurrentUser()
+    if (!user) return { error: 'You must be signed in to compare models.' }
+
+    const comparison = await getComparison(comparisonId)
+    if (!comparison) return { error: 'Comparison not found.' }
+    if (comparison.user_id !== user.id) return { error: 'Not authorized.' }
+
+    // Content filter
+    const filterResult = await filterPrompt(prompt)
+    if (!filterResult.safe) {
+      return { error: filterResult.reason || 'Prompt was flagged by content filter.' }
+    }
+
+    // Call both models in parallel
+    const [resultA, resultB] = await Promise.all([
+      callModel(comparison.model_a_slug, prompt),
+      callModel(comparison.model_b_slug, prompt),
+    ])
+
+    // Hash the prompt and store
+    const promptHash = createHash('sha256').update(prompt).digest('hex')
+    await updateComparisonPrompt(comparisonId, promptHash)
+
+    // Increment daily count
+    await incrementUserComparisons(user.id)
+
+    return {
+      responseA: resultA.text,
+      responseB: resultB.text,
+      errorA: resultA.error,
+      errorB: resultB.error,
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Failed to run comparison.' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 12. submitPreference
+// ---------------------------------------------------------------------------
+
+export async function submitPreference(
+  comparisonId: string,
+  preferred: 'model_a' | 'model_b' | 'tie',
+  reason: string | null,
+) {
+  try {
+    const user = await getCurrentUser()
+    if (!user) return { error: 'You must be signed in.' }
+
+    const comparison = await getComparison(comparisonId)
+    if (!comparison) return { error: 'Comparison not found.' }
+    if (comparison.user_id !== user.id) return { error: 'Not authorized.' }
+
+    await updateComparisonPreference(comparisonId, preferred, reason)
+    return { success: true }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Failed to submit preference.' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 13. checkAuth
+// ---------------------------------------------------------------------------
+
+export async function checkAuth() {
+  const user = await getCurrentUser()
+  return { authenticated: !!user }
 }

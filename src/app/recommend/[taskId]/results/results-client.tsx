@@ -29,9 +29,10 @@ interface ResultsClientProps {
   taskId: string
   models: ScoredModel[]
   reasoning: Record<string, string>
+  isAuthenticated?: boolean
 }
 
-export function ResultsClient({ taskId, models, reasoning }: ResultsClientProps) {
+export function ResultsClient({ taskId, models, reasoning, isAuthenticated }: ResultsClientProps) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
   const [selectionId, setSelectionId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -170,6 +171,17 @@ export function ResultsClient({ taskId, models, reasoning }: ResultsClientProps)
           <p className="mt-2 text-xs text-grey-blue">
             Bookmark this link to come back later
           </p>
+        </div>
+      )}
+
+      {isAuthenticated && (
+        <div className="mt-8 text-center">
+          <a
+            href={`/compare/${taskId}`}
+            className="btn-secondary"
+          >
+            Compare two models head-to-head
+          </a>
         </div>
       )}
     </div>

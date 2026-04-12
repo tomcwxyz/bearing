@@ -1,9 +1,11 @@
 import { getResults } from '@/app/actions'
+import { getCurrentUser } from '@/lib/auth'
 import { ResultsClient } from './results-client'
 
 export default async function ResultsPage({ params }: { params: Promise<{ taskId: string }> }) {
   const { taskId } = await params
   const result = await getResults(taskId)
+  const user = await getCurrentUser()
 
   if ('error' in result && result.error) {
     return (
@@ -29,7 +31,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
         <p className="text-grey-blue mb-8">
           Ranked for <strong>{task.task_type}</strong> tasks based on your priorities
         </p>
-        <ResultsClient taskId={taskId} models={models} reasoning={reasoning} />
+        <ResultsClient taskId={taskId} models={models} reasoning={reasoning} isAuthenticated={!!user} />
       </div>
     </main>
   )
