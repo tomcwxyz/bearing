@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { useState, useEffect, useTransition } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { submitClarification } from '@/app/actions'
 import type { ClarificationAnswer } from '@/lib/classification'
 
@@ -17,11 +17,12 @@ interface ClarifyData {
 
 export default function ClarificationPage() {
   const { taskId } = useParams<{ taskId: string }>()
+  const router = useRouter()
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [description, setDescription] = useState('')
   const [answers, setAnswers] = useState<Record<number, string>>({})
-  const [loading, setLoading] = useState(false)
+  const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [round, setRound] = useState(1)
   const [ready, setReady] = useState(false)
@@ -44,31 +45,26 @@ export default function ClarificationPage() {
   }, [taskId])
 
   function selectAnswer(index: number, option: string) {
-    if (loading) return
+    if (isPending) return
     setAnswers((prev) => ({ ...prev, [index]: option }))
   }
 
   const allAnswered = questions.length > 0 && questions.every((_, i) => answers[i] !== undefined)
 
-  // Auto-submit when all questions are answered
-  useEffect(() => {
-    if (!allAnswered || loading) return
+  function handleSubmit() {
+    setError(null)
 
-    async function submit() {
-      setLoading(true)
-      setError(null)
+    const clarifications: ClarificationAnswer[] = questions.map((q, i) => ({
+      question: q.question,
+      answer: answers[i],
+    }))
 
-      const clarifications: ClarificationAnswer[] = questions.map((q, i) => ({
-        question: q.question,
-        answer: answers[i],
-      }))
-
+    startTransition(async () => {
       try {
         const result = await submitClarification(taskId, description, clarifications)
 
         if (result && 'error' in result && result.error) {
           setError(result.error)
-          setLoading(false)
           return
         }
 
@@ -77,29 +73,26 @@ export default function ClarificationPage() {
           setQuestions(result.questions ?? [])
           setAnswers({})
           setRound(2)
-          setLoading(false)
           return
         }
 
-        // If we hit max rounds and still need clarification, show a message
+        // If we hit max rounds and still need clarification
         if (result && 'needsClarification' in result && result.needsClarification && round >= 2) {
           setError('Unable to classify your task with enough confidence. Please try rephrasing your description.')
-          setLoading(false)
           return
         }
 
-        // If the server action redirected, this code won't execute.
-        // If we somehow get here without a redirect or error, just wait.
+        // If no result returned, the redirect happened server-side.
+        // But if we somehow get here, push manually.
+        if (!result) {
+          router.push(`/recommend/${taskId}/priorities`)
+        }
       } catch {
-        // redirect() from server actions throws — Next.js handles it
-        // Any other error is unexpected
-        setError('Something went wrong. Please try again.')
-        setLoading(false)
+        // redirect() from server action may throw on client — navigate manually
+        router.push(`/recommend/${taskId}/priorities`)
       }
-    }
-
-    submit()
-  }, [allAnswered, loading, answers, questions, taskId, description, round])
+    })
+  }
 
   if (error && !ready) {
     return (
@@ -108,7 +101,7 @@ export default function ClarificationPage() {
           <p className="text-lg text-coral">{error}</p>
           <a
             href="/"
-            className="mt-6 inline-block rounded-full bg-navy text-cream px-6 py-2.5 text-sm font-medium transition-colors hover:bg-navy-light"
+            className="mt-6 inline-block rounded-full bg-navy px-6 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-navy-light"
           >
             Start over
           </a>
@@ -149,7 +142,7 @@ export default function ClarificationPage() {
         <div className="flex flex-col gap-8">
           {questions.map((q, qi) => (
             <div key={`${round}-${qi}`} className="flex flex-col gap-3">
-              <h2 className="font-display text-navy font-medium">
+              <h2 className="font-display font-medium text-navy">
                 {q.question}
               </h2>
               <div className="flex flex-wrap gap-2">
@@ -159,12 +152,12 @@ export default function ClarificationPage() {
                     <button
                       key={option}
                       onClick={() => selectAnswer(qi, option)}
-                      disabled={loading}
+                      disabled={isPending}
                       className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
                         selected
-                          ? 'bg-navy text-cream border-navy'
+                          ? 'border-navy bg-navy text-cream'
                           : 'border-cream-dark text-navy hover:border-teal hover:text-teal'
-                      } ${loading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                      } ${isPending ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                     >
                       {option}
                     </button>
@@ -175,13 +168,21 @@ export default function ClarificationPage() {
           ))}
         </div>
 
-        {loading && (
-          <div className="flex items-center gap-3 pt-4">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-cream-dark border-t-teal" />
-            <p className="text-sm text-teal">
-              Re-classifying your task...
-            </p>
-          </div>
+        {allAnswered && (
+          <button
+            onClick={handleSubmit}
+            disabled={isPending}
+            className="w-full rounded-lg bg-navy px-4 py-3 font-display text-sm font-semibold text-cream transition-colors hover:bg-navy-light disabled:opacity-50"
+          >
+            {isPending ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-cream/30 border-t-cream" />
+                Classifying...
+              </span>
+            ) : (
+              'Continue'
+            )}
+          </button>
         )}
       </main>
     </div>
