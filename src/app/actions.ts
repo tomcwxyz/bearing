@@ -5,6 +5,7 @@ import { isRedirectError } from 'next/dist/client/components/redirect-error'
 import { createHash } from 'crypto'
 import { neon } from '@neondatabase/serverless'
 
+import { sendMagicLink } from '@/lib/auth'
 import { classifyTask, type ClarificationAnswer } from '@/lib/classification'
 import { scoreModels } from '@/lib/scoring'
 import { generateReasoning } from '@/lib/reasoning'
@@ -246,7 +247,21 @@ export async function submitValidation(formData: FormData) {
 }
 
 // ---------------------------------------------------------------------------
-// 8. getValidationResults
+// 8. requestMagicLink
+// ---------------------------------------------------------------------------
+
+export async function requestMagicLink(formData: FormData) {
+  const email = formData.get('email') as string
+  if (!email?.trim()) return { error: 'Email is required.' }
+
+  const result = await sendMagicLink(email.trim())
+  if (!result.success) return { error: result.error || 'Failed to send magic link.' }
+
+  return { success: true, email: email.trim() }
+}
+
+// ---------------------------------------------------------------------------
+// 9. getValidationResults
 // ---------------------------------------------------------------------------
 
 export async function getValidationResults(taskId: string, currentModelSlug: string) {
