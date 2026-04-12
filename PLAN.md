@@ -60,12 +60,25 @@ Mark tasks with:
 - [ ] Public dataset export (CSV, JSON, API)
 - [ ] `/data` page
 
-## Sprint 4: Learn + Write (planned, not started)
+## Sprint 4: Registry to DB + Learn (planned, not started)
 
+- [ ] Migrate registry from static JSON to Neon (models table, same schema)
+- [ ] Build step: generate static JSON snapshot from DB for scoring function (keeps scoring fast + testable)
+- [ ] Admin UI or server action for adding/editing models
 - [ ] First dataset analysis
 - [ ] Blog post
 - [ ] Scoring function review against outcome data
 - [ ] v1.5 training requirements doc
+
+## Sprint 5+ (future, not planned)
+
+- [ ] External pricing API integration (OpenRouter / provider APIs) — auto-update pricing from live sources, overlay our own fitness/transparency scores
+- [ ] Community model submission queue with review workflow
+- [ ] Automatic model registry from provider API discovery
+- [ ] Trained routing model (v1.5 — after sufficient data)
+- [ ] Embeddable widget / web component
+- [ ] API endpoint for programmatic recommendations
+- [ ] Organisation-level dashboards
 
 ## Decisions Made
 
@@ -77,16 +90,14 @@ Mark tasks with:
 | No auth library — hand-rolled magic link | Single auth flow (magic link for Compare), NextAuth is overkill | 2026-04-12 |
 | OpenRouter as single gateway | One API key, one SDK for Compare mode across all providers | 2026-04-12 |
 | Resend for transactional email | Free tier, simple API, good Next.js integration | 2026-04-12 |
+| Hybrid DB + cached JSON for registry | DB is source of truth, build step generates static JSON for scoring. Keeps scoring fast/testable while enabling admin UI and community contributions | 2026-04-12 |
+| External pricing API deferred to Sprint 5+ | OpenRouter/provider API integration for auto-pricing. Not needed while registry is small enough to maintain manually | 2026-04-12 |
 
 ## Open Questions
 
 - [ ] Brand/visual design — to be developed using impeccable/frontend-design skills
 - [ ] Exact confidence threshold tuning for classification (starting at 0.6)
 
-## Out of Scope
+## Out of Scope (current)
 
-- Embeddable widget / web component
-- API endpoint for programmatic recommendations
-- Trained routing model (v1.5 — after sufficient data)
-- Organisation-level dashboards
-- OpenRouter / LiteLLM integration for direct model access
+- OpenRouter / LiteLLM integration for direct model access from results
