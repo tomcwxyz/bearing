@@ -74,16 +74,16 @@ export default function PrioritiesPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-4 py-16">
+    <div className="flex flex-1 flex-col items-center justify-center px-4 py-20">
       <div className="w-full max-w-xl">
-        <h1 className="mb-2 text-center text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+        <h1 className="mb-3 text-center font-display text-3xl font-bold tracking-tight text-navy">
           What matters to you?
         </h1>
-        <p className="mb-8 text-center text-zinc-500 dark:text-zinc-400">
+        <p className="mb-10 text-center text-grey-blue">
           Drag to reorder. The top factor matters most.
         </p>
 
-        <ul className="mb-6 space-y-2">
+        <ul className="mb-8 space-y-2">
           {items.map((item, index) => (
             <li
               key={item.factor}
@@ -91,17 +91,17 @@ export default function PrioritiesPage() {
               onDragStart={() => handleDragStart(index)}
               onDragOver={(e) => handleDragOver(e, index)}
               onDragEnd={handleDragEnd}
-              className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3 select-none transition-colors hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-600"
+              className="flex items-center gap-3 rounded-lg border border-cream-dark bg-white px-4 py-3 select-none transition-colors hover:border-teal active:border-teal active:bg-teal/5"
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal/10 font-mono text-xs font-bold text-teal">
                 {index + 1}
               </span>
 
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                <p className="font-display text-sm font-semibold text-navy">
                   {item.label}
                 </p>
-                <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
+                <p className="truncate text-xs text-grey-blue">
                   {item.description}
                 </p>
               </div>
@@ -112,7 +112,7 @@ export default function PrioritiesPage() {
                   onClick={() => moveItem(index, 'up')}
                   disabled={index === 0}
                   aria-label={`Move ${item.label} up`}
-                  className="rounded px-1.5 py-0.5 text-xs text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-30 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
+                  className="rounded px-1.5 py-0.5 text-xs text-grey-blue transition-colors hover:bg-teal/10 hover:text-teal disabled:opacity-30"
                 >
                   &#9650;
                 </button>
@@ -121,13 +121,13 @@ export default function PrioritiesPage() {
                   onClick={() => moveItem(index, 'down')}
                   disabled={index === items.length - 1}
                   aria-label={`Move ${item.label} down`}
-                  className="rounded px-1.5 py-0.5 text-xs text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-30 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
+                  className="rounded px-1.5 py-0.5 text-xs text-grey-blue transition-colors hover:bg-teal/10 hover:text-teal disabled:opacity-30"
                 >
                   &#9660;
                 </button>
               </div>
 
-              <span className="cursor-grab text-zinc-300 dark:text-zinc-600" aria-hidden="true">
+              <span className="cursor-grab text-grey-blue" aria-hidden="true">
                 &#8942;&#8942;
               </span>
             </li>
@@ -135,7 +135,7 @@ export default function PrioritiesPage() {
         </ul>
 
         {error && (
-          <p className="mb-4 text-sm text-red-600 dark:text-red-400">
+          <p className="mb-4 text-sm text-coral">
             {error}
           </p>
         )}
@@ -144,9 +144,13 @@ export default function PrioritiesPage() {
           type="button"
           onClick={handleSubmit}
           disabled={isPending}
-          className="w-full rounded-lg bg-zinc-900 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          className="w-full rounded-lg bg-navy px-4 py-3 font-display text-sm font-semibold text-cream transition-colors hover:bg-navy-light disabled:opacity-50"
         >
-          {isPending ? 'Submitting...' : 'Show me results'}
+          {isPending ? (
+            <span className="text-teal-light">Submitting...</span>
+          ) : (
+            'Show me results'
+          )}
         </button>
       </div>
     </div>

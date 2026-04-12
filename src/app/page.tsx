@@ -37,24 +37,24 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-4 py-16">
+    <div className="flex flex-1 flex-col items-center justify-center px-4 py-20">
       <div className="w-full max-w-xl">
-        <h1 className="mb-2 text-center text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+        <h1 className="mb-3 text-center font-display text-5xl font-bold tracking-tight text-navy">
           Bearing
         </h1>
-        <p className="mb-8 text-center text-zinc-500 dark:text-zinc-400">
-          Find the right AI model for your task
+        <p className="mb-10 text-center text-lg text-grey-blue">
+          Chart your course to the right AI model
         </p>
 
         {/* Mode tabs */}
-        <div className="mb-6 flex rounded-lg border border-zinc-200 dark:border-zinc-700">
+        <div className="mb-8 flex gap-2">
           <button
             type="button"
             onClick={() => setMode('recommend')}
-            className={`flex-1 rounded-l-lg px-4 py-2 text-sm font-medium transition-colors ${
+            className={`flex-1 rounded-lg px-4 py-2.5 font-display text-sm font-semibold transition-colors ${
               mode === 'recommend'
-                ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+                ? 'bg-navy text-cream'
+                : 'bg-cream-dark text-navy hover:bg-navy hover:text-cream'
             }`}
           >
             Recommend
@@ -62,10 +62,10 @@ export default function Home() {
           <button
             type="button"
             onClick={() => setMode('validate')}
-            className={`flex-1 rounded-r-lg px-4 py-2 text-sm font-medium transition-colors ${
+            className={`flex-1 rounded-lg px-4 py-2.5 font-display text-sm font-semibold transition-colors ${
               mode === 'validate'
-                ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+                ? 'bg-navy text-cream'
+                : 'bg-cream-dark text-navy hover:bg-navy hover:text-cream'
             }`}
           >
             Validate
@@ -73,8 +73,8 @@ export default function Home() {
         </div>
 
         {mode === 'validate' ? (
-          <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-8 text-center dark:border-zinc-700 dark:bg-zinc-900">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <div className="rounded-lg border border-cream-dark bg-cream p-8 text-center">
+            <p className="text-sm text-grey-blue">
               Coming in Sprint 2
             </p>
           </div>
@@ -82,7 +82,7 @@ export default function Home() {
           <form action={handleSubmit}>
             <label
               htmlFor="description"
-              className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              className="mb-2 block font-display text-sm font-medium text-navy"
             >
               What do you want to use AI for?
             </label>
@@ -91,12 +91,12 @@ export default function Home() {
               name="description"
               rows={5}
               placeholder="e.g. Summarise long legal contracts into plain-English bullet points"
-              className="mb-4 w-full resize-y rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500"
+              className="mb-4 w-full resize-y rounded-lg border border-cream-dark bg-white px-4 py-3 text-sm text-navy placeholder-grey-blue-light focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
               disabled={loading}
             />
 
             {error && (
-              <p className="mb-4 text-sm text-red-600 dark:text-red-400">
+              <p className="mb-4 text-sm text-coral">
                 {error}
               </p>
             )}
@@ -104,9 +104,13 @@ export default function Home() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-zinc-900 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              className="w-full rounded-lg bg-navy px-4 py-3 font-display text-sm font-semibold text-cream transition-colors hover:bg-navy-light disabled:opacity-50"
             >
-              {loading ? 'Classifying...' : 'Find my model'}
+              {loading ? (
+                <span className="text-teal-light">Classifying...</span>
+              ) : (
+                'Find my model'
+              )}
             </button>
           </form>
         )}
