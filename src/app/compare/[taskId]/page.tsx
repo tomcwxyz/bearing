@@ -51,6 +51,8 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
   const [prompt, setPrompt] = useState('')
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const [loaded, setLoaded] = useState(false)
+  const [file, setFile] = useState<File | null>(null)
+  const [fileError, setFileError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -93,7 +95,10 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
       }
 
       const comparisonId = startResult.comparisonId!
-      const runResult = await runComparison(comparisonId, prompt.trim())
+      const formData = new FormData()
+      formData.set('prompt', prompt.trim())
+      if (file) formData.set('file', file)
+      const runResult = await runComparison(comparisonId, formData)
       if ('error' in runResult && runResult.error) {
         setError(runResult.error)
         return
@@ -201,6 +206,9 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
                     <div>
                       <span className="font-display font-bold text-navy">{model.name}</span>
                       <span className="text-navy/50 text-sm ml-2">{model.provider}</span>
+                      {model.capabilities.includes('vision') && (
+                        <span className="ml-2 rounded bg-teal/10 px-1.5 py-0.5 text-xs text-teal">Vision</span>
+                      )}
                     </div>
                   </div>
                   <span className="font-mono text-lg font-bold text-navy">{matchPercent}%</span>
@@ -228,6 +236,55 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
               className="w-full rounded-lg border border-cream-dark bg-white p-4 text-navy font-body text-sm resize-y focus:border-teal focus:ring-1 focus:ring-teal"
               placeholder="Enter a prompt to test both models..."
             />
+
+            {/* File attachment */}
+            <div className="mt-4">
+              <label className="block font-display font-semibold text-navy mb-2">
+                Attach document <span className="font-normal text-navy/50">(optional)</span>
+              </label>
+              <p className="text-sm text-navy/60 mb-2">
+                PDF or CSV, max 5MB. Vision models receive the raw file; others get extracted text.
+              </p>
+              {file ? (
+                <div className="flex items-center gap-3 rounded-lg border border-teal/30 bg-teal/5 px-4 py-3">
+                  <span className="text-sm text-navy">{file.name}</span>
+                  <span className="text-xs text-navy/50">({(file.size / 1024).toFixed(0)} KB)</span>
+                  <button
+                    type="button"
+                    onClick={() => { setFile(null); setFileError(null) }}
+                    className="ml-auto text-sm text-coral/70 hover:text-coral"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <label className="flex cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-cream-dark px-4 py-6 text-sm text-navy/50 transition-colors hover:border-teal hover:text-teal">
+                  <span>Drop a file here or click to browse</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.csv"
+                    className="hidden"
+                    disabled={isPending}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      if (!f) return
+                      setFileError(null)
+                      if (f.size > 5 * 1024 * 1024) {
+                        setFileError('File must be under 5MB.')
+                        return
+                      }
+                      const ext = f.name.split('.').pop()?.toLowerCase()
+                      if (ext !== 'pdf' && ext !== 'csv') {
+                        setFileError('Only PDF or CSV files are supported.')
+                        return
+                      }
+                      setFile(f)
+                    }}
+                  />
+                </label>
+              )}
+              {fileError && <p className="mt-2 text-sm text-coral">{fileError}</p>}
+            </div>
           </div>
         )}
 

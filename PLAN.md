@@ -81,6 +81,8 @@ Mark tasks with:
 - [x] Task 16: AI-estimated scoring via Haiku for imported models
 - [x] Task 17: Pricing sync from OpenRouter
 - [x] Task 18: openrouter_id column + backfill for 25 models
+- [x] Task 19: Compare file attachments (PDF/CSV upload, vision/text fallback)
+- [x] Task 20: callModel refactored to use DB openrouter_id
 
 ### Not in Sprint 4 (deferred)
 
