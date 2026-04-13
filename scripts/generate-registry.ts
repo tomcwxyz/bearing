@@ -2,7 +2,9 @@
 // Run during build or after admin edits.
 // Usage: npx tsx scripts/generate-registry.ts
 
-import 'dotenv/config'
+import { config } from 'dotenv'
+config({ path: '.env.local' })
+config() // also load .env as fallback
 import { neon } from '@neondatabase/serverless'
 import { writeFileSync, readFileSync } from 'fs'
 import { join } from 'path'

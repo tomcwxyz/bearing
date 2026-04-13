@@ -1,7 +1,9 @@
 // Reads bearing-registry.json and inserts all models into the Neon models table.
 // Usage: npx tsx scripts/seed-models.ts
 
-import 'dotenv/config'
+import { config } from 'dotenv'
+config({ path: '.env.local' })
+config() // also load .env as fallback
 import { neon } from '@neondatabase/serverless'
 import registryData from '../src/data/bearing-registry.json'
 
