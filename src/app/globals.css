@@ -131,3 +131,30 @@ body::before {
   border-radius: 9999px;
   transition: width 0.4s ease;
 }
+
+.input-field {
+  display: block;
+  width: 100%;
+  border-radius: 0.375rem;
+  border: 1px solid var(--color-cream-dark);
+  background-color: var(--color-cream);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-navy);
+  transition: border-color 0.15s ease;
+}
+
+.input-field::placeholder {
+  color: rgba(27, 42, 74, 0.4);
+}
+
+.input-field:focus {
+  border-color: var(--color-teal);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(45, 139, 122, 0.2);
+}
+
+.input-field:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
