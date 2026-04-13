@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless'
+import type { Model } from './registry'
 
 function getDb() {
   const url = process.env.NEON_DATABASE_URL
@@ -235,4 +236,93 @@ export async function getComparison(comparisonId: string) {
     SELECT * FROM comparisons WHERE id = ${comparisonId}
   `
   return rows[0] ?? undefined
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+/** Convert a DB row to the Model interface used by the rest of the app. */
+export function modelRowToModel(row: any): Model {
+  return {
+    slug: row.slug,
+    name: row.name,
+    provider: row.provider,
+    tier: row.tier,
+    pricing: row.pricing,
+    context_window: row.context_window,
+    capabilities: row.capabilities,
+    strengths: row.strengths,
+    weaknesses: row.weaknesses,
+    task_fitness: row.task_fitness,
+    speed_score: row.speed_score,
+    privacy_score: row.privacy_score,
+    transparency: row.transparency,
+    sustainability: row.sustainability,
+  }
+}
+
+/** Fetch all active models from the database. */
+export async function getAllModelsFromDb(): Promise<Model[]> {
+  const rows = await getDb()`
+    SELECT * FROM models WHERE active = true ORDER BY name
+  `
+  return rows.map(modelRowToModel)
+}
+
+/** Fetch a single model by slug. */
+export async function getModelFromDb(slug: string): Promise<Model | null> {
+  const rows = await getDb()`
+    SELECT * FROM models WHERE slug = ${slug}
+  `
+  return rows.length > 0 ? modelRowToModel(rows[0]) : null
+}
+
+/** Insert or update a model. */
+export async function upsertModel(model: {
+  slug: string; name: string; provider: string; tier: string;
+  pricing: { input_per_1m: number; output_per_1m: number };
+  context_window: number; capabilities: string[]; strengths: string[];
+  weaknesses: string[]; task_fitness: Record<string, number>;
+  speed_score: number; privacy_score: number;
+  transparency: any; sustainability: any;
+}): Promise<void> {
+  await getDb()`
+    INSERT INTO models (
+      slug, name, provider, tier, pricing, context_window,
+      capabilities, strengths, weaknesses, task_fitness,
+      speed_score, privacy_score, transparency, sustainability
+    ) VALUES (
+      ${model.slug}, ${model.name}, ${model.provider}, ${model.tier},
+      ${JSON.stringify(model.pricing)}::jsonb, ${model.context_window},
+      ${model.capabilities}::text[], ${model.strengths}::text[], ${model.weaknesses}::text[],
+      ${JSON.stringify(model.task_fitness)}::jsonb,
+      ${model.speed_score}, ${model.privacy_score},
+      ${JSON.stringify(model.transparency)}::jsonb,
+      ${JSON.stringify(model.sustainability)}::jsonb
+    )
+    ON CONFLICT (slug) DO UPDATE SET
+      name = EXCLUDED.name, provider = EXCLUDED.provider, tier = EXCLUDED.tier,
+      pricing = EXCLUDED.pricing, context_window = EXCLUDED.context_window,
+      capabilities = EXCLUDED.capabilities, strengths = EXCLUDED.strengths,
+      weaknesses = EXCLUDED.weaknesses, task_fitness = EXCLUDED.task_fitness,
+      speed_score = EXCLUDED.speed_score, privacy_score = EXCLUDED.privacy_score,
+      transparency = EXCLUDED.transparency, sustainability = EXCLUDED.sustainability,
+      updated_at = now()
+  `
+}
+
+/** Soft-delete a model by marking it inactive. */
+export async function deactivateModel(slug: string): Promise<void> {
+  await getDb()`UPDATE models SET active = false, updated_at = now() WHERE slug = ${slug}`
+}
+
+// ---------------------------------------------------------------------------
+// Admin
+// ---------------------------------------------------------------------------
+
+/** Check whether a user has admin privileges. */
+export async function isUserAdmin(userId: string): Promise<boolean> {
+  const rows = await getDb()`SELECT is_admin FROM users WHERE id = ${userId}`
+  return rows.length > 0 && rows[0].is_admin === true
 }
