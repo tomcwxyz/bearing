@@ -471,14 +471,14 @@
         "API can be slow at peak"
       ],
       "task_fitness": {
-        "code": 0.92,
-        "vision": 0.75,
-        "analyse": 0.9,
-        "extract": 0.88,
-        "generate": 0.82,
-        "summarise": 0.85,
-        "translate": 0.85,
-        "conversation": 0.78
+        "code": 0.83,
+        "vision": 0.68,
+        "analyse": 0.81,
+        "extract": 0.8,
+        "generate": 0.74,
+        "summarise": 0.77,
+        "translate": 0.77,
+        "conversation": 0.71
       },
       "speed_score": 0.6,
       "privacy_score": 0.3,
@@ -1151,14 +1151,14 @@
         "China-based data jurisdiction"
       ],
       "task_fitness": {
-        "code": 0.9,
-        "vision": 0.78,
-        "analyse": 0.85,
-        "extract": 0.85,
-        "generate": 0.8,
-        "summarise": 0.82,
-        "translate": 0.82,
-        "conversation": 0.78
+        "code": 0.82,
+        "vision": 0.71,
+        "analyse": 0.78,
+        "extract": 0.78,
+        "generate": 0.73,
+        "summarise": 0.75,
+        "translate": 0.75,
+        "conversation": 0.71
       },
       "speed_score": 0.7,
       "privacy_score": 0.3,
@@ -1207,14 +1207,14 @@
         "Smaller ecosystem"
       ],
       "task_fitness": {
-        "code": 0.92,
-        "vision": 0.8,
-        "analyse": 0.9,
-        "extract": 0.88,
-        "generate": 0.82,
-        "summarise": 0.85,
-        "translate": 0.85,
-        "conversation": 0.82
+        "code": 0.84,
+        "vision": 0.73,
+        "analyse": 0.83,
+        "extract": 0.81,
+        "generate": 0.75,
+        "summarise": 0.78,
+        "translate": 0.78,
+        "conversation": 0.75
       },
       "speed_score": 0.6,
       "privacy_score": 0.3,
@@ -1324,14 +1324,14 @@
         "China-based"
       ],
       "task_fitness": {
-        "code": 0.85,
-        "vision": 0.75,
-        "analyse": 0.82,
-        "extract": 0.82,
-        "generate": 0.8,
-        "summarise": 0.82,
-        "translate": 0.78,
-        "conversation": 0.78
+        "code": 0.77,
+        "vision": 0.68,
+        "analyse": 0.74,
+        "extract": 0.74,
+        "generate": 0.72,
+        "summarise": 0.74,
+        "translate": 0.7,
+        "conversation": 0.7
       },
       "speed_score": 0.7,
       "privacy_score": 0.5,
@@ -1382,14 +1382,14 @@
         "Newer provider"
       ],
       "task_fitness": {
-        "code": 0.88,
-        "vision": 0.78,
-        "analyse": 0.88,
-        "extract": 0.85,
-        "generate": 0.85,
-        "summarise": 0.85,
-        "translate": 0.8,
-        "conversation": 0.85
+        "code": 0.78,
+        "vision": 0.69,
+        "analyse": 0.78,
+        "extract": 0.75,
+        "generate": 0.75,
+        "summarise": 0.75,
+        "translate": 0.7,
+        "conversation": 0.75
       },
       "speed_score": 0.6,
       "privacy_score": 0.5,
@@ -1580,7 +1580,7 @@
     "qwen3-235b-a22b": {
       "name": "Qwen 3 235B",
       "provider": "Alibaba (via hosted providers)",
-      "tier": "flagship",
+      "tier": "open_source_balanced",
       "pricing": {
         "input_per_1m": 0.4,
         "output_per_1m": 1.2
@@ -1606,17 +1606,17 @@
         "Self-hosting needs significant GPU"
       ],
       "task_fitness": {
-        "code": 0.88,
-        "vision": 0.8,
-        "analyse": 0.88,
-        "extract": 0.85,
-        "generate": 0.82,
-        "summarise": 0.85,
-        "translate": 0.92,
-        "conversation": 0.82
+        "code": 0.73,
+        "vision": 0.66,
+        "analyse": 0.73,
+        "extract": 0.7,
+        "generate": 0.68,
+        "summarise": 0.7,
+        "translate": 0.76,
+        "conversation": 0.68
       },
       "speed_score": 0.65,
-      "privacy_score": 0.95,
+      "privacy_score": 0.85,
       "transparency": {
         "notes": "Apache 2.0, open weights. Alibaba FMTI 30.",
         "open_weights": 1,
@@ -1665,14 +1665,14 @@
         "Self-hosting impractical for most"
       ],
       "task_fitness": {
-        "code": 0.9,
-        "vision": 0.82,
-        "analyse": 0.9,
-        "extract": 0.88,
-        "generate": 0.85,
-        "summarise": 0.88,
-        "translate": 0.95,
-        "conversation": 0.85
+        "code": 0.8,
+        "vision": 0.73,
+        "analyse": 0.8,
+        "extract": 0.78,
+        "generate": 0.75,
+        "summarise": 0.78,
+        "translate": 0.84,
+        "conversation": 0.75
       },
       "speed_score": 0.55,
       "privacy_score": 0.95,
