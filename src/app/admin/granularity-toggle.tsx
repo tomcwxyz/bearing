@@ -1,7 +1,6 @@
 'use client'
 
-// TODO: import from @/lib/dashboard once that module exists
-type Granularity = 'day' | 'week' | 'month'
+import type { Granularity } from '@/lib/dashboard'
 
 const OPTIONS: { value: Granularity; label: string }[] = [
   { value: 'day', label: 'Daily' },
