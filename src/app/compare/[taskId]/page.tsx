@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, use } from 'react'
+import { useState, useEffect, useTransition, use } from 'react'
 import Link from 'next/link'
 import { getResults, startComparison, runComparison, checkAuth } from '@/app/actions'
 import type { ScoredModel } from '@/lib/scoring'
@@ -24,7 +24,8 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
   const [error, setError] = useState<string | null>(null)
 
   // Load data on mount
-  if (!loaded) {
+  useEffect(() => {
+    if (loaded) return
     setLoaded(true)
     startTransition(async () => {
       const authResult = await checkAuth()
@@ -40,7 +41,7 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
         setPrompt(DEFAULT_PROMPTS[r.task.task_type] || DEFAULT_PROMPTS.reasoning)
       }
     })
-  }
+  }, [loaded, taskId, startTransition])
 
   function toggleModel(slug: string) {
     setSelected((prev) => {
