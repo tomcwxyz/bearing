@@ -1,7 +1,7 @@
 # Plan
 
-> Last updated: 2026-04-12
-> Status: In progress — Sprint 1
+> Last updated: 2026-04-13
+> Status: In progress — Sprint 4
 
 ## Objective
 
@@ -9,7 +9,7 @@ Build Bearing — an AI model recommendation tool that helps people choose the r
 
 ## Approach
 
-Server-first Next.js 15 App Router. Pure scoring function against a static JSON registry (17 models, 7 factors). Claude Haiku for task classification and reasoning. Neon Postgres for persistence. Vercel for hosting.
+Server-first Next.js 15 App Router. Pure scoring function against a static JSON registry (29 models, 7 factors). Claude Haiku for task classification and reasoning. Neon Postgres for persistence. Vercel for hosting.
 
 Design doc: `docs/plans/2026-04-12-bearing-design.md`
 Implementation plan: `docs/plans/2026-04-12-bearing-sprint1.md`
@@ -61,13 +61,26 @@ Mark tasks with:
 - [x] Public dataset export (CSV + JSON, /api/dataset and /api/dataset/comparisons)
 - [x] `/data` page (methodology, schema, download links)
 
-## Sprint 4: Registry to DB + Learn (planned, not started)
+## Sprint 4: Registry to DB + Admin UI
 
-- [ ] Migrate registry from static JSON to Neon (models table, same schema)
-- [ ] Build step: generate static JSON snapshot from DB for scoring function (keeps scoring fast + testable)
-- [ ] Admin UI or server action for adding/editing models
-- [ ] First dataset analysis
-- [ ] Blog post
+- [x] Task 1: Models table migration (003-models-table.sql)
+- [x] Task 2: Seed script (JSON → DB)
+- [x] Task 3: Generate-registry script (DB → JSON) with prebuild hook
+- [x] Task 4: Model CRUD functions in db.ts with tests
+- [x] Task 5: Admin flag migration (004-admin-flag.sql)
+- [x] Task 6: Admin server actions (auth-gated CRUD)
+- [x] Task 7: Admin model list page
+- [x] Task 8: Admin model edit/create page (structured forms)
+- [x] Task 9: Wire models page to DB with JSON fallback
+- [x] Task 10: Run migrations, seed, and verify
+- [x] Task 11: Graceful prebuild without DB
+- [x] Task 12: Update project files
+- [x] Task 13: Admin dashboard — Usage tab (Recharts, activity over time, mode breakdown, signups)
+- [x] Task 14: Admin dashboard — Insights tab (task types, model leaderboard, outcomes, capabilities)
+
+### Not in Sprint 4 (deferred)
+
+- [ ] First dataset analysis + blog post
 - [ ] Scoring function review against outcome data
 - [ ] v1.5 training requirements doc
 
@@ -91,12 +104,11 @@ Mark tasks with:
 | No auth library — hand-rolled magic link | Single auth flow (magic link for Compare), NextAuth is overkill | 2026-04-12 |
 | OpenRouter as single gateway | One API key, one SDK for Compare mode across all providers | 2026-04-12 |
 | Resend for transactional email | Free tier, simple API, good Next.js integration | 2026-04-12 |
-| Hybrid DB + cached JSON for registry | DB is source of truth, build step generates static JSON for scoring. Keeps scoring fast/testable while enabling admin UI and community contributions | 2026-04-12 |
+| Hybrid DB + cached JSON for registry | DB is source of truth, build step generates static JSON for scoring. Keeps scoring fast/testable while enabling admin UI | 2026-04-13 |
 | External pricing API deferred to Sprint 5+ | OpenRouter/provider API integration for auto-pricing. Not needed while registry is small enough to maintain manually | 2026-04-12 |
 
 ## Open Questions
 
-- [ ] Brand/visual design — to be developed using impeccable/frontend-design skills
 - [ ] Exact confidence threshold tuning for classification (starting at 0.6)
 
 ## Out of Scope (current)

@@ -130,6 +130,37 @@ All anonymised data is available for download on the **Data** page.
 
 Available in JSON and CSV formats. Never includes raw descriptions, prompts, email addresses, or anything that could identify you.
 
+## Managing models (admin)
+
+If you have admin access, you can add, edit, and deactivate models directly from the browser.
+
+### Accessing the admin panel
+
+Visit `/admin` while signed in with an admin account. You'll see a table listing every model in the registry with its name, provider, tier, speed score, and pricing.
+
+### Editing a model
+
+Click **Edit** next to any model to open the edit form. The form is organised into sections:
+
+- **Basic info** — name, provider, and tier category
+- **Pricing** — input and output cost per million tokens
+- **Performance** — context window size, speed score, and privacy score (sliders from 0 to 1)
+- **Capabilities** — toggle which capabilities the model supports (vision, code, tools, etc.)
+- **Task fitness** — adjust how well the model performs across different task types using sliders
+- **Transparency** — sub-scores for open weights, training data, methodology, licence, and provider disclosure
+- **Sustainability** — inference energy, training footprint, and provider infrastructure scores
+- **Strengths and weaknesses** — editable lists of plain-text descriptions
+
+Click **Save Model** when you're done. Changes appear immediately on the Models page. To update the recommendation engine's snapshot, run the registry generation step during the next deployment.
+
+### Adding a new model
+
+Click **Add Model** on the admin page to open a blank form. Choose a URL-safe slug (e.g. `my-new-model`) — this cannot be changed after creation.
+
+### Deactivating a model
+
+Deactivated models are hidden from the registry and recommendations but preserved in the database for historical data integrity. Deactivation is available through the admin server actions.
+
 ## Privacy
 
 Bearing does not store your task descriptions or comparison prompts. What we store:
