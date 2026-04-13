@@ -43,6 +43,7 @@ stateDiagram-v2
 | Generate script | Done | scripts/generate-registry.ts (DB → JSON), prebuild hook |
 | Admin UI | Done | List page + edit/create with structured forms |
 | Admin dashboard | Done | Usage + Insights tabs with Recharts charts |
+| OpenRouter discover | Done | Discover tab with import, AI estimation, pricing sync |
 
 ## Data Flow
 

@@ -77,6 +77,10 @@ Mark tasks with:
 - [x] Task 12: Update project files
 - [x] Task 13: Admin dashboard — Usage tab (Recharts, activity over time, mode breakdown, signups)
 - [x] Task 14: Admin dashboard — Insights tab (task types, model leaderboard, outcomes, capabilities)
+- [x] Task 15: OpenRouter model discovery — Discover tab with import modal
+- [x] Task 16: AI-estimated scoring via Haiku for imported models
+- [x] Task 17: Pricing sync from OpenRouter
+- [x] Task 18: openrouter_id column + backfill for 25 models
 
 ### Not in Sprint 4 (deferred)
 
