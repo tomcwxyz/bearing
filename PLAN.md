@@ -83,6 +83,9 @@ Mark tasks with:
 - [x] Task 18: openrouter_id column + backfill for 25 models
 - [x] Task 19: Compare file attachments (PDF/CSV upload, vision/text fallback)
 - [x] Task 20: callModel refactored to use DB openrouter_id
+- [x] Task 21: Pipeline recommendations — classification detects multi-stage tasks
+- [x] Task 22: Pipeline scoring — per-stage model selection with alternatives
+- [x] Task 23: Pipeline UI — "Pipeline alternative" section on results page
 
 ### Not in Sprint 4 (deferred)
 
