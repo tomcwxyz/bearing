@@ -37,11 +37,12 @@ stateDiagram-v2
 | Validate mode | Done | Model autocomplete, 3-state assessment |
 | Compare mode | Done | OpenRouter dual calls, preference vote |
 | Public dataset | Done | JSON + CSV APIs, /data page |
-| Models table (DB) | Code ready | Migration 003, needs to run against Neon |
-| Admin flag | Code ready | Migration 004, needs to run against Neon |
+| Models table (DB) | Done | Migration 003 applied to Neon |
+| Admin flag | Done | Migration 004 applied to Neon |
 | Seed script | Done | scripts/seed-models.ts (JSON → DB) |
 | Generate script | Done | scripts/generate-registry.ts (DB → JSON), prebuild hook |
 | Admin UI | Done | List page + edit/create with structured forms |
+| Admin dashboard | Done | Usage + Insights tabs with Recharts charts |
 
 ## Data Flow
 

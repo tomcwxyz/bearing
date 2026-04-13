@@ -72,9 +72,11 @@ Mark tasks with:
 - [x] Task 7: Admin model list page
 - [x] Task 8: Admin model edit/create page (structured forms)
 - [x] Task 9: Wire models page to DB with JSON fallback
-- [~] Task 10: Run migrations, seed, and verify — CURRENT (needs Neon)
+- [x] Task 10: Run migrations, seed, and verify
 - [x] Task 11: Graceful prebuild without DB
 - [x] Task 12: Update project files
+- [x] Task 13: Admin dashboard — Usage tab (Recharts, activity over time, mode breakdown, signups)
+- [x] Task 14: Admin dashboard — Insights tab (task types, model leaderboard, outcomes, capabilities)
 
 ### Not in Sprint 4 (deferred)
 
