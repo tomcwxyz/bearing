@@ -43,8 +43,8 @@ function SummaryCard({ value, label }: { value: number; label: string }) {
 // Format period strings for chart axes
 // ---------------------------------------------------------------------------
 
-function shortDate(value: string | number): string {
-  const date = new Date(value)
+function shortDate(value: unknown): string {
+  const date = new Date(String(value))
   return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })
 }
 

@@ -12,6 +12,17 @@ function getDb() {
 
 export type Granularity = 'day' | 'week' | 'month'
 
+// Return types for dashboard queries
+export type UsageSummary = Awaited<ReturnType<typeof getUsageSummary>>
+export type ActivityPoint = Awaited<ReturnType<typeof getActivityOverTime>>[number]
+export type ModeCount = Awaited<ReturnType<typeof getModeBreakdown>>[number]
+export type SignupPoint = Awaited<ReturnType<typeof getSignupsOverTime>>[number]
+export type InsightsSummary = Awaited<ReturnType<typeof getInsightsSummary>>
+export type TaskTypeCount = Awaited<ReturnType<typeof getTaskTypeDistribution>>[number]
+export type LeaderboardEntry = Awaited<ReturnType<typeof getModelLeaderboard>>[number]
+export type OutcomeBreakdown = Awaited<ReturnType<typeof getOutcomeBreakdown>>
+export type CapabilityDemand = Awaited<ReturnType<typeof getCapabilityDemand>>
+
 const VALID_GRANULARITIES = new Set<Granularity>(['day', 'week', 'month'])
 
 /** Validate and normalise a granularity string; defaults to 'day'. */

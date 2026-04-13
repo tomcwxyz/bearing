@@ -10,11 +10,11 @@ import {
   formatGranularity,
   type UsageSummary, type ActivityPoint, type ModeCount, type SignupPoint,
   type InsightsSummary, type TaskTypeCount, type LeaderboardEntry,
-  type OutcomeCount, type CapabilityCount,
+  type OutcomeBreakdown, type CapabilityDemand,
 } from '@/lib/dashboard'
 
 export type { UsageSummary, ActivityPoint, ModeCount, SignupPoint }
-export type { InsightsSummary, TaskTypeCount, LeaderboardEntry, OutcomeCount, CapabilityCount }
+export type { InsightsSummary, TaskTypeCount, LeaderboardEntry, OutcomeBreakdown, CapabilityDemand }
 
 async function requireAdmin(): Promise<string> {
   const user = await getCurrentUser()
@@ -97,8 +97,8 @@ export async function fetchInsightsData(): Promise<{
   summary: InsightsSummary
   taskTypes: TaskTypeCount[]
   leaderboard: LeaderboardEntry[]
-  outcomes: OutcomeCount[]
-  capabilities: CapabilityCount[]
+  outcomes: OutcomeBreakdown
+  capabilities: CapabilityDemand
 }> {
   await requireAdmin()
   const [summary, taskTypes, leaderboard, outcomes, capabilities] = await Promise.all([

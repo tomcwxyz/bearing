@@ -6,7 +6,7 @@ import {
 } from 'recharts'
 import type {
   InsightsSummary, TaskTypeCount, LeaderboardEntry,
-  OutcomeCount, CapabilityCount,
+  OutcomeBreakdown, CapabilityDemand,
 } from './actions'
 
 // ---------------------------------------------------------------------------
@@ -18,8 +18,8 @@ interface InsightsTabProps {
     summary: InsightsSummary
     taskTypes: TaskTypeCount[]
     leaderboard: LeaderboardEntry[]
-    outcomes: OutcomeCount
-    capabilities: CapabilityCount
+    outcomes: OutcomeBreakdown
+    capabilities: CapabilityDemand
   }
 }
 
