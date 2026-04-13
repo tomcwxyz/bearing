@@ -18,6 +18,7 @@ async function seed() {
   console.log(`Seeding ${models.length} models...`)
 
   for (const [slug, model] of models) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const m = model as any
     await sql`
       INSERT INTO models (

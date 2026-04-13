@@ -29,6 +29,7 @@ async function generate() {
   const existing = JSON.parse(readFileSync(registryPath, 'utf-8'))
 
   // Build models object keyed by slug
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const models: Record<string, any> = {}
   for (const row of rows) {
     const { slug, ...rest } = row

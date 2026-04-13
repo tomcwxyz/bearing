@@ -45,8 +45,8 @@ export async function saveModelAdmin(formData: FormData): Promise<{ success: boo
     }
     await upsertModel(model)
     return { success: true }
-  } catch (err: any) {
-    return { success: false, error: err.message }
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Save failed' }
   }
 }
 
@@ -55,7 +55,7 @@ export async function deactivateModelAdmin(slug: string): Promise<{ success: boo
   try {
     await deactivateModel(slug)
     return { success: true }
-  } catch (err: any) {
-    return { success: false, error: err.message }
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Deactivation failed' }
   }
 }
