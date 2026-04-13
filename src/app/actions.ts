@@ -22,9 +22,12 @@ import {
   getUserComparisonCount,
   incrementUserComparisons,
   getComparison,
+  getOpenRouterId,
+  getModelFromDb,
 } from '@/lib/db'
 import { callModel } from '@/lib/openrouter'
 import { filterPrompt } from '@/lib/content-filter'
+import { validateFile, extractText, fileToBase64DataUrl } from '@/lib/file-parser'
 import type { Factor } from '@/lib/registry'
 
 // ---------------------------------------------------------------------------
@@ -347,7 +350,33 @@ export async function startComparison(
 // 11. runComparison
 // ---------------------------------------------------------------------------
 
-export async function runComparison(comparisonId: string, prompt: string) {
+// Build chat messages for a model, handling file attachments
+function buildCompareMessages(
+  prompt: string,
+  file: { buffer: Buffer; mimeType: string; name: string; extractedText: string } | null,
+  hasVision: boolean,
+): Array<{ role: string; content: string | Array<{ type: string; [key: string]: unknown }> }> {
+  if (!file) {
+    return [{ role: 'user', content: prompt }]
+  }
+
+  // Vision model + PDF: send as multimodal base64
+  if (hasVision && (file.mimeType === 'application/pdf' || file.name.endsWith('.pdf'))) {
+    return [{
+      role: 'user',
+      content: [
+        { type: 'image_url', image_url: { url: fileToBase64DataUrl(file.buffer, file.mimeType) } },
+        { type: 'text', text: prompt },
+      ],
+    }]
+  }
+
+  // Text-only fallback: prepend extracted content
+  const contextPrompt = `Document content:\n\n${file.extractedText}\n\n---\n\nUser request: ${prompt}`
+  return [{ role: 'user', content: contextPrompt }]
+}
+
+export async function runComparison(comparisonId: string, formData: FormData) {
   try {
     const user = await getCurrentUser()
     if (!user) return { error: 'You must be signed in to compare models.' }
@@ -356,16 +385,48 @@ export async function runComparison(comparisonId: string, prompt: string) {
     if (!comparison) return { error: 'Comparison not found.' }
     if (comparison.user_id !== user.id) return { error: 'Not authorized.' }
 
-    // Content filter
+    const prompt = formData.get('prompt') as string
+    if (!prompt?.trim()) return { error: 'Prompt is required.' }
+
+    // Content filter on text prompt
     const filterResult = await filterPrompt(prompt)
     if (!filterResult.safe) {
       return { error: filterResult.reason || 'Prompt was flagged by content filter.' }
     }
 
-    // Call both models in parallel
+    // Handle optional file attachment
+    let fileData: { buffer: Buffer; mimeType: string; name: string; extractedText: string } | null = null
+    const uploadedFile = formData.get('file') as File | null
+    if (uploadedFile && uploadedFile.size > 0) {
+      const validation = validateFile(uploadedFile.name, uploadedFile.type, uploadedFile.size)
+      if (!validation.valid) return { error: validation.error }
+
+      const buffer = Buffer.from(await uploadedFile.arrayBuffer())
+      const extractedText = await extractText(buffer, uploadedFile.type, uploadedFile.name)
+      fileData = { buffer, mimeType: uploadedFile.type, name: uploadedFile.name, extractedText }
+    }
+
+    // Look up OpenRouter IDs from DB
+    const [orIdA, orIdB, modelA, modelB] = await Promise.all([
+      getOpenRouterId(comparison.model_a_slug),
+      getOpenRouterId(comparison.model_b_slug),
+      getModelFromDb(comparison.model_a_slug),
+      getModelFromDb(comparison.model_b_slug),
+    ])
+
+    if (!orIdA) return { error: `Model ${comparison.model_a_slug} is not available for comparison (no OpenRouter ID).` }
+    if (!orIdB) return { error: `Model ${comparison.model_b_slug} is not available for comparison (no OpenRouter ID).` }
+
+    const hasVisionA = modelA?.capabilities.includes('vision') ?? false
+    const hasVisionB = modelB?.capabilities.includes('vision') ?? false
+
+    // Build per-model messages and call both in parallel
+    const messagesA = buildCompareMessages(prompt, fileData, hasVisionA)
+    const messagesB = buildCompareMessages(prompt, fileData, hasVisionB)
+
     const [resultA, resultB] = await Promise.all([
-      callModel(comparison.model_a_slug, prompt),
-      callModel(comparison.model_b_slug, prompt),
+      callModel(orIdA, messagesA),
+      callModel(orIdB, messagesB),
     ])
 
     // Hash the prompt and store
