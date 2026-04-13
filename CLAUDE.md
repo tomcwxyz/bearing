@@ -37,6 +37,7 @@ AI model recommendation tool — helps people choose the right model for their t
 - Scoring engine is a pure function in `lib/scoring.ts` — no side effects, fully testable
 - Neon `models` table is source of truth; `bearing-registry.json` is generated from DB via prebuild
 - Scoring engine reads static JSON (fast, testable); models page reads from DB (fresh data)
+- Models have `openrouter_id` column linking to OpenRouter API for discovery and pricing sync
 - No raw task descriptions or prompts stored — SHA-256 hashes only
 - Prompts are checked-in markdown files in `src/prompts/`, not buried in code
 - No ORM — raw SQL with @neondatabase/serverless

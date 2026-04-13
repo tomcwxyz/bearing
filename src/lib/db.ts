@@ -285,13 +285,17 @@ export async function upsertModel(model: {
   context_window: number; capabilities: string[]; strengths: string[];
   weaknesses: string[]; task_fitness: Record<string, number>;
   speed_score: number; privacy_score: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   transparency: any; sustainability: any;
+  openrouter_id?: string | null;
+  active?: boolean;
 }): Promise<void> {
   await getDb()`
     INSERT INTO models (
       slug, name, provider, tier, pricing, context_window,
       capabilities, strengths, weaknesses, task_fitness,
-      speed_score, privacy_score, transparency, sustainability
+      speed_score, privacy_score, transparency, sustainability,
+      openrouter_id, active
     ) VALUES (
       ${model.slug}, ${model.name}, ${model.provider}, ${model.tier},
       ${JSON.stringify(model.pricing)}::jsonb, ${model.context_window},
@@ -299,7 +303,9 @@ export async function upsertModel(model: {
       ${JSON.stringify(model.task_fitness)}::jsonb,
       ${model.speed_score}, ${model.privacy_score},
       ${JSON.stringify(model.transparency)}::jsonb,
-      ${JSON.stringify(model.sustainability)}::jsonb
+      ${JSON.stringify(model.sustainability)}::jsonb,
+      ${model.openrouter_id ?? null},
+      ${model.active ?? true}
     )
     ON CONFLICT (slug) DO UPDATE SET
       name = EXCLUDED.name, provider = EXCLUDED.provider, tier = EXCLUDED.tier,
@@ -308,8 +314,27 @@ export async function upsertModel(model: {
       weaknesses = EXCLUDED.weaknesses, task_fitness = EXCLUDED.task_fitness,
       speed_score = EXCLUDED.speed_score, privacy_score = EXCLUDED.privacy_score,
       transparency = EXCLUDED.transparency, sustainability = EXCLUDED.sustainability,
+      openrouter_id = EXCLUDED.openrouter_id,
       updated_at = now()
   `
+}
+
+/** Update pricing for a model by slug. */
+export async function updateModelPricing(slug: string, pricing: { input_per_1m: number; output_per_1m: number }): Promise<void> {
+  await getDb()`
+    UPDATE models SET pricing = ${JSON.stringify(pricing)}::jsonb, updated_at = now()
+    WHERE slug = ${slug}
+  `
+}
+
+/** Get all openrouter_id values from the models table. */
+export async function getOpenRouterIds(): Promise<Map<string, string>> {
+  const rows = await getDb()`SELECT slug, openrouter_id FROM models WHERE openrouter_id IS NOT NULL`
+  const map = new Map<string, string>()
+  for (const row of rows) {
+    map.set(row.openrouter_id as string, row.slug as string)
+  }
+  return map
 }
 
 /** Soft-delete a model by marking it inactive. */

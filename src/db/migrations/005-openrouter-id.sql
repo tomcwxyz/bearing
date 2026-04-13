@@ -1,0 +1,1 @@
+ALTER TABLE models ADD COLUMN IF NOT EXISTS openrouter_id TEXT UNIQUE;
