@@ -2,6 +2,8 @@
 
 import { useState, useTransition, useEffect, use } from 'react'
 import Link from 'next/link'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { submitPreference } from '@/app/actions'
 
 interface ComparisonData {
@@ -142,8 +144,10 @@ export default function CompareResultsPage({
             {data.errorA ? (
               <p className="text-coral text-sm italic">{data.errorA}</p>
             ) : (
-              <div className="text-navy/80 text-sm leading-relaxed whitespace-pre-wrap font-body">
-                {data.responseA}
+              <div className="prose prose-sm max-w-none text-navy/80 font-body prose-headings:text-navy prose-headings:font-display prose-strong:text-navy prose-a:text-teal prose-code:text-navy prose-code:bg-cream prose-code:px-1 prose-code:rounded prose-pre:bg-navy prose-pre:text-cream prose-th:text-navy prose-td:border-cream-dark">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {data.responseA}
+                </ReactMarkdown>
               </div>
             )}
           </div>
@@ -157,8 +161,10 @@ export default function CompareResultsPage({
             {data.errorB ? (
               <p className="text-coral text-sm italic">{data.errorB}</p>
             ) : (
-              <div className="text-navy/80 text-sm leading-relaxed whitespace-pre-wrap font-body">
-                {data.responseB}
+              <div className="prose prose-sm max-w-none text-navy/80 font-body prose-headings:text-navy prose-headings:font-display prose-strong:text-navy prose-a:text-teal prose-code:text-navy prose-code:bg-cream prose-code:px-1 prose-code:rounded prose-pre:bg-navy prose-pre:text-cream prose-th:text-navy prose-td:border-cream-dark">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {data.responseB}
+                </ReactMarkdown>
               </div>
             )}
           </div>

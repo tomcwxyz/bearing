@@ -5,6 +5,37 @@ import Link from 'next/link'
 import { getResults, startComparison, runComparison, checkAuth } from '@/app/actions'
 import type { ScoredModel } from '@/lib/scoring'
 
+function ComparisonProgress() {
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    const interval = setInterval(() => setElapsed((s) => s + 1), 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const steps = [
+    { label: 'Checking prompt safety', threshold: 0 },
+    { label: 'Sending prompt to both models', threshold: 2 },
+    { label: 'Waiting for responses', threshold: 5 },
+    { label: 'Still waiting — large models can take a while', threshold: 15 },
+  ]
+
+  const current = [...steps].reverse().find((s) => elapsed >= s.threshold)!
+
+  return (
+    <div className="mt-6 rounded-lg border border-teal/30 bg-teal/5 p-6 text-center">
+      <div className="flex items-center justify-center gap-3 mb-2">
+        <svg className="animate-spin h-5 w-5 text-teal" viewBox="0 0 24 24" fill="none">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        <p className="text-navy/70 font-display">{current.label}...</p>
+      </div>
+      <p className="text-sm text-grey-blue">{elapsed}s elapsed</p>
+    </div>
+  )
+}
+
 const DEFAULT_PROMPTS: Record<string, string> = {
   coding: 'Write a well-structured function that solves the following problem, with comments explaining your approach.',
   writing: 'Write a clear, engaging piece on the following topic. Focus on structure and readability.',
@@ -217,14 +248,7 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
           )}
         </div>
 
-        {isPending && (
-          <div className="mt-6 rounded-lg border border-teal/30 bg-teal/5 p-6 text-center">
-            <p className="text-navy/70 font-display">
-              Sending prompt to both models...
-            </p>
-            <p className="text-sm text-grey-blue mt-1">This may take a moment</p>
-          </div>
-        )}
+        {isPending && <ComparisonProgress />}
       </div>
     </div>
   )
