@@ -41,6 +41,14 @@ You'll see a ranked list of models, best fit first. Each model card shows:
 
 The top recommendation is highlighted, but you can choose any model from the list.
 
+### Pipeline recommendations
+
+If your task involves multiple steps — like extracting text from a PDF and then summarising it — Bearing may suggest a **pipeline alternative** below the main results. A pipeline recommends a different specialist model for each stage of your task, often resulting in better quality or lower cost than using a single model for everything.
+
+Each stage shows a recommended model and one alternative. The footer compares the total pipeline cost against the top single-model recommendation so you can see the trade-off at a glance.
+
+Not every task gets a pipeline suggestion — only tasks where splitting the work across models would genuinely help.
+
 ### Step 5: Select a model
 
 Tap **Use this one** on the model you want to try. This records your choice (anonymously) and helps improve future recommendations.
@@ -82,10 +90,15 @@ For tasks where specs alone don't tell the full story — creative writing, nuan
 1. From your recommendation results, tap **Compare two models head-to-head**
 2. Select exactly two models from your ranked list
 3. Write or edit a prompt for your task
-4. Tap **Run comparison** — both models receive the same prompt
-5. Read both responses side by side (model names are visible — this isn't blind testing)
-6. Vote: **Model A**, **Model B**, or **About the same**
-7. Optionally explain why
+4. Optionally **attach a file** (PDF or CSV, up to 5MB) — both models will process the same document alongside your prompt
+5. Tap **Run comparison** — both models receive the same prompt and file
+6. Read both responses side by side (model names are visible — this isn't blind testing)
+7. Vote: **Model A**, **Model B**, or **About the same**
+8. Optionally explain why
+
+### Attaching files
+
+When you attach a file, models that support vision (marked with a **Vision** badge) receive the raw document. Text-only models receive the extracted text content instead. This means you can compare how a vision model handles a PDF layout versus how a text model handles the same content as plain text.
 
 Your preference is recorded as pairwise data — the same format used by research benchmarks like Chatbot Arena, but anchored to your specific task type and priorities.
 
@@ -160,6 +173,41 @@ Click **Add Model** on the admin page to open a blank form. Choose a URL-safe sl
 ### Deactivating a model
 
 Deactivated models are hidden from the registry and recommendations but preserved in the database for historical data integrity. Deactivation is available through the admin server actions.
+
+### Usage and Insights dashboard
+
+The admin panel includes **Usage** and **Insights** tabs alongside the model list.
+
+**Usage** shows:
+- Total tasks, users, selections, and comparisons
+- Activity over time (tasks and selections per day, week, or month)
+- Mode breakdown (Recommend, Validate, Compare)
+- User signups over time
+
+**Insights** shows:
+- Outcome success rate and average selected rank
+- Task type distribution — what people are using AI for
+- Model leaderboard — which models are recommended and selected most
+- Outcome breakdown — success vs failure with failure reasons
+- Capability demand — how often tasks need vision, tools, or code
+
+Use the toggle in the top-right to switch between daily, weekly, and monthly views.
+
+### Discovering new models
+
+The **Discover** tab shows AI models available on OpenRouter that aren't yet in the Bearing registry. You can search by name or provider, then import individual models.
+
+When you import a model:
+1. Click **Import** — a form opens with the model's specs from OpenRouter (name, pricing, context window, capabilities)
+2. Click **Generate Estimates** — Claude Haiku suggests initial scores for task fitness, transparency, sustainability, and other factors based on the model's metadata
+3. Review and adjust the estimates — all fields are editable
+4. Click **Save as Draft** — the model is added to the registry but not yet visible to users
+
+To make a draft model live, go to the Models tab, find the model, and edit it to set it as active.
+
+### Syncing pricing
+
+Click **Sync Pricing** on the Discover tab to update pricing for all models from OpenRouter's latest data. You'll see a summary of how many models were updated.
 
 ## Privacy
 

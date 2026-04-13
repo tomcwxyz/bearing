@@ -4,6 +4,27 @@ All notable changes to Bearing will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.0] — 2026-04-13
+
+### Added
+
+- **Pipeline recommendations** — when your task involves multiple steps (like extracting text from a PDF then summarising it), Bearing now suggests a pipeline of specialist models. Each stage gets its own recommendation with an alternative, plus a cost comparison against using a single model for everything.
+- **File attachments in Compare mode** — you can now attach a PDF or CSV file (up to 5MB) when comparing two models. Vision-capable models receive the raw document; text-only models get the extracted text. A "Vision" badge on model cards shows which models can process files directly.
+- **Admin dashboard** — the admin panel now has Usage and Insights tabs alongside the model list. Usage shows activity over time, mode breakdown, and user signups with daily/weekly/monthly granularity. Insights shows task type distribution, a model leaderboard, outcome breakdown, and capability demand.
+- **Model discovery from OpenRouter** — a new Discover tab in the admin panel shows AI models available on OpenRouter that aren't yet in the Bearing registry. Import a model with one click — Claude Haiku estimates initial scores based on the model's specs, which you can review and adjust before activating.
+- **Pricing sync** — a one-click button in the admin panel updates pricing for all models from OpenRouter's latest data.
+
+### Changed
+
+- **Fairer cost scoring** — expensive models like Claude Opus no longer receive a flat zero on cost. The scoring now uses a logarithmic scale with a floor, so premium models can still be recommended when cost isn't a priority.
+- **More accurate model scores** — recalibrated task fitness scores for seven models that were rated too generously (Qwen 3 235B, Qwen 3.5, Kimi K2/K2.5, DeepSeek V3.2, MiniMax M2.5/M2.7), based on independent benchmark data.
+- **Compare mode works with all models** — previously limited to a hardcoded list. Now any model in the registry with an OpenRouter connection can be used in head-to-head comparisons, including newly imported models.
+
+### Fixed
+
+- **Compare page crash** — fixed an infinite render loop that occurred when loading the Compare page.
+- **Mistral OCR pricing** — corrected from incorrect per-token pricing to an equivalent of its actual $2 per 1,000 pages rate.
+
 ## [0.5.0] — 2026-04-13
 
 ### Added
