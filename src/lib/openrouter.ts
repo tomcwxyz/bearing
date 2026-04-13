@@ -69,42 +69,10 @@ export async function fetchOpenRouterModels(): Promise<OpenRouterModel[]> {
   return data.data as OpenRouterModel[]
 }
 
-// --- Compare mode: slug-to-OpenRouter mapping and call logic ---
-
-const SLUG_TO_OPENROUTER: Record<string, string> = {
-  'claude-opus-4.6': 'anthropic/claude-opus-4',
-  'claude-sonnet-4.6': 'anthropic/claude-sonnet-4',
-  'claude-haiku-4.5': 'anthropic/claude-haiku-4.5',
-  'gpt-5.4': 'openai/gpt-5.4',
-  'gpt-5.4-mini': 'openai/gpt-5.4-mini',
-  'gpt-5.4-nano': 'openai/gpt-5.4-nano',
-  'gemini-3.1-pro': 'google/gemini-3.1-pro-preview',
-  'gemini-3-flash': 'google/gemini-3-flash-preview',
-  'deepseek-v3.1': 'deepseek/deepseek-chat-v3.1',
-  'deepseek-v3.2': 'deepseek/deepseek-v3.2',
-  'deepseek-r1': 'deepseek/deepseek-r1',
-  'deepseek-r1-0528': 'deepseek/deepseek-r1-0528',
-  'mistral-medium-3': 'mistralai/mistral-medium-3',
-  'codestral-25.01': 'mistralai/codestral-2508',
-  'qwen3-235b-a22b': 'qwen/qwen3-235b-a22b',
-  'qwen3.5-397b': 'qwen/qwen3.5-397b-a17b',
-  'kimi-k2': 'moonshotai/kimi-k2',
-  'kimi-k2.5': 'moonshotai/kimi-k2.5',
-  'minimax-m2.5': 'minimax/minimax-m2.5',
-  'minimax-m2.7': 'minimax/minimax-m2.7',
-  'grok-4': 'x-ai/grok-4',
-  'llama-4-maverick': 'meta-llama/llama-4-maverick',
-}
-
 export async function callModel(
-  modelSlug: string,
-  prompt: string,
+  openrouterId: string,
+  messages: Array<{ role: string; content: string | Array<{ type: string; [key: string]: unknown }> }>,
 ): Promise<{ text: string; error?: string }> {
-  const openRouterId = SLUG_TO_OPENROUTER[modelSlug]
-  if (!openRouterId) {
-    return { text: '', error: 'Model not available for comparison' }
-  }
-
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) {
     return { text: '', error: 'OpenRouter API key is not configured' }
@@ -122,9 +90,9 @@ export async function callModel(
         'X-Title': 'Bearing',
       },
       body: JSON.stringify({
-        model: openRouterId,
+        model: openrouterId,
         max_tokens: 2048,
-        messages: [{ role: 'user', content: prompt }],
+        messages,
       }),
     })
 

@@ -278,6 +278,14 @@ export async function getModelFromDb(slug: string): Promise<Model | null> {
   return rows.length > 0 ? modelRowToModel(rows[0]) : null
 }
 
+/** Get the openrouter_id for a model slug. Returns null if not found or not mapped. */
+export async function getOpenRouterId(slug: string): Promise<string | null> {
+  const rows = await getDb()`
+    SELECT openrouter_id FROM models WHERE slug = ${slug}
+  `
+  return rows.length > 0 ? (rows[0].openrouter_id as string | null) : null
+}
+
 /** Insert or update a model. */
 export async function upsertModel(model: {
   slug: string; name: string; provider: string; tier: string;
