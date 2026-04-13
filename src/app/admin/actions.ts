@@ -3,6 +3,18 @@
 import { getCurrentUser } from '@/lib/auth'
 import { isUserAdmin, getAllModelsFromDb, getModelFromDb, upsertModel, deactivateModel } from '@/lib/db'
 import type { Model } from '@/lib/registry'
+import {
+  getUsageSummary, getActivityOverTime, getModeBreakdown, getSignupsOverTime,
+  getInsightsSummary, getTaskTypeDistribution, getModelLeaderboard,
+  getOutcomeBreakdown, getCapabilityDemand,
+  formatGranularity,
+  type UsageSummary, type ActivityPoint, type ModeCount, type SignupPoint,
+  type InsightsSummary, type TaskTypeCount, type LeaderboardEntry,
+  type OutcomeCount, type CapabilityCount,
+} from '@/lib/dashboard'
+
+export type { UsageSummary, ActivityPoint, ModeCount, SignupPoint }
+export type { InsightsSummary, TaskTypeCount, LeaderboardEntry, OutcomeCount, CapabilityCount }
 
 async function requireAdmin(): Promise<string> {
   const user = await getCurrentUser()
@@ -58,4 +70,43 @@ export async function deactivateModelAdmin(slug: string): Promise<{ success: boo
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : 'Deactivation failed' }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard
+// ---------------------------------------------------------------------------
+
+export async function fetchUsageData(granularityRaw: string): Promise<{
+  summary: UsageSummary
+  activity: ActivityPoint[]
+  modes: ModeCount[]
+  signups: SignupPoint[]
+}> {
+  await requireAdmin()
+  const granularity = formatGranularity(granularityRaw)
+  const [summary, activity, modes, signups] = await Promise.all([
+    getUsageSummary(),
+    getActivityOverTime(granularity),
+    getModeBreakdown(),
+    getSignupsOverTime(granularity),
+  ])
+  return { summary, activity, modes, signups }
+}
+
+export async function fetchInsightsData(): Promise<{
+  summary: InsightsSummary
+  taskTypes: TaskTypeCount[]
+  leaderboard: LeaderboardEntry[]
+  outcomes: OutcomeCount[]
+  capabilities: CapabilityCount[]
+}> {
+  await requireAdmin()
+  const [summary, taskTypes, leaderboard, outcomes, capabilities] = await Promise.all([
+    getInsightsSummary(),
+    getTaskTypeDistribution(),
+    getModelLeaderboard(),
+    getOutcomeBreakdown(),
+    getCapabilityDemand(),
+  ])
+  return { summary, taskTypes, leaderboard, outcomes, capabilities }
 }
