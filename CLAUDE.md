@@ -5,18 +5,22 @@ AI model recommendation tool — helps people choose the right model for their t
 ## Architecture
 
 - `src/app/` — Next.js 15 App Router pages and server actions
+- `src/app/admin/` — Admin UI for model CRUD (auth-gated via is_admin flag)
 - `src/lib/` — Core logic: scoring engine, registry loader, classification, reasoning, weights, db
-- `src/data/` — Static model registry JSON (bearing-registry.json)
+- `src/data/` — Static model registry JSON (bearing-registry.json) — generated from DB
 - `src/prompts/` — Checked-in prompt files for Haiku (classify.md, reason.md)
-- `src/db/migrations/` — SQL migration files for Neon
+- `src/db/migrations/` — SQL migration files for Neon (001-004)
+- `scripts/` — Build scripts: seed-models.ts (JSON→DB), generate-registry.ts (DB→JSON)
 - `docs/plans/` — Design docs and implementation plans
 
 ## Commands
 
 - `npm run dev` — start development server
 - `npm test` — run tests (vitest)
-- `npm run build` — production build
+- `npm run build` — production build (runs prebuild → generate-registry)
 - `npm run lint` — check for issues
+- `npm run db:seed` — seed models table from registry JSON
+- `npm run db:generate` — regenerate registry JSON from DB
 
 ## Stack
 
@@ -31,7 +35,8 @@ AI model recommendation tool — helps people choose the right model for their t
 
 - Server-first: all logic in server actions, thin frontend
 - Scoring engine is a pure function in `lib/scoring.ts` — no side effects, fully testable
-- Registry JSON is the source of truth for model data (7 factors, 17 models)
+- Neon `models` table is source of truth; `bearing-registry.json` is generated from DB via prebuild
+- Scoring engine reads static JSON (fast, testable); models page reads from DB (fresh data)
 - No raw task descriptions or prompts stored — SHA-256 hashes only
 - Prompts are checked-in markdown files in `src/prompts/`, not buried in code
 - No ORM — raw SQL with @neondatabase/serverless
@@ -53,12 +58,13 @@ AI model recommendation tool — helps people choose the right model for their t
 - Don't refactor code that wasn't part of the task
 - Don't create files without explaining what and why
 - Registry v0.2.0 is authoritative for scoring factors (7 factors, not 6)
+- Admin access is gated by `is_admin` boolean on users table
 
 ## State & Progress
 
-> Updated: 2026-04-12
-> Current focus: Sprint 1 — Core Recommend flow
-> Status: Implementation complete, awaiting DB migration + deploy
+> Updated: 2026-04-13
+> Current focus: Sprint 4 — Registry to DB + Admin UI
+> Status: Code complete, awaiting migrations 003-004 against Neon + deploy
 
 See PLAN.md for task tracking, STATE.md for system state, HANDOFF.md for session notes.
 
@@ -72,7 +78,8 @@ See PLAN.md for task tracking, STATE.md for system state, HANDOFF.md for session
 
 Things Claude has got wrong on this project — don't repeat these:
 
-- [Add mistakes as they happen — this is the highest-leverage section]
+- Plan referenced `verifySession()` which didn't exist — auth uses `getCurrentUser()` from `src/lib/auth.ts`
+- `tsx` was available globally but not as a project dependency — npm scripts couldn't find it. Always install script runners as dev dependencies.
 
 <!-- 
 Keep this file concise. ~150 instructions max before Claude starts ignoring things.
