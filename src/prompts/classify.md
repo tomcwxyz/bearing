@@ -20,7 +20,16 @@ Return JSON only, no other text.
       "question": string,
       "options": [string, string, ...]
     }
-  ]
+  ],
+  "pipeline_recommended": boolean,
+  "pipeline_stages": [
+    {
+      "stage": number,
+      "task_type": "summarise" | "generate" | "extract" | "code" | "analyse" | "translate" | "conversation" | "vision" | "other",
+      "description": string,
+      "requires_capabilities": string[]
+    }
+  ] | null
 }
 
 ## Task type definitions
@@ -42,6 +51,24 @@ Return JSON only, no other text.
 - Infer needs_vision, needs_tools, needs_code from context.
 - Estimate input_length from the task description.
 - is_recurring = true if the task sounds like something done regularly.
+
+## Pipeline detection
+
+Some tasks involve multiple distinct processing steps that benefit from different models. When this is the case, set pipeline_recommended to true and provide pipeline_stages.
+
+Examples of pipeline tasks:
+- "Extract text from PDFs then summarise the key points" → stage 1: extract (needs vision), stage 2: summarise
+- "Translate this document then generate a report from it" → stage 1: translate, stage 2: generate
+- "OCR these invoices, pull out the amounts, and analyse spending trends" → stage 1: extract (needs vision), stage 2: extract, stage 3: analyse
+- "Read this codebase and write documentation" → stage 1: code, stage 2: generate
+
+Rules:
+- Only recommend pipelines for tasks with 2+ clearly distinct operations
+- Simple tasks (single question, single generation) should NOT get pipelines
+- Each stage gets its own task_type from the standard set
+- requires_capabilities lists capabilities needed for that stage (e.g. ["vision"] for PDF/image processing)
+- If pipeline_recommended is false, set pipeline_stages to null
+- Maximum 4 stages
 
 ## Clarification questions
 

@@ -14,6 +14,13 @@ export interface Classification {
   confidence: number
   clarification_needed: boolean
   suggested_questions: { question: string; options: string[] }[]
+  pipeline_recommended: boolean
+  pipeline_stages: {
+    stage: number
+    task_type: string
+    description: string
+    requires_capabilities: string[]
+  }[] | null
 }
 
 export interface ClarificationAnswer {

@@ -7,8 +7,12 @@ import { neon } from '@neondatabase/serverless'
 
 import { sendMagicLink, getCurrentUser } from '@/lib/auth'
 import { classifyTask, type ClarificationAnswer } from '@/lib/classification'
-import { scoreModels } from '@/lib/scoring'
+import { readFileSync } from 'fs'
+import { join } from 'path'
+import Anthropic from '@anthropic-ai/sdk'
+import { scoreModels, type ScoredModel } from '@/lib/scoring'
 import { generateReasoning } from '@/lib/reasoning'
+import { scorePipeline, type PipelineResult } from '@/lib/pipeline'
 import {
   createTask,
   updateTaskPriorities,
@@ -59,6 +63,7 @@ export async function submitTask(formData: FormData) {
       needsCode: classification.needs_code,
       isRecurring: classification.is_recurring,
       classificationConfidence: classification.confidence,
+      pipelineStages: classification.pipeline_stages ?? null,
     })
 
     if (classification.confidence < 0.6 || classification.clarification_needed) {
@@ -102,7 +107,8 @@ export async function submitClarification(
         needs_tools = ${classification.needs_tools},
         needs_code = ${classification.needs_code},
         is_recurring = ${classification.is_recurring},
-        classification_confidence = ${classification.confidence}
+        classification_confidence = ${classification.confidence},
+        pipeline_stages = ${classification.pipeline_stages ? JSON.stringify(classification.pipeline_stages) : null}
       WHERE id = ${taskId}
     `
 
@@ -175,7 +181,22 @@ export async function getResults(taskId: string) {
       models,
     )
 
-    return { task, models, reasoning }
+    // Pipeline recommendations if classification detected multi-stage task
+    let pipeline: (PipelineResult & { reasoning: string }) | null = null
+    if (task.pipeline_stages) {
+      const stages = typeof task.pipeline_stages === 'string'
+        ? JSON.parse(task.pipeline_stages)
+        : task.pipeline_stages
+      const pipelineResult = scorePipeline(stages, task.input_length, priorityOrder)
+      const pipelineReasoning = await generatePipelineReasoning(
+        task.task_type,
+        pipelineResult,
+        models[0],
+      )
+      pipeline = { ...pipelineResult, reasoning: pipelineReasoning }
+    }
+
+    return { task, models, reasoning, pipeline }
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Failed to get results.' }
   }
@@ -316,6 +337,45 @@ export async function getValidationResults(taskId: string, currentModelSlug: str
     return { task, models, currentModel, currentModelRank, assessment }
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Failed to get validation results.' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Pipeline reasoning helper
+// ---------------------------------------------------------------------------
+
+async function generatePipelineReasoning(
+  taskType: string,
+  pipeline: PipelineResult,
+  topSingleModel: ScoredModel,
+): Promise<string> {
+  try {
+    const promptPath = join(process.cwd(), 'src', 'prompts', 'pipeline-reason.md')
+    const systemPrompt = readFileSync(promptPath, 'utf-8')
+
+    const stagesSummary = pipeline.stages.map(s =>
+      `Stage ${s.stage}: ${s.description} → ${s.recommended.name} ($${s.recommended.estimatedCost.toFixed(4)})`
+    ).join('\n')
+
+    const userMessage = [
+      `Task type: ${taskType}`,
+      `Top single model: ${topSingleModel.name} ($${topSingleModel.estimatedCost.toFixed(4)})`,
+      `Pipeline stages:\n${stagesSummary}`,
+      `Pipeline total cost: $${pipeline.totalEstimatedCost.toFixed(4)}`,
+    ].join('\n')
+
+    const client = new Anthropic()
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 256,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMessage }],
+    })
+
+    return response.content[0].type === 'text' ? response.content[0].text : ''
+  } catch {
+    return 'A pipeline of specialist models may handle this task more efficiently than a single model.'
   }
 }
 

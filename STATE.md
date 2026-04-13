@@ -36,6 +36,7 @@ stateDiagram-v2
 | About page | Done | Privacy, open source, Good Ship |
 | Validate mode | Done | Model autocomplete, 3-state assessment |
 | Compare mode | Done | OpenRouter dual calls, preference vote, PDF/CSV attachments |
+| Pipeline recommendations | Done | Multi-stage task detection, per-stage scoring, UI section |
 | Public dataset | Done | JSON + CSV APIs, /data page |
 | Models table (DB) | Done | Migration 003 applied to Neon |
 | Admin flag | Done | Migration 004 applied to Neon |

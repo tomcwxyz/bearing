@@ -4,6 +4,8 @@ import { useState, useTransition } from 'react'
 import { selectModel } from '@/app/actions'
 import type { ScoredModel } from '@/lib/scoring'
 import type { Factor } from '@/lib/registry'
+import type { PipelineResult } from '@/lib/pipeline'
+import { PipelineSection } from './pipeline-section'
 
 const FACTOR_LABELS: Record<Factor, string> = {
   cost: 'Cost',
@@ -30,9 +32,10 @@ interface ResultsClientProps {
   models: ScoredModel[]
   reasoning: Record<string, string>
   isAuthenticated?: boolean
+  pipeline?: (PipelineResult & { reasoning: string }) | null
 }
 
-export function ResultsClient({ taskId, models, reasoning, isAuthenticated }: ResultsClientProps) {
+export function ResultsClient({ taskId, models, reasoning, isAuthenticated, pipeline }: ResultsClientProps) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
   const [selectionId, setSelectionId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -156,6 +159,13 @@ export function ResultsClient({ taskId, models, reasoning, isAuthenticated }: Re
           </div>
         )
       })}
+
+      {pipeline && (
+        <PipelineSection
+          pipeline={pipeline}
+          singleModelCost={models[0]?.estimatedCost ?? 0}
+        />
+      )}
 
       {selectionId && (
         <div className="mt-8 rounded-lg border border-teal/30 bg-teal/5 p-6 text-center">

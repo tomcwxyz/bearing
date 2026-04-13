@@ -46,3 +46,52 @@ describe('classification', () => {
     expect(() => parseClassificationResponse('not json')).toThrow()
   })
 })
+
+describe('parseClassificationResponse - pipeline', () => {
+  it('parses pipeline fields when present', () => {
+    const raw = JSON.stringify({
+      task_type: 'extract',
+      task_subtype: 'document_processing',
+      complexity: 'complex',
+      input_length: 'long',
+      needs_vision: true,
+      needs_tools: false,
+      needs_code: false,
+      is_recurring: false,
+      confidence: 0.9,
+      clarification_needed: false,
+      suggested_questions: [],
+      pipeline_recommended: true,
+      pipeline_stages: [
+        { stage: 1, task_type: 'extract', description: 'Extract text from PDF', requires_capabilities: ['vision'] },
+        { stage: 2, task_type: 'summarise', description: 'Summarise extracted content', requires_capabilities: [] },
+      ],
+    })
+    const result = parseClassificationResponse(raw)
+    expect(result.pipeline_recommended).toBe(true)
+    expect(result.pipeline_stages).toHaveLength(2)
+    expect(result.pipeline_stages![0].task_type).toBe('extract')
+    expect(result.pipeline_stages![0].requires_capabilities).toEqual(['vision'])
+  })
+
+  it('handles non-pipeline classification', () => {
+    const raw = JSON.stringify({
+      task_type: 'summarise',
+      task_subtype: null,
+      complexity: 'simple',
+      input_length: 'medium',
+      needs_vision: false,
+      needs_tools: false,
+      needs_code: false,
+      is_recurring: false,
+      confidence: 0.95,
+      clarification_needed: false,
+      suggested_questions: [],
+      pipeline_recommended: false,
+      pipeline_stages: null,
+    })
+    const result = parseClassificationResponse(raw)
+    expect(result.pipeline_recommended).toBe(false)
+    expect(result.pipeline_stages).toBeNull()
+  })
+})
