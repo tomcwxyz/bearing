@@ -1472,8 +1472,8 @@
       "provider": "Mistral",
       "tier": "specialist_vision",
       "pricing": {
-        "input_per_1m": 2,
-        "output_per_1m": 6
+        "input_per_1m": 1,
+        "output_per_1m": 1
       },
       "context_window": 128000,
       "capabilities": [
