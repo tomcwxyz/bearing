@@ -92,3 +92,14 @@ export function getModelSlugs(): string[] {
 export function getDefaultWeights(): Record<Factor, number> {
   return registryData.scoring_methodology.default_weights as Record<Factor, number>
 }
+
+/** Try DB first, fall back to static JSON if DB unavailable. */
+export async function getAllModelsLive(): Promise<Model[]> {
+  try {
+    const { getAllModelsFromDb } = await import('./db')
+    return await getAllModelsFromDb()
+  } catch {
+    // DB unavailable (local dev, build time) — use static JSON
+    return getAllModels()
+  }
+}
