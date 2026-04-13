@@ -39,13 +39,21 @@ function estimateCost(model: Model, inputLength: string): number {
   return inputCost + outputCost
 }
 
+// Log-scale cost scoring with floor — prevents the most expensive model
+// from scoring a flat zero, which would make it unrecommendable even when
+// cost is the user's lowest priority.
+const COST_SCORE_FLOOR = 0.05
+
 function costScore(model: Model, allModels: Model[], inputLength: string): number {
   const costs = allModels.map(m => estimateCost(m, inputLength))
   const minCost = Math.min(...costs)
   const maxCost = Math.max(...costs)
   if (maxCost === minCost) return 1.0
   const modelCost = estimateCost(model, inputLength)
-  return 1.0 - (modelCost - minCost) / (maxCost - minCost)
+  const logMin = Math.log(minCost + 0.0001)
+  const logMax = Math.log(maxCost + 0.0001)
+  const logModel = Math.log(modelCost + 0.0001)
+  return Math.max(COST_SCORE_FLOOR, 1.0 - (logModel - logMin) / (logMax - logMin))
 }
 
 function qualityScore(model: Model, taskType: string): number {
