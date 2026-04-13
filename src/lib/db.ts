@@ -24,6 +24,7 @@ export interface TaskParams {
   mode?: string
   priorityOrder?: string[]
   classificationConfidence?: number
+  pipelineStages?: object[] | null
 }
 
 export interface RecommendationInput {
@@ -53,7 +54,8 @@ export async function createTask(params: TaskParams): Promise<string> {
       is_recurring,
       mode,
       priority_order,
-      classification_confidence
+      classification_confidence,
+      pipeline_stages
     ) VALUES (
       ${params.descriptionHash ?? null},
       ${params.taskType ?? null},
@@ -66,7 +68,8 @@ export async function createTask(params: TaskParams): Promise<string> {
       ${params.isRecurring ?? false},
       ${params.mode ?? 'recommend'},
       ${params.priorityOrder ? JSON.stringify(params.priorityOrder) : null},
-      ${params.classificationConfidence ?? null}
+      ${params.classificationConfidence ?? null},
+      ${params.pipelineStages ? JSON.stringify(params.pipelineStages) : null}
     )
     RETURNING id
   `

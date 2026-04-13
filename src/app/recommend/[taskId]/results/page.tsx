@@ -1,6 +1,8 @@
 import { getResults } from '@/app/actions'
 import { getCurrentUser } from '@/lib/auth'
 import { ResultsClient } from './results-client'
+import type { ScoredModel } from '@/lib/scoring'
+import type { PipelineResult } from '@/lib/pipeline'
 
 export default async function ResultsPage({ params }: { params: Promise<{ taskId: string }> }) {
   const { taskId } = await params
@@ -18,10 +20,11 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
     )
   }
 
-  const { task, models, reasoning } = result as {
+  const { task, models, reasoning, pipeline } = result as unknown as {
     task: { task_type: string }
-    models: import('@/lib/scoring').ScoredModel[]
+    models: ScoredModel[]
     reasoning: Record<string, string>
+    pipeline: (PipelineResult & { reasoning: string }) | null
   }
 
   return (
@@ -31,7 +34,13 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
         <p className="text-grey-blue mb-8">
           Ranked for <strong>{task.task_type}</strong> tasks based on your priorities
         </p>
-        <ResultsClient taskId={taskId} models={models} reasoning={reasoning} isAuthenticated={!!user} />
+        <ResultsClient
+          taskId={taskId}
+          models={models}
+          reasoning={reasoning}
+          isAuthenticated={!!user}
+          pipeline={pipeline}
+        />
       </div>
     </main>
   )
