@@ -3,6 +3,8 @@
 import { useState, useEffect, useTransition } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { submitClarification } from '@/app/actions'
+import { StepProgress } from '@/components/step-progress'
+import { LoadingIndicator } from '@/components/loading-indicator'
 import type { ClarificationAnswer } from '@/lib/classification'
 
 interface Question {
@@ -113,14 +115,16 @@ export default function ClarificationPage() {
   if (!ready) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-cream-dark border-t-teal" />
+        <LoadingIndicator size="md" label="Loading questions..." />
       </div>
     )
   }
 
   return (
     <div className="flex flex-1 flex-col items-center">
-      <main className="flex w-full max-w-2xl flex-col gap-8 px-6 py-16 sm:py-24">
+      <main className="flex w-full max-w-2xl flex-col gap-8 px-6 py-12 sm:py-16 fade-in">
+        <StepProgress current="clarify" />
+
         <div>
           <p className="text-sm font-medium text-grey-blue">
             Round {round} of 2
@@ -176,8 +180,11 @@ export default function ClarificationPage() {
           >
             {isPending ? (
               <span className="flex items-center justify-center gap-2">
-                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-cream/30 border-t-cream" />
-                Classifying...
+                <svg className="animate-spin h-4 w-4 text-cream" viewBox="0 0 48 48" fill="none">
+                  <circle cx="24" cy="24" r="21" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+                  <path d="M24 3a21 21 0 0 1 14.85 6.15" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+                Classifying your answers...
               </span>
             ) : (
               'Continue'

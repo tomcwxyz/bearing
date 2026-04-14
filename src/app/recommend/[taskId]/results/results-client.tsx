@@ -69,11 +69,12 @@ export function ResultsClient({ taskId, models, reasoning, pipeline }: ResultsCl
         return (
           <div
             key={model.slug}
-            className={`rounded-xl border p-5 transition-colors shadow-sm ${
+            className={`rounded-xl border p-5 transition-colors shadow-sm card-enter ${
               isTop
                 ? 'border-coral border-2 bg-coral/5'
                 : 'bg-white border-cream-dark'
             }`}
+            style={{ animationDelay: `${index * 100}ms` }}
           >
             {/* Header row */}
             <div className="flex items-start justify-between gap-4 mb-3">

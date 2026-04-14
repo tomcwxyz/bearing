@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { submitTask } from './actions'
+import { LoadingIndicator } from '@/components/loading-indicator'
 
 export default function Home() {
   const [mode, setMode] = useState<'recommend' | 'validate'>('recommend')
@@ -86,40 +87,53 @@ export default function Home() {
             </Link>
           </div>
         ) : (
-          <form action={handleSubmit}>
-            <label
-              htmlFor="description"
-              className="mb-2 block font-display text-sm font-medium text-navy"
-            >
-              What do you want to use AI for?
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              rows={5}
-              placeholder="e.g. Summarise long legal contracts into plain-English bullet points"
-              className="mb-4 w-full resize-y rounded-lg border border-cream-dark bg-white px-4 py-3 text-sm text-navy placeholder-grey-blue-light focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-              disabled={loading}
-            />
-
-            {error && (
-              <p className="mb-4 text-sm text-coral">
-                {error}
-              </p>
+          <div className="relative">
+            {/* Loading overlay — sits on top of form, preserving textarea content */}
+            {loading && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/90 backdrop-blur-sm fade-in">
+                <div className="flex flex-col items-center gap-4">
+                  <LoadingIndicator size="lg" />
+                  <div className="text-center">
+                    <p className="font-display text-navy">Understanding your task...</p>
+                    <p className="mt-1 text-xs text-grey-blue">
+                      Classifying what you need so we can find the right model
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-lg bg-navy px-4 py-3 font-display text-sm font-semibold text-cream transition-colors hover:bg-navy-light disabled:opacity-50"
-            >
-              {loading ? (
-                <span className="text-teal-light">Classifying...</span>
-              ) : (
-                'Find my model'
+            <form action={handleSubmit}>
+              <label
+                htmlFor="description"
+                className="mb-2 block font-display text-sm font-medium text-navy"
+              >
+                What do you want to use AI for?
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                rows={5}
+                placeholder="e.g. Summarise long legal contracts into plain-English bullet points"
+                className="mb-4 w-full resize-y rounded-lg border border-cream-dark bg-white px-4 py-3 text-sm text-navy placeholder-grey-blue-light focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+                disabled={loading}
+              />
+
+              {error && (
+                <p className="mb-4 text-sm text-coral">
+                  {error}
+                </p>
               )}
-            </button>
-          </form>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-lg bg-navy px-4 py-3 font-display text-sm font-semibold text-cream transition-colors hover:bg-navy-light disabled:opacity-50"
+              >
+                Find my model
+              </button>
+            </form>
+          </div>
         )}
       </div>
     </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useTransition, use } from 'react'
 import Link from 'next/link'
 import { getResults, startComparison, runComparison, checkAuth } from '@/app/actions'
+import { LoadingIndicator } from '@/components/loading-indicator'
 import type { ScoredModel } from '@/lib/scoring'
 
 function ComparisonProgress() {
@@ -23,15 +24,16 @@ function ComparisonProgress() {
   const current = [...steps].reverse().find((s) => elapsed >= s.threshold)!
 
   return (
-    <div className="mt-6 rounded-lg border border-teal/30 bg-teal/5 p-6 text-center">
-      <div className="flex items-center justify-center gap-3 mb-2">
-        <svg className="animate-spin h-5 w-5 text-teal" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
-        <p className="text-navy/70 font-display">{current.label}...</p>
+    <div className="mt-6 rounded-lg border border-teal/30 bg-teal/5 p-8 fade-in">
+      <div className="flex flex-col items-center gap-4">
+        <LoadingIndicator size="md" />
+        <div className="text-center">
+          <p className="text-navy/70 font-display stage-text" key={current.label}>
+            {current.label}...
+          </p>
+          <p className="mt-2 text-sm text-grey-blue">{elapsed}s elapsed</p>
+        </div>
       </div>
-      <p className="text-sm text-grey-blue">{elapsed}s elapsed</p>
     </div>
   )
 }
@@ -126,8 +128,8 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
   if (isAuthenticated === null) {
     return (
       <div className="min-h-screen p-8">
-        <div className="max-w-3xl mx-auto">
-          <p className="text-grey-blue">Loading...</p>
+        <div className="max-w-3xl mx-auto flex flex-col items-center justify-center py-20">
+          <LoadingIndicator size="md" label="Loading comparison setup..." />
         </div>
       </div>
     )

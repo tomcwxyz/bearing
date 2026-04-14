@@ -159,3 +159,82 @@ body::before {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ---- Loading & transition animations ---- */
+
+/* Compass ring — slow continuous rotation */
+.compass-ring {
+  animation: compass-rotate 3s linear infinite;
+}
+
+@keyframes compass-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Compass needle — gentle oscillation */
+.compass-needle {
+  animation: needle-seek 2.4s ease-in-out infinite;
+}
+
+@keyframes needle-seek {
+  0% { transform: rotate(-25deg); }
+  50% { transform: rotate(25deg); }
+  100% { transform: rotate(-25deg); }
+}
+
+/* Fade in */
+.fade-in {
+  animation: fade-in 0.35s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Card entrance — staggered slide-up */
+.card-enter {
+  animation: card-enter 0.4s ease-out both;
+}
+
+@keyframes card-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Step indicator pulse */
+.step-pulse {
+  animation: step-pulse 2s ease-in-out infinite;
+}
+
+@keyframes step-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(45, 139, 122, 0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(45, 139, 122, 0); }
+}
+
+/* Stage text crossfade */
+.stage-text {
+  animation: stage-fade 0.4s ease-out;
+}
+
+@keyframes stage-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Skeleton shimmer */
+.skeleton-shimmer {
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+  100% { opacity: 0.4; }
+}
+
+/* Skeleton card entrance */
+.skeleton-card {
+  animation: card-enter 0.4s ease-out both;
+}

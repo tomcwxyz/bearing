@@ -1,5 +1,6 @@
 import { getResults } from '@/app/actions'
 import { ResultsClient } from './results-client'
+import { StepProgress } from '@/components/step-progress'
 import type { ScoredModel } from '@/lib/scoring'
 import type { PipelineResult } from '@/lib/pipeline'
 
@@ -28,6 +29,8 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto">
+        <StepProgress current="results" hideClarify />
+
         <h2 className="text-2xl font-bold mb-2 font-display text-navy">Your results</h2>
         <p className="text-grey-blue mb-8">
           Ranked for <strong>{task.task_type}</strong> tasks based on your priorities
