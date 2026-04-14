@@ -45,7 +45,11 @@ export default function CompareResultsPage({
       return
     }
 
-    setData(JSON.parse(stored))
+    try {
+      setData(JSON.parse(stored))
+    } catch {
+      setError('Comparison data was corrupted. Please run the comparison again.')
+    }
   }, [])
 
   function handleSubmit() {
@@ -142,7 +146,10 @@ export default function CompareResultsPage({
             </h3>
             <p className="text-xs text-grey-blue mb-4">{data.modelASlug}</p>
             {data.errorA ? (
-              <p className="text-coral text-sm italic">{data.errorA}</p>
+              <div className="rounded-lg border border-coral/20 bg-coral/5 p-4">
+                <p className="text-coral text-sm font-semibold mb-1">Error from this model</p>
+                <p className="text-coral/80 text-sm">{data.errorA}</p>
+              </div>
             ) : (
               <div className="prose prose-sm max-w-none text-navy/80 font-body prose-headings:text-navy prose-headings:font-display prose-strong:text-navy prose-a:text-teal prose-code:text-navy prose-code:bg-cream prose-code:px-1 prose-code:rounded prose-pre:bg-navy prose-pre:text-cream prose-th:text-navy prose-td:border-cream-dark">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -159,7 +166,10 @@ export default function CompareResultsPage({
             </h3>
             <p className="text-xs text-grey-blue mb-4">{data.modelBSlug}</p>
             {data.errorB ? (
-              <p className="text-coral text-sm italic">{data.errorB}</p>
+              <div className="rounded-lg border border-coral/20 bg-coral/5 p-4">
+                <p className="text-coral text-sm font-semibold mb-1">Error from this model</p>
+                <p className="text-coral/80 text-sm">{data.errorB}</p>
+              </div>
             ) : (
               <div className="prose prose-sm max-w-none text-navy/80 font-body prose-headings:text-navy prose-headings:font-display prose-strong:text-navy prose-a:text-teal prose-code:text-navy prose-code:bg-cream prose-code:px-1 prose-code:rounded prose-pre:bg-navy prose-pre:text-cream prose-th:text-navy prose-td:border-cream-dark">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
