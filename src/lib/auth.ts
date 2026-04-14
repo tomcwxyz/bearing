@@ -21,6 +21,12 @@ function sql() {
   return neon(process.env.NEON_DATABASE_URL!)
 }
 
+function getBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
+  return 'http://localhost:3000'
+}
+
 // ---------------------------------------------------------------------------
 // 1. sendMagicLink
 // ---------------------------------------------------------------------------
@@ -54,14 +60,14 @@ export async function sendMagicLink(
     `
 
     // Build magic link URL
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    const baseUrl = getBaseUrl()
     const url = new URL('/auth/verify', baseUrl)
     url.searchParams.set('token', token)
     if (redirect) url.searchParams.set('redirect', redirect)
 
     // Send email
     await resend.emails.send({
-      from: 'Bearing <onboarding@resend.dev>',
+      from: process.env.RESEND_FROM_EMAIL || 'Bearing <onboarding@resend.dev>',
       to: email,
       subject: 'Your sign-in link for Bearing',
       text: [

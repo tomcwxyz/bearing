@@ -23,7 +23,7 @@ export default function ClarificationPage() {
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [description, setDescription] = useState('')
-  const [answers, setAnswers] = useState<Record<number, string>>({})
+  const [answers, setAnswers] = useState<Record<number, string[]>>({})
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [round, setRound] = useState(1)
@@ -48,17 +48,23 @@ export default function ClarificationPage() {
 
   function selectAnswer(index: number, option: string) {
     if (isPending) return
-    setAnswers((prev) => ({ ...prev, [index]: option }))
+    setAnswers((prev) => {
+      const current = prev[index] ?? []
+      const updated = current.includes(option)
+        ? current.filter((o) => o !== option)
+        : [...current, option]
+      return { ...prev, [index]: updated }
+    })
   }
 
-  const allAnswered = questions.length > 0 && questions.every((_, i) => answers[i] !== undefined)
+  const allAnswered = questions.length > 0 && questions.every((_, i) => (answers[i] ?? []).length > 0)
 
   function handleSubmit() {
     setError(null)
 
     const clarifications: ClarificationAnswer[] = questions.map((q, i) => ({
       question: q.question,
-      answer: answers[i],
+      answer: (answers[i] ?? []).join(', '),
     }))
 
     startTransition(async () => {
@@ -120,6 +126,19 @@ export default function ClarificationPage() {
     )
   }
 
+  if (isPending) {
+    return (
+      <div className="flex flex-1 flex-col items-center px-6 py-12">
+        <div className="w-full max-w-2xl">
+          <StepProgress current="clarify" />
+          <div className="flex flex-col items-center justify-center py-16 fade-in">
+            <LoadingIndicator size="lg" label="Classifying your answers..." sublabel="Refining our understanding of your task" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-1 flex-col items-center">
       <main className="flex w-full max-w-2xl flex-col gap-8 px-6 py-12 sm:py-16 fade-in">
@@ -149,19 +168,19 @@ export default function ClarificationPage() {
               <h2 className="font-display font-medium text-navy">
                 {q.question}
               </h2>
+              <p className="text-xs text-grey-blue">Select all that apply</p>
               <div className="flex flex-wrap gap-2">
                 {q.options.map((option) => {
-                  const selected = answers[qi] === option
+                  const selected = (answers[qi] ?? []).includes(option)
                   return (
                     <button
                       key={option}
                       onClick={() => selectAnswer(qi, option)}
-                      disabled={isPending}
-                      className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                      className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
                         selected
                           ? 'border-navy bg-navy text-cream'
                           : 'border-cream-dark text-navy hover:border-teal hover:text-teal'
-                      } ${isPending ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                      }`}
                     >
                       {option}
                     </button>
@@ -175,20 +194,9 @@ export default function ClarificationPage() {
         {allAnswered && (
           <button
             onClick={handleSubmit}
-            disabled={isPending}
-            className="w-full rounded-lg bg-navy px-4 py-3 font-display text-sm font-semibold text-cream transition-colors hover:bg-navy-light disabled:opacity-50"
+            className="w-full rounded-lg bg-navy px-4 py-3 font-display text-sm font-semibold text-cream transition-colors hover:bg-navy-light"
           >
-            {isPending ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-4 w-4 text-cream" viewBox="0 0 48 48" fill="none">
-                  <circle cx="24" cy="24" r="21" stroke="currentColor" strokeWidth="3" opacity="0.25" />
-                  <path d="M24 3a21 21 0 0 1 14.85 6.15" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                </svg>
-                Classifying your answers...
-              </span>
-            ) : (
-              'Continue'
-            )}
+            Continue
           </button>
         )}
       </main>
