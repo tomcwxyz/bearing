@@ -110,7 +110,8 @@ export async function callModel(
     return { text: '', error: 'OpenRouter API key is not configured' }
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
   try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
