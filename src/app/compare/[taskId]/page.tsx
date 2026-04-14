@@ -86,6 +86,20 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
     })
   }
 
+  // Rough token estimate: ~4 chars per token for English text
+  function estimateTokens(text: string): number {
+    return Math.ceil(text.length / 4)
+  }
+
+  // Find the smallest context window among selected models
+  const selectedModels = selected.map((s) => models.find((m) => m.slug === s)).filter(Boolean) as ScoredModel[]
+  const minContextWindow = selectedModels.length > 0
+    ? Math.min(...selectedModels.map((m) => m.contextWindow))
+    : Infinity
+  const estimatedTokenCount = estimateTokens(prompt)
+  // Warn if prompt alone uses more than 80% of the smallest context window (leaving room for output)
+  const promptTooLong = minContextWindow < Infinity && estimatedTokenCount > minContextWindow * 0.8
+
   function handleCompare() {
     if (selected.length !== 2 || !prompt.trim()) return
     setError(null)
@@ -211,6 +225,11 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
                       {model.capabilities.includes('vision') && (
                         <span className="ml-2 rounded bg-teal/10 px-1.5 py-0.5 text-xs text-teal">Vision</span>
                       )}
+                      <span className="ml-2 rounded bg-cream-dark px-1.5 py-0.5 text-xs text-navy/50 font-mono">
+                        {model.contextWindow >= 1_000_000
+                          ? `${(model.contextWindow / 1_000_000).toFixed(0)}M`
+                          : `${Math.round(model.contextWindow / 1000)}k`} ctx
+                      </span>
                     </div>
                   </div>
                   <span className="font-mono text-lg font-bold text-navy">{matchPercent}%</span>
@@ -287,6 +306,18 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
               )}
               {fileError && <p className="mt-2 text-sm text-coral">{fileError}</p>}
             </div>
+          </div>
+        )}
+
+        {/* Prompt length warning */}
+        {promptTooLong && selected.length === 2 && (
+          <div className="mb-4 rounded-lg border border-coral/30 bg-coral/5 p-4">
+            <p className="text-sm text-coral font-semibold mb-1">Prompt may be too long</p>
+            <p className="text-sm text-coral/80">
+              Your prompt is ~{estimatedTokenCount.toLocaleString()} tokens, but the smallest selected model
+              only supports {minContextWindow.toLocaleString()} tokens (including the response).
+              Consider shortening your prompt or choosing a model with a larger context window.
+            </p>
           </div>
         )}
 
