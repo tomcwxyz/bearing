@@ -25,11 +25,17 @@ export default function RootLayout({
               <Link href="/models" className="hover:text-grey-blue-light transition-colors">
                 Models
               </Link>
+              <Link href="/compare" className="hover:text-grey-blue-light transition-colors">
+                Compare
+              </Link>
               <Link href="/data" className="hover:text-grey-blue-light transition-colors">
                 Data
               </Link>
               <Link href="/about" className="hover:text-grey-blue-light transition-colors">
                 About
+              </Link>
+              <Link href="/auth/signin" className="hover:text-grey-blue-light transition-colors">
+                Sign in
               </Link>
             </div>
           </nav>
