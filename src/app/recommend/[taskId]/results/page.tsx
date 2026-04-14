@@ -1,5 +1,4 @@
 import { getResults } from '@/app/actions'
-import { getCurrentUser } from '@/lib/auth'
 import { ResultsClient } from './results-client'
 import type { ScoredModel } from '@/lib/scoring'
 import type { PipelineResult } from '@/lib/pipeline'
@@ -7,7 +6,6 @@ import type { PipelineResult } from '@/lib/pipeline'
 export default async function ResultsPage({ params }: { params: Promise<{ taskId: string }> }) {
   const { taskId } = await params
   const result = await getResults(taskId)
-  const user = await getCurrentUser()
 
   if ('error' in result && result.error) {
     return (
@@ -38,7 +36,6 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
           taskId={taskId}
           models={models}
           reasoning={reasoning}
-          isAuthenticated={!!user}
           pipeline={pipeline}
         />
       </div>
