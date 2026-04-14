@@ -3,6 +3,8 @@
 import { useState, useRef, useTransition } from 'react'
 import { useParams } from 'next/navigation'
 import { submitPriorities } from '@/app/actions'
+import { StepProgress } from '@/components/step-progress'
+import { LoadingIndicator } from '@/components/loading-indicator'
 import type { Factor } from '@/lib/registry'
 
 const FACTOR_INFO: { factor: Factor; label: string; description: string }[] = [
@@ -73,9 +75,24 @@ export default function PrioritiesPage() {
     })
   }
 
+  if (isPending) {
+    return (
+      <div className="flex flex-1 flex-col items-center px-4 py-12">
+        <div className="w-full max-w-xl">
+          <StepProgress current="results" hideClarify />
+          <div className="flex flex-col items-center justify-center py-16 fade-in">
+            <LoadingIndicator size="lg" label="Crunching the numbers..." sublabel="Scoring models against your priorities" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-4 py-20">
-      <div className="w-full max-w-xl">
+    <div className="flex flex-1 flex-col items-center px-4 py-12">
+      <div className="w-full max-w-xl fade-in">
+        <StepProgress current="prioritize" hideClarify />
+
         <h1 className="mb-3 text-center font-display text-3xl font-bold tracking-tight text-navy">
           What matters to you?
         </h1>
@@ -143,14 +160,9 @@ export default function PrioritiesPage() {
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={isPending}
-          className="w-full rounded-lg bg-navy px-4 py-3 font-display text-sm font-semibold text-cream transition-colors hover:bg-navy-light disabled:opacity-50"
+          className="w-full rounded-lg bg-navy px-4 py-3 font-display text-sm font-semibold text-cream transition-colors hover:bg-navy-light"
         >
-          {isPending ? (
-            <span className="text-teal-light">Submitting...</span>
-          ) : (
-            'Show me results'
-          )}
+          Show me results
         </button>
       </div>
     </div>

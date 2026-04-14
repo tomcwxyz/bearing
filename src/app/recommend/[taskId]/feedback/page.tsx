@@ -194,7 +194,17 @@ export default function FeedbackPage() {
                 : 'bg-navy text-cream opacity-40 cursor-not-allowed'
             }`}
           >
-            {submitting ? 'Submitting...' : 'Submit feedback'}
+            {submitting ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4 text-cream" viewBox="0 0 48 48" fill="none">
+                  <circle cx="24" cy="24" r="21" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+                  <path d="M24 3a21 21 0 0 1 14.85 6.15" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+                Submitting...
+              </span>
+            ) : (
+              'Submit feedback'
+            )}
           </button>
         )}
       </main>
