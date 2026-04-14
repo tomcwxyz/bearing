@@ -30,6 +30,19 @@ export interface ModelSustainability {
   notes: string
 }
 
+export interface QuantOption {
+  quant: string
+  vram_gb: number
+  quality_penalty: number
+}
+
+export interface LocalInfo {
+  total_params_b: number
+  active_params_b: number | null
+  is_moe: boolean
+  quant_options: QuantOption[]
+}
+
 export interface Model {
   slug: string
   name: string
@@ -45,6 +58,7 @@ export interface Model {
   privacy_score: number
   transparency: ModelTransparency
   sustainability: ModelSustainability
+  local_info?: LocalInfo
 }
 
 export interface Registry {

@@ -262,6 +262,7 @@ export function modelRowToModel(row: any): Model {
     privacy_score: row.privacy_score,
     transparency: row.transparency,
     sustainability: row.sustainability,
+    ...(row.local_info ? { local_info: row.local_info } : {}),
   }
 }
 
@@ -298,6 +299,8 @@ export async function upsertModel(model: {
   speed_score: number; privacy_score: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   transparency: any; sustainability: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  local_info?: any;
   openrouter_id?: string | null;
   active?: boolean;
 }): Promise<void> {
@@ -306,7 +309,7 @@ export async function upsertModel(model: {
       slug, name, provider, tier, pricing, context_window,
       capabilities, strengths, weaknesses, task_fitness,
       speed_score, privacy_score, transparency, sustainability,
-      openrouter_id, active
+      local_info, openrouter_id, active
     ) VALUES (
       ${model.slug}, ${model.name}, ${model.provider}, ${model.tier},
       ${JSON.stringify(model.pricing)}::jsonb, ${model.context_window},
@@ -315,6 +318,7 @@ export async function upsertModel(model: {
       ${model.speed_score}, ${model.privacy_score},
       ${JSON.stringify(model.transparency)}::jsonb,
       ${JSON.stringify(model.sustainability)}::jsonb,
+      ${model.local_info ? JSON.stringify(model.local_info) : null}::jsonb,
       ${model.openrouter_id ?? null},
       ${model.active ?? true}
     )
@@ -325,7 +329,7 @@ export async function upsertModel(model: {
       weaknesses = EXCLUDED.weaknesses, task_fitness = EXCLUDED.task_fitness,
       speed_score = EXCLUDED.speed_score, privacy_score = EXCLUDED.privacy_score,
       transparency = EXCLUDED.transparency, sustainability = EXCLUDED.sustainability,
-      openrouter_id = EXCLUDED.openrouter_id,
+      local_info = EXCLUDED.local_info, openrouter_id = EXCLUDED.openrouter_id,
       updated_at = now()
   `
 }

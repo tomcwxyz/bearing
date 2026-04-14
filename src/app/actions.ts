@@ -32,7 +32,8 @@ import {
 import { callModel } from '@/lib/openrouter'
 import { filterPrompt } from '@/lib/content-filter'
 import { validateFile, extractText, fileToBase64DataUrl } from '@/lib/file-parser'
-import type { Factor } from '@/lib/registry'
+import { getAllModels, type Factor } from '@/lib/registry'
+import { scoreLocalModels } from '@/lib/local-inference'
 
 // ---------------------------------------------------------------------------
 // 1. submitTask
@@ -196,7 +197,12 @@ export async function getResults(taskId: string) {
       pipeline = { ...pipelineResult, reasoning: pipelineReasoning }
     }
 
-    return { task, models, reasoning, pipeline }
+    // Local inference recommendations for open-weight models
+    const allModelsRaw = getAllModels()
+    const localResult = scoreLocalModels(models, allModelsRaw, task.task_type)
+    const local = localResult.recommendations.length > 0 ? localResult : null
+
+    return { task, models, reasoning, pipeline, local }
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Failed to get results.' }
   }

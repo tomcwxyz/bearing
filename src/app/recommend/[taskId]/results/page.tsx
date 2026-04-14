@@ -3,6 +3,7 @@ import { ResultsClient } from './results-client'
 import { StepProgress } from '@/components/step-progress'
 import type { ScoredModel } from '@/lib/scoring'
 import type { PipelineResult } from '@/lib/pipeline'
+import type { LocalInferenceResult } from '@/lib/local-inference'
 
 export default async function ResultsPage({ params }: { params: Promise<{ taskId: string }> }) {
   const { taskId } = await params
@@ -19,11 +20,12 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
     )
   }
 
-  const { task, models, reasoning, pipeline } = result as unknown as {
+  const { task, models, reasoning, pipeline, local } = result as unknown as {
     task: { task_type: string }
     models: ScoredModel[]
     reasoning: Record<string, string>
     pipeline: (PipelineResult & { reasoning: string }) | null
+    local: LocalInferenceResult | null
   }
 
   return (
@@ -40,6 +42,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
           models={models}
           reasoning={reasoning}
           pipeline={pipeline}
+          local={local}
         />
       </div>
     </main>
