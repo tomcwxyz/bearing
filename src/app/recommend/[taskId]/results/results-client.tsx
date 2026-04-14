@@ -31,11 +31,10 @@ interface ResultsClientProps {
   taskId: string
   models: ScoredModel[]
   reasoning: Record<string, string>
-  isAuthenticated?: boolean
   pipeline?: (PipelineResult & { reasoning: string }) | null
 }
 
-export function ResultsClient({ taskId, models, reasoning, isAuthenticated, pipeline }: ResultsClientProps) {
+export function ResultsClient({ taskId, models, reasoning, pipeline }: ResultsClientProps) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
   const [selectionId, setSelectionId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -184,16 +183,14 @@ export function ResultsClient({ taskId, models, reasoning, isAuthenticated, pipe
         </div>
       )}
 
-      {isAuthenticated && (
-        <div className="mt-8 text-center">
-          <a
-            href={`/compare/${taskId}`}
-            className="btn-secondary"
-          >
-            Compare two models head-to-head
-          </a>
-        </div>
-      )}
+      <div className="mt-8 text-center">
+        <a
+          href={`/compare/${taskId}`}
+          className="btn-secondary"
+        >
+          Compare two models head-to-head
+        </a>
+      </div>
     </div>
   )
 }
