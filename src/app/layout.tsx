@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Nav } from "@/components/nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,30 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col font-body">
-        <header className="bg-navy text-cream border-b border-navy-light">
-          <nav className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-            <Link href="/" className="font-display text-xl font-bold tracking-tight">
-              Bearing
-            </Link>
-            <div className="flex items-center gap-6 text-sm font-medium">
-              <Link href="/models" className="hover:text-grey-blue-light transition-colors">
-                Models
-              </Link>
-              <Link href="/compare" className="hover:text-grey-blue-light transition-colors">
-                Compare
-              </Link>
-              <Link href="/data" className="hover:text-grey-blue-light transition-colors">
-                Data
-              </Link>
-              <Link href="/about" className="hover:text-grey-blue-light transition-colors">
-                About
-              </Link>
-              <Link href="/auth/signin" className="hover:text-grey-blue-light transition-colors">
-                Sign in
-              </Link>
-            </div>
-          </nav>
-        </header>
+        <Nav />
 
         <main className="flex-1">{children}</main>
 
