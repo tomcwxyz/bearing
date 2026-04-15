@@ -5,7 +5,9 @@ import { selectModel } from '@/app/actions'
 import type { ScoredModel } from '@/lib/scoring'
 import type { Factor } from '@/lib/registry'
 import type { PipelineResult } from '@/lib/pipeline'
+import type { LocalInferenceResult } from '@/lib/local-inference'
 import { PipelineSection } from './pipeline-section'
+import { LocalSection } from './local-section'
 
 const FACTOR_LABELS: Record<Factor, string> = {
   cost: 'Cost',
@@ -32,9 +34,10 @@ interface ResultsClientProps {
   models: ScoredModel[]
   reasoning: Record<string, string>
   pipeline?: (PipelineResult & { reasoning: string }) | null
+  local?: LocalInferenceResult | null
 }
 
-export function ResultsClient({ taskId, models, reasoning, pipeline }: ResultsClientProps) {
+export function ResultsClient({ taskId, models, reasoning, pipeline, local }: ResultsClientProps) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
   const [selectionId, setSelectionId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -165,6 +168,10 @@ export function ResultsClient({ taskId, models, reasoning, pipeline }: ResultsCl
           pipeline={pipeline}
           singleModelCost={models[0]?.estimatedCost ?? 0}
         />
+      )}
+
+      {local && (
+        <LocalSection local={local} />
       )}
 
       {selectionId && (

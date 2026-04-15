@@ -29,10 +29,11 @@ import {
   getOpenRouterId,
   getModelFromDb,
 } from '@/lib/db'
-import { callModel } from '@/lib/openrouter'
+import { callModel, callDirectProvider, DIRECT_PROVIDERS } from '@/lib/openrouter'
 import { filterPrompt } from '@/lib/content-filter'
 import { validateFile, extractText, fileToBase64DataUrl } from '@/lib/file-parser'
-import type { Factor } from '@/lib/registry'
+import { getAllModels, type Factor } from '@/lib/registry'
+import { scoreLocalModels } from '@/lib/local-inference'
 
 // ---------------------------------------------------------------------------
 // 1. submitTask
@@ -196,7 +197,12 @@ export async function getResults(taskId: string) {
       pipeline = { ...pipelineResult, reasoning: pipelineReasoning }
     }
 
-    return { task, models, reasoning, pipeline }
+    // Local inference recommendations for open-weight models
+    const allModelsRaw = getAllModels()
+    const localResult = scoreLocalModels(models, allModelsRaw, task.task_type)
+    const local = localResult.recommendations.length > 0 ? localResult : null
+
+    return { task, models, reasoning, pipeline, local }
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Failed to get results.' }
   }
@@ -466,7 +472,7 @@ export async function runComparison(comparisonId: string, formData: FormData) {
       fileData = { buffer, mimeType: uploadedFile.type, name: uploadedFile.name, extractedText }
     }
 
-    // Look up OpenRouter IDs from DB
+    // Look up model details and routing info
     const [orIdA, orIdB, modelA, modelB] = await Promise.all([
       getOpenRouterId(comparison.model_a_slug),
       getOpenRouterId(comparison.model_b_slug),
@@ -474,8 +480,11 @@ export async function runComparison(comparisonId: string, formData: FormData) {
       getModelFromDb(comparison.model_b_slug),
     ])
 
-    if (!orIdA) return { error: `Model ${comparison.model_a_slug} is not available for comparison (no OpenRouter ID).` }
-    if (!orIdB) return { error: `Model ${comparison.model_b_slug} is not available for comparison (no OpenRouter ID).` }
+    const directA = DIRECT_PROVIDERS[comparison.model_a_slug]
+    const directB = DIRECT_PROVIDERS[comparison.model_b_slug]
+
+    if (!orIdA && !directA) return { error: `Model ${comparison.model_a_slug} is not available for comparison.` }
+    if (!orIdB && !directB) return { error: `Model ${comparison.model_b_slug} is not available for comparison.` }
 
     const hasVisionA = modelA?.capabilities.includes('vision') ?? false
     const hasVisionB = modelB?.capabilities.includes('vision') ?? false
@@ -485,8 +494,8 @@ export async function runComparison(comparisonId: string, formData: FormData) {
     const messagesB = buildCompareMessages(prompt, fileData, hasVisionB)
 
     const [resultA, resultB] = await Promise.all([
-      callModel(orIdA, messagesA),
-      callModel(orIdB, messagesB),
+      orIdA ? callModel(orIdA, messagesA) : callDirectProvider(comparison.model_a_slug, messagesA),
+      orIdB ? callModel(orIdB, messagesB) : callDirectProvider(comparison.model_b_slug, messagesB),
     ])
 
     // Hash the prompt and store

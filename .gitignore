@@ -17,3 +17,6 @@ node_modules
 
 # typescript build info
 tsconfig.tsbuildinfo
+
+# mkdocs build output
+site

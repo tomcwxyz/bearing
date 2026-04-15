@@ -101,9 +101,93 @@ function parseOpenRouterError(status: number, body: string): string {
   return `Model request failed (HTTP ${status})`
 }
 
+// ---------------------------------------------------------------------------
+// Direct provider config — OpenAI-compatible endpoints for models not on
+// OpenRouter. Keyed by model slug.
+// ---------------------------------------------------------------------------
+
+interface DirectProvider {
+  baseUrl: string
+  modelId: string
+  apiKeyEnv: string
+  name: string
+}
+
+export const DIRECT_PROVIDERS: Record<string, DirectProvider> = {
+  'greenpt-greenl': {
+    baseUrl: 'https://api.greenpt.ai/v1',
+    modelId: 'green-l',
+    apiKeyEnv: 'GREENPT_API_KEY',
+    name: 'GreenPT',
+  },
+  'greenpt-greenr': {
+    baseUrl: 'https://api.greenpt.ai/v1',
+    modelId: 'green-r',
+    apiKeyEnv: 'GREENPT_API_KEY',
+    name: 'GreenPT',
+  },
+  'ibm-granite-3.3': {
+    baseUrl: 'https://integrate.api.nvidia.com/v1',
+    modelId: 'ibm/granite-3_3-8b-instruct',
+    apiKeyEnv: 'NVIDIA_API_KEY',
+    name: 'NVIDIA NIM',
+  },
+  'mistral-ocr': {
+    baseUrl: 'https://api.mistral.ai/v1',
+    modelId: 'pixtral-large-latest',
+    apiKeyEnv: 'MISTRAL_API_KEY',
+    name: 'Mistral',
+  },
+}
+
+// ---------------------------------------------------------------------------
+// Shared response parser for OpenAI-compatible chat completions
+// ---------------------------------------------------------------------------
+
+type ChatMessages = Array<{ role: string; content: string | Array<{ type: string; [key: string]: unknown }> }>
+
+function parseCompletionResponse(
+  raw: string,
+  providerName: string,
+): { text: string; error?: string } {
+  if (!raw || !raw.trim()) {
+    return { text: '', error: 'Model returned an empty response. It may not support this request format.' }
+  }
+
+  let data: Record<string, unknown>
+  try {
+    data = JSON.parse(raw)
+  } catch {
+    console.error(`${providerName} response was not valid JSON:`, raw.slice(0, 500))
+    return { text: '', error: 'Model returned an invalid response. It may not be compatible with this request.' }
+  }
+
+  // Check for error object inside a 200 response (some providers do this)
+  if (data.error) {
+    const errMsg = typeof data.error === 'object' && data.error !== null
+      ? (data.error as Record<string, unknown>).message ?? 'Unknown model error'
+      : String(data.error)
+    console.error(`${providerName} 200 with error payload:`, errMsg)
+    return { text: '', error: String(errMsg) }
+  }
+
+  const choices = data.choices as Array<{ message?: { content?: string } }> | undefined
+  const text = choices?.[0]?.message?.content ?? ''
+
+  if (!text) {
+    return { text: '', error: 'Model returned no content. It may not support this request type.' }
+  }
+
+  return { text }
+}
+
+// ---------------------------------------------------------------------------
+// OpenRouter caller
+// ---------------------------------------------------------------------------
+
 export async function callModel(
   openrouterId: string,
-  messages: Array<{ role: string; content: string | Array<{ type: string; [key: string]: unknown }> }>,
+  messages: ChatMessages,
 ): Promise<{ text: string; error?: string }> {
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) {
@@ -135,42 +219,60 @@ export async function callModel(
       return { text: '', error: parseOpenRouterError(response.status, body) }
     }
 
-    // Read as text first to handle empty / malformed responses (e.g. Minimax)
-    const raw = await response.text()
-    if (!raw || !raw.trim()) {
-      return { text: '', error: 'Model returned an empty response. It may not support this request format.' }
-    }
-
-    let data: Record<string, unknown>
-    try {
-      data = JSON.parse(raw)
-    } catch {
-      console.error('OpenRouter response was not valid JSON:', raw.slice(0, 500))
-      return { text: '', error: 'Model returned an invalid response. It may not be compatible with this request.' }
-    }
-
-    // Check for error object inside a 200 response (some providers do this)
-    if (data.error) {
-      const errMsg = typeof data.error === 'object' && data.error !== null
-        ? (data.error as Record<string, unknown>).message ?? 'Unknown model error'
-        : String(data.error)
-      console.error('OpenRouter 200 with error payload:', errMsg)
-      return { text: '', error: String(errMsg) }
-    }
-
-    const choices = data.choices as Array<{ message?: { content?: string } }> | undefined
-    const text = choices?.[0]?.message?.content ?? ''
-
-    if (!text) {
-      return { text: '', error: 'Model returned no content. It may not support this request type.' }
-    }
-
-    return { text }
+    return parseCompletionResponse(await response.text(), 'OpenRouter')
   } catch (err) {
     console.error('OpenRouter call failed:', err)
     return {
       text: '',
       error: err instanceof Error ? err.message : 'Unknown error calling model',
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Direct provider caller — for models not on OpenRouter
+// ---------------------------------------------------------------------------
+
+export async function callDirectProvider(
+  slug: string,
+  messages: ChatMessages,
+): Promise<{ text: string; error?: string }> {
+  const provider = DIRECT_PROVIDERS[slug]
+  if (!provider) {
+    return { text: '', error: `No direct provider configured for ${slug}` }
+  }
+
+  const apiKey = process.env[provider.apiKeyEnv]
+  if (!apiKey) {
+    return { text: '', error: `${provider.name} API key is not configured (${provider.apiKeyEnv})` }
+  }
+
+  try {
+    const response = await fetch(`${provider.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: provider.modelId,
+        max_tokens: 2048,
+        messages,
+      }),
+    })
+
+    if (!response.ok) {
+      const body = await response.text()
+      console.error(`${provider.name} error (${response.status}):`, body)
+      return { text: '', error: parseOpenRouterError(response.status, body) }
+    }
+
+    return parseCompletionResponse(await response.text(), provider.name)
+  } catch (err) {
+    console.error(`${provider.name} call failed:`, err)
+    return {
+      text: '',
+      error: err instanceof Error ? err.message : `Unknown error calling ${provider.name}`,
     }
   }
 }

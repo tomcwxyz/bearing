@@ -26,7 +26,8 @@ async function seed() {
       INSERT INTO models (
         slug, name, provider, tier, pricing, context_window,
         capabilities, strengths, weaknesses, task_fitness,
-        speed_score, privacy_score, transparency, sustainability
+        speed_score, privacy_score, transparency, sustainability,
+        local_info
       ) VALUES (
         ${slug}, ${m.name}, ${m.provider}, ${m.tier},
         ${JSON.stringify(m.pricing)}::jsonb, ${m.context_window},
@@ -34,7 +35,8 @@ async function seed() {
         ${JSON.stringify(m.task_fitness)}::jsonb,
         ${m.speed_score}, ${m.privacy_score},
         ${JSON.stringify(m.transparency)}::jsonb,
-        ${JSON.stringify(m.sustainability)}::jsonb
+        ${JSON.stringify(m.sustainability)}::jsonb,
+        ${m.local_info ? JSON.stringify(m.local_info) : null}::jsonb
       )
       ON CONFLICT (slug) DO UPDATE SET
         name = EXCLUDED.name,
@@ -50,6 +52,7 @@ async function seed() {
         privacy_score = EXCLUDED.privacy_score,
         transparency = EXCLUDED.transparency,
         sustainability = EXCLUDED.sustainability,
+        local_info = EXCLUDED.local_info,
         updated_at = now()
     `
     console.log(`  ✓ ${slug}`)

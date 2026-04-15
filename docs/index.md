@@ -15,7 +15,7 @@ Whether you're choosing a model for the first time or wondering if your current 
 
 Every recommendation, selection, and preference vote is collected as anonymised data and published openly. No raw text, no prompts, no personal information — just task types, priorities, model choices, and outcomes.
 
-This dataset is available to anyone building routing, recommendation, or evaluation tools. Download it from the [Data page](/data).
+This dataset is available to anyone building routing, recommendation, or evaluation tools. Download it from the Data page on the main site.
 
 ## Built by
 

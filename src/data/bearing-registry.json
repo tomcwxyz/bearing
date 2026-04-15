@@ -1,8 +1,8 @@
 {
   "meta": {
     "name": "Bearing Model Registry",
-    "version": "0.4.0",
-    "updated": "2026-04-13",
+    "version": "0.5.0",
+    "updated": "2026-04-15",
     "maintainer": "The Good Ship · good-ship.co.uk",
     "license": "CC BY-NC 4.0",
     "notes": "Generated from database. 29 active models."
@@ -98,11 +98,11 @@
         "provider_disclosure": 0.4
       },
       "sustainability": {
-        "notes": "Smaller model = more efficient inference",
+        "notes": "Smaller model = more efficient inference. Anthropic committed to covering 100% grid upgrade costs, water-efficient cooling, energy price offset for ratepayers. No renewable energy target published.",
         "inference_energy": 0.5,
         "training_footprint": null,
-        "sustainability_score": 0.4,
-        "provider_infrastructure": 0.3
+        "sustainability_score": 0.45,
+        "provider_infrastructure": 0.4
       }
     },
     "claude-opus-4.6": {
@@ -155,11 +155,11 @@
         "provider_disclosure": 0.4
       },
       "sustainability": {
-        "notes": "No published energy data. No specific renewable energy commitments for AI compute.",
+        "notes": "Anthropic committed to covering 100% grid upgrade costs, water-efficient cooling, energy price offset for ratepayers. No renewable energy target published.",
         "inference_energy": null,
         "training_footprint": null,
-        "sustainability_score": 0.3,
-        "provider_infrastructure": 0.3
+        "sustainability_score": 0.4,
+        "provider_infrastructure": 0.4
       }
     },
     "claude-sonnet-4.6": {
@@ -211,11 +211,11 @@
         "provider_disclosure": 0.4
       },
       "sustainability": {
-        "notes": "No published energy data. No specific renewable energy commitments for AI compute.",
+        "notes": "Anthropic committed to covering 100% grid upgrade costs, water-efficient cooling, energy price offset for ratepayers. No renewable energy target published.",
         "inference_energy": null,
         "training_footprint": null,
-        "sustainability_score": 0.3,
-        "provider_infrastructure": 0.3
+        "sustainability_score": 0.4,
+        "provider_infrastructure": 0.4
       }
     },
     "codestral-25.01": {
@@ -268,11 +268,11 @@
         "provider_disclosure": 0.2
       },
       "sustainability": {
-        "notes": "EU-based. Efficient for code tasks.",
+        "notes": "EU-based. Mistral partnered with EcoDataCenter Sweden (renewable). Paris facility on low-carbon nuclear grid. Launched sustainability auditing tool.",
         "inference_energy": 0.6,
         "training_footprint": null,
-        "sustainability_score": 0.5,
-        "provider_infrastructure": 0.4
+        "sustainability_score": 0.57,
+        "provider_infrastructure": 0.55
       }
     },
     "deepseek-r1": {
@@ -435,10 +435,10 @@
         "provider_disclosure": 0.2
       },
       "sustainability": {
-        "notes": "MoE efficient inference.",
-        "inference_energy": 0.6,
+        "notes": "MoE architecture with 93.3% memory reduction. Only 37B active params of 671B total. China grid heavily coal-based, no provider sustainability reporting.",
+        "inference_energy": 0.65,
         "training_footprint": null,
-        "sustainability_score": 0.4,
+        "sustainability_score": 0.43,
         "provider_infrastructure": 0.2
       }
     },
@@ -452,7 +452,6 @@
       },
       "context_window": 128000,
       "capabilities": [
-        "vision",
         "tools",
         "code",
         "extended_thinking",
@@ -462,17 +461,17 @@
       "strengths": [
         "Latest DeepSeek flagship",
         "Built-in thinking mode",
-        "Vision support added",
         "MIT licensed",
         "Extraordinary value"
       ],
       "weaknesses": [
+        "No vision (coming in V4)",
         "Data jurisdiction",
         "API can be slow at peak"
       ],
       "task_fitness": {
         "code": 0.83,
-        "vision": 0.68,
+        "vision": 0,
         "analyse": 0.81,
         "extract": 0.8,
         "generate": 0.74,
@@ -549,11 +548,11 @@
         "provider_disclosure": 0.2
       },
       "sustainability": {
-        "notes": "Small 24B model = efficient inference.",
+        "notes": "Small 24B model = efficient inference. Mistral partnered with EcoDataCenter Sweden (renewable). Paris facility on low-carbon nuclear grid. Launched sustainability auditing tool.",
         "inference_energy": 0.7,
         "training_footprint": null,
-        "sustainability_score": 0.55,
-        "provider_infrastructure": 0.4
+        "sustainability_score": 0.63,
+        "provider_infrastructure": 0.55
       }
     },
     "gemini-2.5-flash-lite": {
@@ -602,11 +601,11 @@
         "provider_disclosure": 0.4
       },
       "sustainability": {
-        "notes": "Lightest Google model. Designed for efficiency on TPU.",
+        "notes": "Lightest Google model. Designed for efficiency on TPU. Google 100% renewable match since 2017. Targeting 24/7 carbon-free by 2030.",
         "inference_energy": 0.85,
-        "training_footprint": null,
-        "sustainability_score": 0.72,
-        "provider_infrastructure": 0.6
+        "training_footprint": 0.4,
+        "sustainability_score": 0.68,
+        "provider_infrastructure": 0.8
       }
     },
     "gemini-3-flash": {
@@ -638,7 +637,7 @@
         "Not quite Pro quality on hardest reasoning"
       ],
       "task_fitness": {
-        "code": 0.85,
+        "code": 0.88,
         "vision": 0.88,
         "analyse": 0.82,
         "extract": 0.85,
@@ -660,11 +659,11 @@
         "provider_disclosure": 0.4
       },
       "sustainability": {
-        "notes": "Flash models designed for efficiency. TPU infrastructure.",
-        "inference_energy": 0.7,
-        "training_footprint": null,
-        "sustainability_score": 0.65,
-        "provider_infrastructure": 0.6
+        "notes": "Flash models designed for efficiency. TPU infrastructure. Google 100% renewable match since 2017. Published per-query energy: 0.24 Wh median text prompt. Targeting 24/7 carbon-free by 2030.",
+        "inference_energy": 0.8,
+        "training_footprint": 0.4,
+        "sustainability_score": 0.67,
+        "provider_infrastructure": 0.8
       }
     },
     "gemini-3.1-pro": {
@@ -699,7 +698,7 @@
       "task_fitness": {
         "code": 0.88,
         "vision": 0.92,
-        "analyse": 0.9,
+        "analyse": 0.93,
         "extract": 0.88,
         "generate": 0.85,
         "summarise": 0.88,
@@ -719,11 +718,11 @@
         "provider_disclosure": 0.4
       },
       "sustainability": {
-        "notes": "Custom TPUs. Google committed to 24/7 carbon-free energy by 2030. Best mainstream sustainability disclosure.",
-        "inference_energy": 0.5,
+        "notes": "Custom TPUs. Google 100% renewable match since 2017. Published per-query energy: 0.24 Wh median text prompt. Targeting 24/7 carbon-free by 2030. Best mainstream sustainability disclosure.",
+        "inference_energy": 0.6,
         "training_footprint": 0.4,
-        "sustainability_score": 0.5,
-        "provider_infrastructure": 0.6
+        "sustainability_score": 0.6,
+        "provider_infrastructure": 0.8
       }
     },
     "gpt-5.4": {
@@ -776,8 +775,8 @@
         "provider_disclosure": 0.4
       },
       "sustainability": {
-        "notes": "Microsoft Azure partnership includes renewable energy goals. Indirect claims only.",
-        "inference_energy": null,
+        "notes": "CEO stated 0.34 Wh per average ChatGPT query. Claims 100% renewable by 2027 via Microsoft Azure RECs (not direct PPAs). Zero published Scope 1/2/3 emissions as of 2026.",
+        "inference_energy": 0.4,
         "training_footprint": null,
         "sustainability_score": 0.4,
         "provider_infrastructure": 0.4
@@ -831,10 +830,10 @@
         "provider_disclosure": 0.4
       },
       "sustainability": {
-        "notes": "Smaller model = more efficient. Azure renewable commitments.",
-        "inference_energy": 0.5,
+        "notes": "Smaller model = more efficient. CEO stated 0.34 Wh per average ChatGPT query. Claims 100% renewable by 2027 via Microsoft Azure RECs (not direct PPAs). Zero published Scope 1/2/3 emissions as of 2026.",
+        "inference_energy": 0.55,
         "training_footprint": null,
-        "sustainability_score": 0.45,
+        "sustainability_score": 0.48,
         "provider_infrastructure": 0.4
       }
     },
@@ -884,7 +883,7 @@
         "provider_disclosure": 0.4
       },
       "sustainability": {
-        "notes": "Smallest OpenAI model = most efficient inference.",
+        "notes": "Smallest OpenAI model = most efficient inference. CEO stated 0.34 Wh per average ChatGPT query. Claims 100% renewable by 2027 via Microsoft Azure RECs (not direct PPAs). Zero published Scope 1/2/3 emissions as of 2026.",
         "inference_energy": 0.8,
         "training_footprint": null,
         "sustainability_score": 0.6,
@@ -901,6 +900,7 @@
       },
       "context_window": 131000,
       "capabilities": [
+        "vision",
         "tools",
         "code",
         "structured_output",
@@ -912,17 +912,18 @@
         "Real-time energy metrics (mWh/100 tokens)",
         "EU-hosted GDPR compliant",
         "No external API calls",
-        "Open source model"
+        "Open source model",
+        "Vision support via Mistral Small 3.2",
+        "OCR and Scraper APIs for document processing"
       ],
       "weaknesses": [
         "Smaller model (24B) — not frontier quality",
-        "No vision",
         "Subscription required for API",
         "Training not on green infrastructure"
       ],
       "task_fitness": {
         "code": 0.72,
-        "vision": 0,
+        "vision": 0.68,
         "analyse": 0.65,
         "extract": 0.75,
         "generate": 0.68,
@@ -943,7 +944,7 @@
         "provider_disclosure": 0.8
       },
       "sustainability": {
-        "notes": "100% renewable inference. Heat recovery for community heating. Published mWh/100 tokens. Training not on green infra (acknowledged).",
+        "notes": "100% renewable inference. Heat recovery for community heating. Published mWh/100 tokens. PUE 1.37 (industry avg 1.57). WUE 0.067 (industry avg 1.8). 20-30% compute reduction through compression. Training not on green infra (acknowledged).",
         "inference_energy": 1,
         "training_footprint": 0.3,
         "sustainability_score": 0.77,
@@ -962,11 +963,13 @@
       "capabilities": [
         "tools",
         "code",
+        "extended_thinking",
         "structured_output",
         "multilingual"
       ],
       "strengths": [
         "Larger model — better reasoning than GreenL",
+        "Chain-of-thought reasoning with adjustable effort",
         "100% renewable energy inference",
         "Heat recovery",
         "Real-time energy metrics",
@@ -1001,7 +1004,7 @@
         "provider_disclosure": 0.8
       },
       "sustainability": {
-        "notes": "Same green infra as GreenL. Larger model = slightly higher per-query energy. 120B training footprint larger.",
+        "notes": "Same green infra as GreenL. PUE 1.37 (industry avg 1.57). WUE 0.067 (industry avg 1.8). 20-30% compute reduction through compression. Larger model = slightly higher per-query energy. 120B training footprint larger.",
         "inference_energy": 0.8,
         "training_footprint": 0.2,
         "sustainability_score": 0.67,
@@ -1058,11 +1061,11 @@
         "provider_disclosure": 0.2
       },
       "sustainability": {
-        "notes": "No published energy data.",
+        "notes": "Memphis Colossus running on gas turbines (no emission permits as of 2025). 2GW capacity planned. 88-acre solar array planned but not built. 168 Tesla Megapacks for battery storage. Among worst sustainability profiles.",
         "inference_energy": null,
         "training_footprint": null,
-        "sustainability_score": 0.3,
-        "provider_infrastructure": 0.3
+        "sustainability_score": 0.15,
+        "provider_infrastructure": 0.15
       }
     },
     "ibm-granite-3.3": {
@@ -1085,19 +1088,20 @@
         "Apache 2.0 — fully open",
         "Full training data documentation",
         "Enterprise audit trails",
-        "Smaller models available"
+        "Part of Granite family (vision, code, guardian variants available)",
+        "MATH500 competitive with 24B models despite 8B size",
+        "Strong RAG with LoRA adapters"
       ],
       "weaknesses": [
         "Not frontier quality",
-        "No vision in base",
-        "Smaller ecosystem",
-        "Less consumer documentation"
+        "No vision in base (separate Granite Vision models available)",
+        "Smaller ecosystem"
       ],
       "task_fitness": {
-        "code": 0.75,
+        "code": 0.78,
         "vision": 0,
         "analyse": 0.72,
-        "extract": 0.78,
+        "extract": 0.8,
         "generate": 0.68,
         "summarise": 0.72,
         "translate": 0.7,
@@ -1116,11 +1120,11 @@
         "provider_disclosure": 1
       },
       "sustainability": {
-        "notes": "Published some training compute/energy. Smaller models run on consumer hardware.",
+        "notes": "Published training compute/energy data. Smaller models run on consumer hardware. FMTI 95 includes disclosure on compute infrastructure.",
         "inference_energy": 0.7,
-        "training_footprint": 0.5,
-        "sustainability_score": 0.57,
-        "provider_infrastructure": 0.5
+        "training_footprint": 0.7,
+        "sustainability_score": 0.65,
+        "provider_infrastructure": 0.55
       }
     },
     "kimi-k2": {
@@ -1195,20 +1199,23 @@
         "code",
         "extended_thinking",
         "structured_output",
-        "multilingual"
+        "multilingual",
+        "video"
       ],
       "strengths": [
         "Strong reasoning with thinking mode",
         "Upgraded from K2",
-        "Competitive with frontier models"
+        "Competitive with frontier models",
+        "Video understanding (VideoMMMU 86.6%)",
+        "Agent swarm — parallel sub-task execution"
       ],
       "weaknesses": [
         "China-based",
         "Smaller ecosystem"
       ],
       "task_fitness": {
-        "code": 0.84,
-        "vision": 0.73,
+        "code": 0.86,
+        "vision": 0.82,
         "analyse": 0.83,
         "extract": 0.81,
         "generate": 0.75,
@@ -1265,8 +1272,8 @@
         "Meta licence has restrictions"
       ],
       "task_fitness": {
-        "code": 0.8,
-        "vision": 0.75,
+        "code": 0.84,
+        "vision": 0.82,
         "analyse": 0.78,
         "extract": 0.8,
         "generate": 0.78,
@@ -1287,11 +1294,11 @@
         "provider_disclosure": 0.3
       },
       "sustainability": {
-        "notes": "Depends on hosting provider. Self-hosted on renewable = high.",
-        "inference_energy": 0.4,
+        "notes": "Meta claims 100% renewable operations (bucket 0.8). Net-zero by 2030. Water-positive by 2030. Dry cooling at new facilities. MoE 17B active = efficient inference.",
+        "inference_energy": 0.55,
         "training_footprint": null,
-        "sustainability_score": 0.4,
-        "provider_infrastructure": null
+        "sustainability_score": 0.68,
+        "provider_infrastructure": 0.8
       }
     },
     "minimax-m2.5": {
@@ -1324,7 +1331,7 @@
         "China-based"
       ],
       "task_fitness": {
-        "code": 0.77,
+        "code": 0.8,
         "vision": 0.68,
         "analyse": 0.74,
         "extract": 0.74,
@@ -1333,7 +1340,7 @@
         "translate": 0.7,
         "conversation": 0.7
       },
-      "speed_score": 0.7,
+      "speed_score": 0.82,
       "privacy_score": 0.5,
       "transparency": {
         "notes": "Open weights. Not FMTI-scored.",
@@ -1358,8 +1365,8 @@
       "provider": "MiniMax",
       "tier": "flagship",
       "pricing": {
-        "input_per_1m": 1,
-        "output_per_1m": 4
+        "input_per_1m": 0.3,
+        "output_per_1m": 1.2
       },
       "context_window": 1000000,
       "capabilities": [
@@ -1372,19 +1379,21 @@
         "multilingual"
       ],
       "strengths": [
-        "Recursive self-improvement focus",
+        "Self-evolving model — autonomous scaffold optimization",
+        "SWE-bench Verified 78% (near Opus level)",
+        "230B total / 10B active MoE — very efficient",
         "1M context",
-        "Character-rich interaction",
-        "Strong engineering tasks"
+        "Open-sourced April 2026",
+        "Strong engineering and agentic tasks"
       ],
       "weaknesses": [
-        "Premium pricing for MiniMax",
-        "Newer provider"
+        "Newer provider",
+        "China-based"
       ],
       "task_fitness": {
-        "code": 0.78,
+        "code": 0.86,
         "vision": 0.69,
-        "analyse": 0.78,
+        "analyse": 0.82,
         "extract": 0.75,
         "generate": 0.75,
         "summarise": 0.75,
@@ -1405,9 +1414,9 @@
       },
       "sustainability": {
         "notes": "Larger model. No provider energy data.",
-        "inference_energy": 0.4,
+        "inference_energy": 0.6,
         "training_footprint": null,
-        "sustainability_score": 0.3,
+        "sustainability_score": 0.4,
         "provider_infrastructure": 0.2
       }
     },
@@ -1460,11 +1469,11 @@
         "provider_disclosure": 0.2
       },
       "sustainability": {
-        "notes": "EU-based. Smaller models more efficient. No published energy data.",
+        "notes": "EU-based. Mistral partnered with EcoDataCenter Sweden (renewable). Paris facility on low-carbon nuclear grid. Launched sustainability auditing tool.",
         "inference_energy": 0.6,
         "training_footprint": null,
-        "sustainability_score": 0.5,
-        "provider_infrastructure": 0.4
+        "sustainability_score": 0.57,
+        "provider_infrastructure": 0.55
       }
     },
     "mistral-ocr": {
@@ -1515,11 +1524,11 @@
         "provider_disclosure": 0.2
       },
       "sustainability": {
-        "notes": "EU-based. Vision models require more compute.",
+        "notes": "EU-based. Mistral partnered with EcoDataCenter Sweden (renewable). Paris facility on low-carbon nuclear grid. Launched sustainability auditing tool.",
         "inference_energy": 0.5,
         "training_footprint": null,
-        "sustainability_score": 0.45,
-        "provider_infrastructure": 0.4
+        "sustainability_score": 0.53,
+        "provider_infrastructure": 0.55
       }
     },
     "qwen-2.5-72b": {
@@ -1587,7 +1596,6 @@
       },
       "context_window": 128000,
       "capabilities": [
-        "vision",
         "tools",
         "code",
         "extended_thinking",
@@ -1599,15 +1607,16 @@
         "Excellent multilingual",
         "MoE (22B active)",
         "Strong benchmark scores",
+        "#1 open model on text (lmarena.ai)",
         "Apache 2.0"
       ],
       "weaknesses": [
-        "128K context limit",
+        "No vision (use Qwen3-VL variant for vision)",
         "Self-hosting needs significant GPU"
       ],
       "task_fitness": {
         "code": 0.73,
-        "vision": 0.66,
+        "vision": 0,
         "analyse": 0.73,
         "extract": 0.7,
         "generate": 0.68,
@@ -1653,11 +1662,11 @@
         "multilingual"
       ],
       "strengths": [
-        "Latest Qwen flagship",
+        "Latest Qwen flagship — natively multimodal (text+image+video)",
         "262K context",
-        "MoE (17B active)",
-        "Hybrid thinking",
-        "Excellent multilingual",
+        "MoE (17B active) — 60% cheaper to run than predecessor",
+        "LiveCodeBench v6 83.6%, SWE-bench 76.4%",
+        "201 languages supported",
         "Apache 2.0"
       ],
       "weaknesses": [
@@ -1665,9 +1674,9 @@
         "Self-hosting impractical for most"
       ],
       "task_fitness": {
-        "code": 0.8,
+        "code": 0.85,
         "vision": 0.73,
-        "analyse": 0.8,
+        "analyse": 0.82,
         "extract": 0.78,
         "generate": 0.75,
         "summarise": 0.78,

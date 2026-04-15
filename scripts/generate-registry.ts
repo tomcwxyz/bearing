@@ -21,7 +21,8 @@ async function generate() {
   const rows = await sql`
     SELECT slug, name, provider, tier, pricing, context_window,
            capabilities, strengths, weaknesses, task_fitness,
-           speed_score, privacy_score, transparency, sustainability
+           speed_score, privacy_score, transparency, sustainability,
+           local_info
     FROM models
     WHERE active = true
     ORDER BY slug
@@ -49,6 +50,7 @@ async function generate() {
       privacy_score: rest.privacy_score,
       transparency: rest.transparency,
       sustainability: rest.sustainability,
+      ...(rest.local_info ? { local_info: rest.local_info } : {}),
     }
   }
 
