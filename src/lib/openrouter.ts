@@ -126,12 +126,6 @@ export const DIRECT_PROVIDERS: Record<string, DirectProvider> = {
     apiKeyEnv: 'GREENPT_API_KEY',
     name: 'GreenPT',
   },
-  'ibm-granite-3.3': {
-    baseUrl: 'https://integrate.api.nvidia.com/v1',
-    modelId: 'ibm/granite-3_3-8b-instruct',
-    apiKeyEnv: 'NVIDIA_API_KEY',
-    name: 'NVIDIA NIM',
-  },
   'mistral-ocr': {
     baseUrl: 'https://api.mistral.ai/v1',
     modelId: 'pixtral-large-latest',

@@ -1235,7 +1235,7 @@
       }
     },
     "ibm-granite-3.3": {
-      "name": "IBM Granite 3.3",
+      "name": "IBM Granite 4.0 Micro",
       "provider": "IBM",
       "tier": "enterprise_transparent",
       "pricing": {
