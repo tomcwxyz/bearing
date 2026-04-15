@@ -292,14 +292,36 @@ export async function submitValidation(formData: FormData) {
 }
 
 // ---------------------------------------------------------------------------
+// 7b. getModelsForCompare — all models available for comparison
+// ---------------------------------------------------------------------------
+
+export async function getModelsForCompare() {
+  try {
+    const { getAllModelsFromDb } = await import('@/lib/db')
+    const models = await getAllModelsFromDb()
+    return {
+      models: models.map(m => ({
+        slug: m.slug,
+        name: m.name,
+        provider: m.provider,
+        tier: m.tier,
+        capabilities: m.capabilities,
+        contextWindow: m.context_window,
+      })),
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Failed to load models.' }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // 8. requestMagicLink
 // ---------------------------------------------------------------------------
 
-export async function requestMagicLink(formData: FormData) {
-  const email = formData.get('email') as string
+export async function requestMagicLink(email: string, redirect?: string) {
   if (!email?.trim()) return { error: 'Email is required.' }
 
-  const result = await sendMagicLink(email.trim())
+  const result = await sendMagicLink(email.trim(), redirect)
   if (!result.success) return { error: result.error || 'Failed to send magic link.' }
 
   return { success: true, email: email.trim() }
@@ -389,6 +411,32 @@ async function generatePipelineReasoning(
     return response.content[0].type === 'text' ? response.content[0].text : ''
   } catch {
     return 'A pipeline of specialist models may handle this task more efficiently than a single model.'
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 9b. createDirectCompareTask — lightweight task for direct compare (no classification)
+// ---------------------------------------------------------------------------
+
+export async function createDirectCompareTask(): Promise<{ taskId?: string; error?: string }> {
+  try {
+    const taskId = await createTask({
+      descriptionHash: null,
+      taskType: 'other',
+      taskSubtype: null,
+      complexity: 'moderate',
+      inputLength: 'medium',
+      needsVision: false,
+      needsTools: false,
+      needsCode: false,
+      isRecurring: false,
+      mode: 'compare_direct',
+      classificationConfidence: null,
+      pipelineStages: null,
+    })
+    return { taskId }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Failed to create comparison task.' }
   }
 }
 

@@ -1,9 +1,13 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { requestMagicLink } from '@/app/actions'
 
 export default function SignInPage() {
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get('redirect') ?? undefined
+
   const [email, setEmail] = useState('')
   const [sentTo, setSentTo] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -13,11 +17,8 @@ export default function SignInPage() {
     e.preventDefault()
     setError(null)
 
-    const formData = new FormData()
-    formData.set('email', email)
-
     startTransition(async () => {
-      const result = await requestMagicLink(formData)
+      const result = await requestMagicLink(email.trim(), redirect)
       if (result.error) {
         setError(result.error)
       } else if (result.success) {
