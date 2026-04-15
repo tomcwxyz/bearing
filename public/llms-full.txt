@@ -1,0 +1,55 @@
+# Bearing — Full Context
+
+> AI model recommendation tool with transparent, multi-factor scoring
+
+## Architecture
+
+Bearing is a Next.js 15 application using the App Router, Neon Postgres, and Claude Haiku for task classification. Models are scored using a pure-function scoring engine with no side effects.
+
+## How recommendations work
+
+1. User describes their AI task in natural language
+2. Claude Haiku classifies the task: type, complexity, capabilities needed, pipeline stages
+3. User sets priorities by ranking 7 factors (can exclude factors they don't care about)
+4. Scoring engine computes weighted scores for all eligible models
+5. Results are ranked and displayed with full factor breakdowns
+6. For complex tasks, quality and capability weights are automatically boosted
+
+## How comparisons work
+
+1. User selects any two models from the 29 available
+2. Enters a prompt (optionally with a PDF or CSV attachment)
+3. Both models receive the same prompt via OpenRouter API or direct provider APIs
+4. Responses displayed side-by-side for preference voting
+5. Preference data is stored for community scoring research
+
+## Scoring methodology
+
+Weights are computed from user priority ranking (rank-based with default blending):
+- Top priority: ~28-30% weight
+- Bottom priority: ~4-5% weight
+- Complexity boost: complex tasks multiply quality weight by 1.5x, capability by 1.3x
+- Factor exclusion: users can toggle off factors, remaining weights renormalise
+
+## API providers
+
+- OpenRouter: 26 models via unified API
+- GreenPT: 2 models (green-l, green-r) via direct API
+- Mistral: 1 model (Pixtral Large / Mistral OCR) via direct API
+- Claude Haiku: classification and reasoning (via Anthropic SDK)
+
+## Data model
+
+- Tasks: classification results, priority order, excluded factors
+- Recommendations: ranked model lists with factor scores
+- Selections: which model the user chose
+- Comparisons: side-by-side prompt results with preference votes
+- Outcomes: user feedback on model performance
+
+## Open data
+
+All comparison outcomes and preference data are published openly at /data for community research.
+
+## Source
+
+https://github.com/dataforaction-tom/bearing

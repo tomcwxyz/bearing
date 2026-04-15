@@ -1,0 +1,40 @@
+# Bearing
+
+> Find the right AI model for your task
+
+Bearing is an open, transparent AI model recommendation tool. Users describe what they want to do, set their priorities across 7 factors, and get a ranked shortlist of AI models with full scoring transparency.
+
+## What Bearing does
+
+- Recommends AI models based on task description, complexity, and user priorities
+- Scores 29 models across 7 factors: quality, capability, cost, speed, privacy, sustainability, transparency
+- Lets users compare any two models head-to-head by sending the same prompt
+- Provides pipeline recommendations for multi-stage tasks
+- Suggests local inference options for open-weight models
+- Publishes all comparison outcome data openly
+
+## Scoring factors
+
+- Quality: task fitness based on benchmarks and capabilities
+- Capability: features like vision, code generation, tool use, long context
+- Cost: estimated per-task cost based on pricing
+- Speed: inference latency
+- Privacy: data handling and retention policies
+- Sustainability: energy use, infrastructure, environmental footprint
+- Transparency: open weights, training data disclosure, methodology openness
+
+## Models covered
+
+29 models from Anthropic, OpenAI, Google, Meta, DeepSeek, Mistral, Alibaba (Qwen), xAI, MiniMax, Moonshot AI, IBM, and GreenPT.
+
+## Links
+
+- Main app: https://findbearing.org
+- Documentation: https://docs.findbearing.org
+- Model ratings research: https://docs.findbearing.org/model-ratings/
+- User guide: https://docs.findbearing.org/user-guide/
+- Source code: https://github.com/dataforaction-tom/bearing
+
+## Built by
+
+The Good Ship (https://good-ship.co.uk) — data for action.
