@@ -119,7 +119,7 @@ describe('pickBestQuant', () => {
   it('returns null if all options exceed quality penalty threshold', () => {
     const badQuants: QuantOption[] = [
       { quant: 'Q2_K', vram_gb: 3, quality_penalty: 0.3 },
-      { quant: 'Q3_K', vram_gb: 4, quality_penalty: 0.2 },
+      { quant: 'Q3_K', vram_gb: 4, quality_penalty: 0.25 },
     ]
     expect(pickBestQuant(badQuants)).toBeNull()
   })

@@ -32,14 +32,14 @@ export const HARDWARE_TIERS: HardwareTier[] = [
     id: 'workstation',
     name: 'Workstation',
     description: '64–128 GB unified memory or multi-GPU',
-    vram_gb: 48,
-    examples: ['Mac Studio M4 Ultra 128GB', 'Mac Pro', '2× RTX 4090'],
+    vram_gb: 56,
+    examples: ['Mac Studio M4 64GB', 'Mac Studio M4 Ultra 128GB', '2× RTX 4090'],
   },
   {
     id: 'server',
     name: 'Serious hardware',
-    description: '192 GB+ or enterprise GPUs',
-    vram_gb: 96,
+    description: '128 GB+ unified memory or enterprise GPUs',
+    vram_gb: 128,
     examples: ['Mac Studio M4 Ultra 192GB', 'A100 80GB', 'H100'],
   },
 ]
@@ -65,7 +65,7 @@ export interface LocalInferenceResult {
 // Scoring
 // ---------------------------------------------------------------------------
 
-const MAX_QUALITY_PENALTY = 0.15
+const MAX_QUALITY_PENALTY = 0.20
 const MIN_TASK_FITNESS = 0.5
 const MAX_PER_TIER = 2
 const MAX_TOTAL = 5

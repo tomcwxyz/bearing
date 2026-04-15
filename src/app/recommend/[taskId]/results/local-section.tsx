@@ -12,7 +12,7 @@ function formatParams(rec: LocalModelRecommendation): string {
   if (localInfo.is_moe && localInfo.active_params_b) {
     return `${total} MoE, ${localInfo.active_params_b}B active`
   }
-  return total
+  return `${total} params`
 }
 
 function TierGroup({
@@ -23,12 +23,12 @@ function TierGroup({
   recommendations: LocalModelRecommendation[]
 }) {
   return (
-    <div className="rounded-lg border border-cream-dark bg-white p-4">
+    <div className="rounded-lg border border-cream-dark border-l-4 border-l-amber bg-white p-4">
       <div className="mb-3">
         <p className="font-display text-sm font-semibold text-navy">
           {tier.name}
         </p>
-        <p className="text-navy/50 text-xs">
+        <p className="text-navy/40 text-xs">
           {tier.examples.join(' · ')}
         </p>
       </div>
@@ -40,21 +40,22 @@ function TierGroup({
             <div key={rec.model.slug} className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-navy">
-                  {rec.model.name}{' '}
-                  <span className="text-navy/50 font-normal">
-                    ({formatParams(rec)})
+                  {rec.model.name}
+                  <span className="text-navy/40 font-normal text-xs ml-1">
+                    {formatParams(rec)}
                   </span>
                 </p>
-                <p className="text-xs text-navy/60 mt-0.5">
+                <p className="text-xs text-navy/50 mt-0.5">
                   {rec.model.strengths[0]}
                 </p>
               </div>
               <div className="shrink-0 text-right">
-                <p className="font-mono text-xs text-navy/70">
+                <p className="font-mono text-xs text-navy/50">
                   {rec.bestQuant.quant} · ~{rec.bestQuant.vram_gb} GB
                 </p>
-                <p className="font-mono text-sm font-semibold text-navy">
-                  {matchPct}% <span className="text-navy/50 font-normal text-xs">match</span>
+                <p className="font-mono text-sm font-bold text-navy">
+                  {matchPct}%
+                  <span className="text-navy/40 font-normal text-xs ml-0.5">match</span>
                 </p>
               </div>
             </div>
@@ -64,6 +65,12 @@ function TierGroup({
     </div>
   )
 }
+
+const TOOLS = [
+  { name: 'Ollama', url: 'https://ollama.com' },
+  { name: 'LM Studio', url: 'https://lmstudio.ai' },
+  { name: 'llama.cpp', url: 'https://github.com/ggerganov/llama.cpp' },
+]
 
 export function LocalSection({ local }: LocalSectionProps) {
   const { recommendations, tiersUsed } = local
@@ -78,12 +85,18 @@ export function LocalSection({ local }: LocalSectionProps) {
   }
 
   return (
-    <div className="mt-8 rounded-xl border-2 border-navy/20 bg-navy/5 p-6">
-      <h2 className="font-display text-xl text-navy">Run it locally</h2>
-      <p className="mt-1 text-navy/70 text-sm leading-relaxed">
-        These open-weight models can run on your own hardware.
-        Your data never leaves your machine.
-      </p>
+    <div className="mt-8 rounded-xl border-2 border-amber/30 bg-amber/5 p-6">
+      <div className="flex items-start gap-3 mb-1">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber text-white text-base">
+          ⌂
+        </span>
+        <div>
+          <h2 className="font-display text-xl font-bold text-navy">Run it locally</h2>
+          <p className="mt-0.5 text-navy/60 text-sm leading-relaxed">
+            These open-weight models can run on your own hardware — your data never leaves your machine.
+          </p>
+        </div>
+      </div>
 
       <div className="mt-4 space-y-3">
         {tiersUsed.map((tier) => {
@@ -93,9 +106,22 @@ export function LocalSection({ local }: LocalSectionProps) {
         })}
       </div>
 
-      <p className="mt-4 text-xs text-navy/50">
-        Run with: Ollama · LM Studio · llama.cpp
-      </p>
+      <div className="mt-4 pt-3 border-t border-amber/20 flex items-center gap-1.5 text-xs text-navy/50">
+        <span>Run with:</span>
+        {TOOLS.map((tool, i) => (
+          <span key={tool.name}>
+            {i > 0 && <span className="mr-1.5">·</span>}
+            <a
+              href={tool.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-navy/70 underline decoration-navy/20 underline-offset-2 hover:text-navy hover:decoration-navy/40 transition-colors"
+            >
+              {tool.name}
+            </a>
+          </span>
+        ))}
+      </div>
     </div>
   )
 }
