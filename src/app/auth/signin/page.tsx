@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { requestMagicLink } from '@/app/actions'
 
-export default function SignInPage() {
+function SignInForm() {
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') ?? undefined
 
@@ -28,7 +28,7 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md px-6 py-24">
+    <>
       <h1 className="font-display text-3xl font-bold text-navy">
         Sign in to compare models
       </h1>
@@ -64,7 +64,7 @@ export default function SignInPage() {
           </div>
 
           {error && (
-            <p className="text-sm text-coral">{error}</p>
+            <p role="alert" className="text-sm text-coral">{error}</p>
           )}
 
           <button
@@ -76,6 +76,21 @@ export default function SignInPage() {
           </button>
         </form>
       )}
+    </>
+  )
+}
+
+export default function SignInPage() {
+  return (
+    <div className="mx-auto max-w-md px-6 py-24">
+      <Suspense fallback={
+        <div>
+          <h1 className="font-display text-3xl font-bold text-navy">Sign in to compare models</h1>
+          <p className="mt-2 text-navy/60">Loading...</p>
+        </div>
+      }>
+        <SignInForm />
+      </Suspense>
     </div>
   )
 }
