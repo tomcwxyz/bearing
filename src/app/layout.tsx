@@ -50,16 +50,37 @@ export default function RootLayout({
 
         <main className="flex-1">{children}</main>
 
-        <footer className="border-t border-cream-dark px-6 py-6 text-center text-sm text-grey-blue">
-          Built by{" "}
-          <a
-            href="https://good-ship.co.uk"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:text-navy transition-colors"
-          >
-            The Good Ship
-          </a>
+        <footer className="border-t border-cream-dark px-6 py-6 text-center text-sm text-grey-blue space-y-1">
+          <p>
+            Built by{" "}
+            <a
+              href="https://good-ship.co.uk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-navy transition-colors"
+            >
+              The Good Ship
+            </a>
+            {" · "}
+            <a
+              href="https://tomcw.xyz"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-navy transition-colors"
+            >
+              tomcw.xyz
+            </a>
+          </p>
+          <p className="text-grey-blue/60">
+            <a
+              href="https://opensource.org/license/MIT"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-navy transition-colors"
+            >
+              MIT License
+            </a>
+          </p>
         </footer>
       </body>
     </html>
