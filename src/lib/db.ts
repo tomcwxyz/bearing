@@ -12,18 +12,18 @@ function getDb() {
 // ---------------------------------------------------------------------------
 
 export interface TaskParams {
-  descriptionHash?: string
-  taskType?: string
-  taskSubtype?: string
-  complexity?: string
-  inputLength?: string
+  descriptionHash?: string | null
+  taskType?: string | null
+  taskSubtype?: string | null
+  complexity?: string | null
+  inputLength?: string | null
   needsVision?: boolean
   needsTools?: boolean
   needsCode?: boolean
   isRecurring?: boolean
   mode?: string
   priorityOrder?: string[]
-  classificationConfidence?: number
+  classificationConfidence?: number | null
   pipelineStages?: object[] | null
 }
 

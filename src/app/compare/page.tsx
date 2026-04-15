@@ -81,7 +81,7 @@ export default function DirectComparePage() {
         getModelsForCompare(),
       ])
       setIsAuthenticated(authResult.authenticated)
-      if ('models' in modelsResult) {
+      if ('models' in modelsResult && modelsResult.models) {
         setModels(modelsResult.models)
       }
 
