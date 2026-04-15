@@ -9,8 +9,9 @@ const links = [
   { href: '/compare', label: 'Compare' },
   { href: '/data', label: 'Data' },
   { href: '/about', label: 'About' },
+  { href: 'https://docs.findbearing.org', label: 'Docs', external: true },
   { href: '/auth/signin', label: 'Sign in' },
-]
+] as const
 
 export function Nav() {
   const [open, setOpen] = useState(false)
@@ -25,17 +26,33 @@ export function Nav() {
 
         {/* Desktop links */}
         <div className="hidden sm:flex items-center gap-6 text-sm font-medium">
-          {links.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`transition-colors ${
-                pathname === href ? 'text-teal' : 'hover:text-grey-blue-light'
-              }`}
-            >
-              {label}
-            </Link>
-          ))}
+          {links.map(({ href, label, ...rest }) => {
+            const isExternal = 'external' in rest
+            if (isExternal) {
+              return (
+                <a
+                  key={href}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="transition-colors hover:text-grey-blue-light"
+                >
+                  {label}
+                </a>
+              )
+            }
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`transition-colors ${
+                  pathname === href ? 'text-teal' : 'hover:text-grey-blue-light'
+                }`}
+              >
+                {label}
+              </Link>
+            )
+          })}
         </div>
 
         {/* Mobile hamburger button */}
@@ -68,18 +85,35 @@ export function Nav() {
       {open && (
         <div className="sm:hidden border-t border-navy-light px-6 pb-4 pt-2">
           <div className="flex flex-col gap-3 text-sm font-medium">
-            {links.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setOpen(false)}
-                className={`py-1 transition-colors ${
-                  pathname === href ? 'text-teal' : 'hover:text-grey-blue-light'
-                }`}
-              >
-                {label}
-              </Link>
-            ))}
+            {links.map(({ href, label, ...rest }) => {
+              const isExternal = 'external' in rest
+              if (isExternal) {
+                return (
+                  <a
+                    key={href}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setOpen(false)}
+                    className="py-1 transition-colors hover:text-grey-blue-light"
+                  >
+                    {label}
+                  </a>
+                )
+              }
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setOpen(false)}
+                  className={`py-1 transition-colors ${
+                    pathname === href ? 'text-teal' : 'hover:text-grey-blue-light'
+                  }`}
+                >
+                  {label}
+                </Link>
+              )
+            })}
           </div>
         </div>
       )}

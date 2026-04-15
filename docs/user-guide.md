@@ -124,6 +124,8 @@ Click any model card to see its full profile:
 - Sustainability data (inference energy, training footprint, provider infrastructure)
 - Task fitness bars showing how well the model performs across different task types
 
+Want to understand how these scores are calculated? See [How We Rate Models](model-ratings.md) for the full methodology, research sources, and decisions behind every rating.
+
 ## Giving feedback
 
 After trying a model, come back to give feedback using the bookmarkable link from your results page.

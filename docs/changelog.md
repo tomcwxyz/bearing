@@ -4,6 +4,26 @@ All notable changes to Bearing will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.7.0] — 2026-04-15
+
+### Added
+
+- **Model ratings research page** — a new documentation page at [How We Rate Models](model-ratings.md) documents the research, sources, and decisions behind every model rating in the registry. Includes provider sustainability research, capability decisions, task fitness benchmarks, and transparency methodology — all with linked sources.
+
+### Changed
+
+- **DeepSeek V3.2 no longer listed as a vision model** — research confirmed it does not have native vision support. Vision is expected in DeepSeek V4.
+- **GreenPT GreenL now supports vision** — powered by Mistral Small 3.2, which has native image understanding. GreenPT also offers OCR and web scraper APIs.
+- **GreenPT GreenR now supports extended thinking** — GPT-OSS 120B has chain-of-thought reasoning with adjustable effort.
+- **Kimi K2.5 now listed with video capability** — strong video understanding confirmed by benchmarks (VideoMMMU 86.6%).
+- **Google sustainability scores raised** — now reflects their 100% renewable energy match since 2017 and published per-query energy data.
+- **xAI Grok sustainability score lowered** — research revealed Memphis data centre running on gas turbines without emission permits. Now scored 0.15, among the lowest in the registry.
+- **GreenPT sustainability data enriched** — added PUE and WUE metrics showing 96% better water efficiency than industry average.
+- **MiniMax M2.7 scores significantly improved** — SWE-bench Verified 78% justifies a code fitness score of 0.86, up from 0.78. Pricing corrected to $0.30/$1.20 (was incorrectly listed at $1.00/$4.00).
+- **Multiple models received task fitness updates** based on benchmark evidence — Llama 4 Maverick, Kimi K2.5, Gemini 3 Flash, Gemini 3.1 Pro, Qwen 3.5, and IBM Granite all had scores adjusted upward with cited sources.
+- **All sustainability scores now strictly follow the documented formula** — composite score equals the mean of available sub-dimensions, with no editorial adjustments.
+- **Registry version updated to 0.5.0** with 29 models across 12 providers.
+
 ## [0.6.0] — 2026-04-13
 
 ### Added
