@@ -1,0 +1,226 @@
+/* Bearing brand colours mapped to Material for MkDocs CSS variables */
+
+:root {
+  /* Brand palette */
+  --bearing-navy: #1B2A4A;
+  --bearing-navy-light: #243556;
+  --bearing-cream: #F5F0E8;
+  --bearing-cream-dark: #E8E0D0;
+  --bearing-teal: #2D8B7A;
+  --bearing-teal-light: #3AA08D;
+  --bearing-coral: #C75B3A;
+  --bearing-amber: #D4993D;
+  --bearing-grey-blue: #8BA4B8;
+  --bearing-grey-blue-light: #B8CCDB;
+}
+
+/* Override Material theme colour scheme */
+[data-md-color-scheme="bearing"] {
+  /* Primary surfaces */
+  --md-primary-fg-color: #1B2A4A;
+  --md-primary-fg-color--light: #243556;
+  --md-primary-fg-color--dark: #131E36;
+  --md-primary-bg-color: #F5F0E8;
+  --md-primary-bg-color--light: #FAF7F2;
+
+  /* Accent / links */
+  --md-accent-fg-color: #2D8B7A;
+  --md-accent-fg-color--transparent: rgba(45, 139, 122, 0.1);
+  --md-accent-bg-color: #F5F0E8;
+  --md-accent-bg-color--light: #FAF7F2;
+
+  /* Default text and background */
+  --md-default-fg-color: #1B2A4A;
+  --md-default-fg-color--light: #243556;
+  --md-default-fg-color--lighter: #8BA4B8;
+  --md-default-fg-color--lightest: #B8CCDB;
+  --md-default-bg-color: #F5F0E8;
+  --md-default-bg-color--light: #FAF7F2;
+  --md-default-bg-color--lighter: #FDFCFA;
+  --md-default-bg-color--lightest: #FFFFFF;
+
+  /* Footer */
+  --md-footer-fg-color: #F5F0E8;
+  --md-footer-fg-color--light: #B8CCDB;
+  --md-footer-fg-color--lighter: #8BA4B8;
+  --md-footer-bg-color: #1B2A4A;
+  --md-footer-bg-color--dark: #131E36;
+
+  /* Code blocks */
+  --md-code-fg-color: #1B2A4A;
+  --md-code-bg-color: #E8E0D0;
+  --md-code-hl-color: rgba(45, 139, 122, 0.15);
+
+  /* Typeset */
+  --md-typeset-color: #1B2A4A;
+  --md-typeset-a-color: #2D8B7A;
+
+  /* Admonitions */
+  --md-admonition-fg-color: #1B2A4A;
+  --md-admonition-bg-color: #FAF7F2;
+}
+
+/* Typography — Fraunces for headings, DM Sans for body, JetBrains Mono for code */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --md-text-font: "DM Sans", system-ui, sans-serif;
+  --md-code-font: "JetBrains Mono", "Courier New", monospace;
+}
+
+/* Fraunces for headings */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4,
+.md-typeset h5,
+.md-typeset h6 {
+  font-family: "Fraunces", Georgia, serif;
+  color: var(--bearing-navy);
+}
+
+.md-typeset h1 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.md-typeset h2 {
+  font-weight: 600;
+  border-bottom: 2px solid var(--bearing-cream-dark);
+  padding-bottom: 0.3em;
+}
+
+.md-typeset h3 {
+  font-weight: 600;
+  color: var(--bearing-navy-light);
+}
+
+/* Header bar */
+.md-header {
+  background-color: var(--bearing-navy);
+  box-shadow: 0 2px 8px rgba(27, 42, 74, 0.15);
+}
+
+.md-header__title {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Navigation tabs and sidebar */
+.md-tabs {
+  background-color: var(--bearing-navy-light);
+}
+
+.md-nav__link:hover,
+.md-nav__link--active {
+  color: var(--bearing-teal);
+}
+
+/* Search */
+.md-search__input {
+  background-color: var(--bearing-navy-light);
+}
+
+/* Links */
+.md-typeset a {
+  color: var(--bearing-teal);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s ease;
+}
+
+.md-typeset a:hover {
+  color: var(--bearing-teal-light);
+  border-bottom-color: var(--bearing-teal-light);
+}
+
+/* Tables — match the app's clean style */
+.md-typeset table:not([class]) {
+  border: 1px solid var(--bearing-cream-dark);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 0.85rem;
+}
+
+.md-typeset table:not([class]) thead {
+  background-color: var(--bearing-navy);
+  color: var(--bearing-cream);
+}
+
+.md-typeset table:not([class]) thead th {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  padding: 0.75em 1em;
+  border-bottom: none;
+}
+
+.md-typeset table:not([class]) tbody tr {
+  border-bottom: 1px solid var(--bearing-cream-dark);
+}
+
+.md-typeset table:not([class]) tbody tr:nth-child(even) {
+  background-color: var(--bearing-cream-dark);
+}
+
+.md-typeset table:not([class]) tbody td {
+  padding: 0.6em 1em;
+}
+
+/* Code — inline */
+.md-typeset code {
+  background-color: var(--bearing-cream-dark);
+  color: var(--bearing-navy);
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+  font-size: 0.85em;
+}
+
+/* Code — blocks */
+.md-typeset pre {
+  border-radius: 6px;
+  border: 1px solid var(--bearing-cream-dark);
+}
+
+/* Horizontal rules */
+.md-typeset hr {
+  border-color: var(--bearing-cream-dark);
+}
+
+/* Footer */
+.md-footer {
+  background-color: var(--bearing-navy);
+}
+
+/* Content area max width — comfortable reading */
+.md-content {
+  max-width: 52rem;
+}
+
+/* Subtle paper texture on body (matching app) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(139, 164, 184, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(45, 139, 122, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 80%, rgba(212, 153, 61, 0.02) 0%, transparent 50%);
+}
+
+/* Blockquotes — teal left border */
+.md-typeset blockquote {
+  border-left: 3px solid var(--bearing-teal);
+  color: var(--bearing-navy-light);
+  background-color: rgba(45, 139, 122, 0.04);
+  padding: 0.5em 1em;
+  border-radius: 0 4px 4px 0;
+}
+
+/* Strong text — slightly darker for emphasis */
+.md-typeset strong {
+  color: var(--bearing-navy);
+  font-weight: 600;
+}

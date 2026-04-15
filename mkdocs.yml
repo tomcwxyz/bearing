@@ -4,16 +4,25 @@ docs_dir: docs
 theme:
   name: material
   palette:
-    primary: teal
+    scheme: bearing
+    primary: custom
+    accent: custom
+  font: false
   features:
     - navigation.sections
     - navigation.top
     - search.suggest
+    - search.highlight
+    - content.tabs.link
+  icon:
+    logo: material/compass-outline
 nav:
   - Home: index.md
   - User Guide: user-guide.md
   - How We Rate Models: model-ratings.md
   - Changelog: changelog.md
+extra_css:
+  - stylesheets/bearing.css
 exclude_docs: |
   plans/
   .docs-state.json
