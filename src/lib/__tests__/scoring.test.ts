@@ -75,6 +75,24 @@ describe('scoreModels', () => {
     }
   })
 
+  it('exclusions improve ranking for frontier models on complex tasks', () => {
+    const priorityOrder: Factor[] = ['quality', 'capability', 'speed', 'privacy', 'sustainability', 'transparency', 'cost']
+    const normal = scoreModels({
+      taskType: 'code', complexity: 'complex', inputLength: 'long',
+      needsVision: false, needsTools: true, needsCode: true,
+      priorityOrder,
+    })
+    const focused = scoreModels({
+      taskType: 'code', complexity: 'complex', inputLength: 'long',
+      needsVision: false, needsTools: true, needsCode: true,
+      priorityOrder,
+      excludedFactors: ['sustainability', 'transparency', 'privacy'],
+    })
+    const normalOpus = normal.findIndex(m => m.slug === 'claude-opus-4.6')
+    const focusedOpus = focused.findIndex(m => m.slug === 'claude-opus-4.6')
+    expect(focusedOpus).toBeLessThan(normalOpus)
+  })
+
   it('ranks cost-sensitive priorities differently', () => {
     const costFirst: Factor[] = ['cost', 'speed', 'quality', 'capability', 'transparency', 'privacy', 'sustainability']
     const qualityFirst: Factor[] = ['quality', 'capability', 'cost', 'transparency', 'privacy', 'sustainability', 'speed']

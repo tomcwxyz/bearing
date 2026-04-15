@@ -80,10 +80,12 @@ export async function createTask(params: TaskParams): Promise<string> {
 export async function updateTaskPriorities(
   taskId: string,
   priorityOrder: string[],
+  excludedFactors?: string[],
 ): Promise<void> {
   await getDb()`
     UPDATE tasks
-    SET priority_order = ${JSON.stringify(priorityOrder)}
+    SET priority_order = ${JSON.stringify(priorityOrder)},
+        excluded_factors = ${excludedFactors && excludedFactors.length > 0 ? JSON.stringify(excludedFactors) : null}
     WHERE id = ${taskId}
   `
 }

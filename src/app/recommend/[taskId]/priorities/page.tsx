@@ -17,16 +17,35 @@ const FACTOR_INFO: { factor: Factor; label: string; description: string }[] = [
   { factor: 'speed', label: 'Speed', description: 'Fast responses' },
 ]
 
+const MIN_ENABLED = 2
+
 export default function PrioritiesPage() {
   const { taskId } = useParams<{ taskId: string }>()
   const [items, setItems] = useState(FACTOR_INFO)
+  const [disabled, setDisabled] = useState<Set<Factor>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const dragItem = useRef<number | null>(null)
   const dragOverItem = useRef<number | null>(null)
 
+  const enabledCount = items.length - disabled.size
+
+  function toggleFactor(factor: Factor) {
+    setDisabled((prev) => {
+      const next = new Set(prev)
+      if (next.has(factor)) {
+        next.delete(factor)
+      } else {
+        if (enabledCount <= MIN_ENABLED) return prev
+        next.add(factor)
+      }
+      return next
+    })
+  }
+
   function handleDragStart(index: number) {
+    if (disabled.has(items[index].factor)) return
     dragItem.current = index
   }
 
@@ -53,6 +72,7 @@ export default function PrioritiesPage() {
   }
 
   function moveItem(index: number, direction: 'up' | 'down') {
+    if (disabled.has(items[index].factor)) return
     const target = direction === 'up' ? index - 1 : index + 1
     if (target < 0 || target >= items.length) return
     const updated = [...items]
@@ -62,10 +82,12 @@ export default function PrioritiesPage() {
 
   function handleSubmit() {
     setError(null)
-    const priorityOrder = items.map((item) => item.factor)
+    const enabledItems = items.filter((item) => !disabled.has(item.factor))
+    const priorityOrder = enabledItems.map((item) => item.factor)
+    const excludedFactors = Array.from(disabled)
     startTransition(async () => {
       try {
-        const result = await submitPriorities(taskId, priorityOrder)
+        const result = await submitPriorities(taskId, priorityOrder, excludedFactors)
         if (result?.error) {
           setError(result.error)
         }
@@ -88,6 +110,8 @@ export default function PrioritiesPage() {
     )
   }
 
+  let enabledRank = 0
+
   return (
     <div className="flex flex-1 flex-col items-center px-4 py-12">
       <div className="w-full max-w-xl fade-in">
@@ -97,58 +121,98 @@ export default function PrioritiesPage() {
           What matters to you?
         </h1>
         <p className="mb-10 text-center text-grey-blue">
-          Drag to reorder. The top factor matters most.
+          Toggle off factors you don&apos;t care about. Drag to reorder the rest.
         </p>
 
         <ul className="mb-8 space-y-2">
-          {items.map((item, index) => (
-            <li
-              key={item.factor}
-              draggable
-              onDragStart={() => handleDragStart(index)}
-              onDragOver={(e) => handleDragOver(e, index)}
-              onDragEnd={handleDragEnd}
-              className="flex items-center gap-3 rounded-lg border border-cream-dark bg-white px-4 py-3 select-none transition-colors hover:border-teal active:border-teal active:bg-teal/5"
-            >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal/10 font-mono text-xs font-bold text-teal">
-                {index + 1}
-              </span>
+          {items.map((item, index) => {
+            const isDisabled = disabled.has(item.factor)
+            if (!isDisabled) enabledRank++
+            const rank = isDisabled ? null : enabledRank
 
-              <div className="min-w-0 flex-1">
-                <p className="font-display text-sm font-semibold text-navy">
-                  {item.label}
-                </p>
-                <p className="truncate text-xs text-grey-blue">
-                  {item.description}
-                </p>
-              </div>
-
-              <div className="flex shrink-0 flex-col gap-0.5">
+            return (
+              <li
+                key={item.factor}
+                draggable={!isDisabled}
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragEnd={handleDragEnd}
+                className={`flex items-center gap-3 rounded-lg border px-4 py-3 select-none transition-colors ${
+                  isDisabled
+                    ? 'border-cream-dark/50 bg-cream-dark/30 opacity-50'
+                    : 'border-cream-dark bg-white hover:border-teal active:border-teal active:bg-teal/5'
+                }`}
+              >
+                {/* Toggle */}
                 <button
                   type="button"
-                  onClick={() => moveItem(index, 'up')}
-                  disabled={index === 0}
-                  aria-label={`Move ${item.label} up`}
-                  className="rounded px-1.5 py-0.5 text-xs text-grey-blue transition-colors hover:bg-teal/10 hover:text-teal disabled:opacity-30"
+                  onClick={() => toggleFactor(item.factor)}
+                  disabled={!isDisabled && enabledCount <= MIN_ENABLED}
+                  aria-label={`${isDisabled ? 'Enable' : 'Disable'} ${item.label}`}
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
+                    isDisabled
+                      ? 'border-grey-blue/30 bg-cream-dark cursor-pointer'
+                      : enabledCount <= MIN_ENABLED
+                        ? 'border-teal bg-teal cursor-not-allowed'
+                        : 'border-teal bg-teal cursor-pointer hover:bg-teal-light'
+                  }`}
                 >
-                  &#9650;
+                  {!isDisabled && (
+                    <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => moveItem(index, 'down')}
-                  disabled={index === items.length - 1}
-                  aria-label={`Move ${item.label} down`}
-                  className="rounded px-1.5 py-0.5 text-xs text-grey-blue transition-colors hover:bg-teal/10 hover:text-teal disabled:opacity-30"
-                >
-                  &#9660;
-                </button>
-              </div>
 
-              <span className="cursor-grab text-grey-blue" aria-hidden="true">
-                &#8942;&#8942;
-              </span>
-            </li>
-          ))}
+                {/* Rank number */}
+                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-mono text-xs font-bold ${
+                  isDisabled
+                    ? 'bg-cream-dark text-grey-blue/40'
+                    : 'bg-teal/10 text-teal'
+                }`}>
+                  {rank ?? '–'}
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <p className={`font-display text-sm font-semibold ${isDisabled ? 'text-navy/40' : 'text-navy'}`}>
+                    {item.label}
+                  </p>
+                  <p className={`truncate text-xs ${isDisabled ? 'text-grey-blue/40' : 'text-grey-blue'}`}>
+                    {item.description}
+                  </p>
+                </div>
+
+                {!isDisabled && (
+                  <>
+                    <div className="flex shrink-0 flex-col gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => moveItem(index, 'up')}
+                        disabled={index === 0}
+                        aria-label={`Move ${item.label} up`}
+                        className="rounded px-1.5 py-0.5 text-xs text-grey-blue transition-colors hover:bg-teal/10 hover:text-teal disabled:opacity-30"
+                      >
+                        &#9650;
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveItem(index, 'down')}
+                        disabled={index === items.length - 1}
+                        aria-label={`Move ${item.label} down`}
+                        className="rounded px-1.5 py-0.5 text-xs text-grey-blue transition-colors hover:bg-teal/10 hover:text-teal disabled:opacity-30"
+                      >
+                        &#9660;
+                      </button>
+                    </div>
+
+                    <span className="cursor-grab text-grey-blue" aria-hidden="true">
+                      &#8942;&#8942;
+                    </span>
+                  </>
+                )}
+              </li>
+            )
+          })}
         </ul>
 
         {error && (

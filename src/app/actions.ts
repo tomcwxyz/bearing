@@ -131,9 +131,9 @@ export async function submitClarification(
 // 3. submitPriorities
 // ---------------------------------------------------------------------------
 
-export async function submitPriorities(taskId: string, priorityOrder: Factor[]) {
+export async function submitPriorities(taskId: string, priorityOrder: Factor[], excludedFactors?: string[]) {
   try {
-    await updateTaskPriorities(taskId, priorityOrder)
+    await updateTaskPriorities(taskId, priorityOrder, excludedFactors ?? [])
     redirect(`/recommend/${taskId}/results`)
   } catch (error) {
     if (isRedirectError(error)) throw error
@@ -158,6 +158,12 @@ export async function getResults(taskId: string) {
           : task.priority_order)
       : ['quality', 'cost', 'speed', 'capability', 'privacy', 'sustainability', 'transparency']
 
+    const excludedFactors: string[] = task.excluded_factors
+      ? (typeof task.excluded_factors === 'string'
+          ? JSON.parse(task.excluded_factors)
+          : task.excluded_factors)
+      : []
+
     const models = scoreModels({
       taskType: task.task_type,
       complexity: task.complexity,
@@ -166,6 +172,7 @@ export async function getResults(taskId: string) {
       needsTools: task.needs_tools,
       needsCode: task.needs_code,
       priorityOrder,
+      excludedFactors,
     })
 
     const recommendationsForDb = models.map((m, i) => ({

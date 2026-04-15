@@ -9,6 +9,7 @@ export interface ScoringInput {
   needsTools: boolean
   needsCode: boolean
   priorityOrder: Factor[]
+  excludedFactors?: string[]
 }
 
 export interface ScoredModel {
@@ -71,7 +72,10 @@ function capabilityScore(model: Model, needs: { vision: boolean; tools: boolean;
 
 export function scoreModels(input: ScoringInput): ScoredModel[] {
   const models = getAllModels()
-  const weights = priorityToWeights(input.priorityOrder)
+  const weights = priorityToWeights(input.priorityOrder, {
+    complexity: input.complexity,
+    excludedFactors: input.excludedFactors,
+  })
   const scored: ScoredModel[] = []
 
   for (const model of models) {
