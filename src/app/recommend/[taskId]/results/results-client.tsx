@@ -57,9 +57,9 @@ export function ResultsClient({ taskId, models, reasoning, pipeline, local }: Re
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" role="list" aria-label="Model recommendations">
       {error && (
-        <p className="text-sm text-coral">{error}</p>
+        <p role="alert" className="text-sm text-coral">{error}</p>
       )}
 
       {models.map((model, index) => {
@@ -148,6 +148,7 @@ export function ResultsClient({ taskId, models, reasoning, pipeline, local }: Re
                 type="button"
                 onClick={() => handleSelect(model.slug, rank)}
                 disabled={isPending || isDisabled}
+                aria-label={`Select ${model.name}`}
                 className={`rounded-lg px-4 py-2 text-sm font-medium font-display transition-colors ${
                   isSelected
                     ? 'bg-teal text-cream cursor-default'

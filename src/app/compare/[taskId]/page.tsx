@@ -24,7 +24,7 @@ function ComparisonProgress() {
   const current = [...steps].reverse().find((s) => elapsed >= s.threshold)!
 
   return (
-    <div className="mt-6 rounded-lg border border-teal/30 bg-teal/5 p-8 fade-in">
+    <div className="mt-6 rounded-lg border border-teal/30 bg-teal/5 p-8 fade-in" role="status" aria-live="polite">
       <div className="flex flex-col items-center gap-4">
         <LoadingIndicator size="md" />
         <div className="text-center">
@@ -184,7 +184,7 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
         </p>
 
         {error && (
-          <div className="mb-6 rounded-lg border border-coral/30 bg-coral/5 p-4">
+          <div role="alert" className="mb-6 rounded-lg border border-coral/30 bg-coral/5 p-4">
             <p className="text-sm text-coral">{error}</p>
           </div>
         )}
@@ -202,6 +202,7 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
                 type="button"
                 onClick={() => toggleModel(model.slug)}
                 disabled={isPending}
+                aria-label={`Select ${model.name}`}
                 className={`w-full text-left rounded-xl border p-4 transition-all ${
                   isSelected
                     ? 'border-teal border-2 bg-teal/5 shadow-md'

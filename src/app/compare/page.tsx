@@ -40,7 +40,7 @@ function ComparisonProgress() {
   const current = [...steps].reverse().find((s) => elapsed >= s.threshold)!
 
   return (
-    <div className="mt-6 rounded-lg border border-teal/30 bg-teal/5 p-8 fade-in">
+    <div className="mt-6 rounded-lg border border-teal/30 bg-teal/5 p-8 fade-in" role="status" aria-live="polite">
       <div className="flex flex-col items-center gap-4">
         <LoadingIndicator size="md" />
         <div className="text-center">
@@ -211,7 +211,7 @@ export default function DirectComparePage() {
         </p>
 
         {error && (
-          <div className="mb-6 rounded-lg border border-coral/30 bg-coral/5 p-4">
+          <div role="alert" className="mb-6 rounded-lg border border-coral/30 bg-coral/5 p-4">
             <p className="text-sm text-coral">{error}</p>
           </div>
         )}
@@ -223,6 +223,7 @@ export default function DirectComparePage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search models..."
+            aria-label="Search models"
             className="w-full rounded-lg border border-cream-dark bg-white px-4 py-2.5 text-sm text-navy placeholder:text-navy/40 focus:border-teal focus:ring-1 focus:ring-teal focus:outline-none"
           />
         </div>
@@ -253,7 +254,7 @@ export default function DirectComparePage() {
         )}
 
         {/* Model grid */}
-        <div className="grid gap-2 mb-8">
+        <div className="grid gap-2 mb-8" role="list" aria-label="Available models">
           {filtered.map((model) => {
             const isSelected = selected.includes(model.slug)
 
@@ -263,6 +264,7 @@ export default function DirectComparePage() {
                 type="button"
                 onClick={() => toggleModel(model.slug)}
                 disabled={isPending}
+                aria-label={`Select ${model.name}`}
                 className={`w-full text-left rounded-xl border p-4 transition-all ${
                   isSelected
                     ? 'border-teal border-2 bg-teal/5 shadow-md'

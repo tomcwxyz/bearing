@@ -102,7 +102,7 @@ export default function PrioritiesPage() {
       <div className="flex flex-1 flex-col items-center px-4 py-12">
         <div className="w-full max-w-xl">
           <StepProgress current="results" hideClarify />
-          <div className="flex flex-col items-center justify-center py-16 fade-in">
+          <div className="flex flex-col items-center justify-center py-16 fade-in" role="status" aria-live="polite">
             <LoadingIndicator size="lg" label="Crunching the numbers..." sublabel="Scoring models against your priorities" />
           </div>
         </div>
@@ -124,7 +124,7 @@ export default function PrioritiesPage() {
           Toggle off factors you don&apos;t care about. Drag to reorder the rest.
         </p>
 
-        <ul className="mb-8 space-y-2">
+        <ul className="mb-8 space-y-2" role="list" aria-label="Priority ranking">
           {items.map((item, index) => {
             const isDisabled = disabled.has(item.factor)
             if (!isDisabled) enabledRank++
@@ -216,7 +216,7 @@ export default function PrioritiesPage() {
         </ul>
 
         {error && (
-          <p className="mb-4 text-sm text-coral">
+          <p role="alert" className="mb-4 text-sm text-coral">
             {error}
           </p>
         )}

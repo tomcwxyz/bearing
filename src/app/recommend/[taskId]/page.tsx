@@ -131,7 +131,7 @@ export default function ClarificationPage() {
       <div className="flex flex-1 flex-col items-center px-6 py-12">
         <div className="w-full max-w-2xl">
           <StepProgress current="clarify" />
-          <div className="flex flex-col items-center justify-center py-16 fade-in">
+          <div className="flex flex-col items-center justify-center py-16 fade-in" role="status" aria-live="polite">
             <LoadingIndicator size="lg" label="Classifying your answers..." sublabel="Refining our understanding of your task" />
           </div>
         </div>
@@ -157,12 +157,12 @@ export default function ClarificationPage() {
         </div>
 
         {error && (
-          <div className="rounded-lg border border-coral/30 bg-coral/5 px-4 py-3 text-sm text-coral">
+          <div role="alert" className="rounded-lg border border-coral/30 bg-coral/5 px-4 py-3 text-sm text-coral">
             {error}
           </div>
         )}
 
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-8" aria-label="Clarification questions">
           {questions.map((q, qi) => (
             <div key={`${round}-${qi}`} className="flex flex-col gap-3">
               <h2 className="font-display font-medium text-navy">
