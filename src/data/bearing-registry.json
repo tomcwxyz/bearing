@@ -273,6 +273,28 @@
         "training_footprint": null,
         "sustainability_score": 0.57,
         "provider_infrastructure": 0.55
+      },
+      "local_info": {
+        "total_params_b": 35,
+        "active_params_b": null,
+        "is_moe": false,
+        "quant_options": [
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 21,
+            "quality_penalty": 0.05
+          },
+          {
+            "quant": "Q6_K",
+            "vram_gb": 28,
+            "quality_penalty": 0.02
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 37,
+            "quality_penalty": 0
+          }
+        ]
       }
     },
     "deepseek-r1": {
@@ -328,6 +350,23 @@
         "training_footprint": null,
         "sustainability_score": 0.3,
         "provider_infrastructure": 0.2
+      },
+      "local_info": {
+        "total_params_b": 671,
+        "active_params_b": 37,
+        "is_moe": true,
+        "quant_options": [
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 400,
+            "quality_penalty": 0.08
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 700,
+            "quality_penalty": 0
+          }
+        ]
       }
     },
     "deepseek-r1-0528": {
@@ -384,6 +423,23 @@
         "training_footprint": null,
         "sustainability_score": 0.28,
         "provider_infrastructure": 0.2
+      },
+      "local_info": {
+        "total_params_b": 671,
+        "active_params_b": 37,
+        "is_moe": true,
+        "quant_options": [
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 400,
+            "quality_penalty": 0.08
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 700,
+            "quality_penalty": 0
+          }
+        ]
       }
     },
     "deepseek-v3.1": {
@@ -440,6 +496,23 @@
         "training_footprint": null,
         "sustainability_score": 0.43,
         "provider_infrastructure": 0.2
+      },
+      "local_info": {
+        "total_params_b": 671,
+        "active_params_b": 37,
+        "is_moe": true,
+        "quant_options": [
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 400,
+            "quality_penalty": 0.08
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 700,
+            "quality_penalty": 0
+          }
+        ]
       }
     },
     "deepseek-v3.2": {
@@ -497,6 +570,23 @@
         "training_footprint": null,
         "sustainability_score": 0.35,
         "provider_infrastructure": 0.2
+      },
+      "local_info": {
+        "total_params_b": 671,
+        "active_params_b": 37,
+        "is_moe": true,
+        "quant_options": [
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 400,
+            "quality_penalty": 0.08
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 700,
+            "quality_penalty": 0
+          }
+        ]
       }
     },
     "devstral": {
@@ -553,6 +643,28 @@
         "training_footprint": null,
         "sustainability_score": 0.63,
         "provider_infrastructure": 0.55
+      },
+      "local_info": {
+        "total_params_b": 24,
+        "active_params_b": null,
+        "is_moe": false,
+        "quant_options": [
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 14,
+            "quality_penalty": 0.05
+          },
+          {
+            "quant": "Q6_K",
+            "vram_gb": 19,
+            "quality_penalty": 0.02
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 25,
+            "quality_penalty": 0
+          }
+        ]
       }
     },
     "gemini-2.5-flash-lite": {
@@ -949,6 +1061,28 @@
         "training_footprint": 0.3,
         "sustainability_score": 0.77,
         "provider_infrastructure": 1
+      },
+      "local_info": {
+        "total_params_b": 24,
+        "active_params_b": null,
+        "is_moe": false,
+        "quant_options": [
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 14,
+            "quality_penalty": 0.05
+          },
+          {
+            "quant": "Q6_K",
+            "vram_gb": 19,
+            "quality_penalty": 0.02
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 25,
+            "quality_penalty": 0
+          }
+        ]
       }
     },
     "greenpt-greenr": {
@@ -1009,6 +1143,38 @@
         "training_footprint": 0.2,
         "sustainability_score": 0.67,
         "provider_infrastructure": 1
+      },
+      "local_info": {
+        "total_params_b": 120,
+        "active_params_b": null,
+        "is_moe": false,
+        "quant_options": [
+          {
+            "quant": "Q2_K",
+            "vram_gb": 42,
+            "quality_penalty": 0.18
+          },
+          {
+            "quant": "Q3_K_M",
+            "vram_gb": 54,
+            "quality_penalty": 0.1
+          },
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 68,
+            "quality_penalty": 0.05
+          },
+          {
+            "quant": "Q6_K",
+            "vram_gb": 93,
+            "quality_penalty": 0.02
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 124,
+            "quality_penalty": 0
+          }
+        ]
       }
     },
     "grok-4": {
@@ -1125,6 +1291,28 @@
         "training_footprint": 0.7,
         "sustainability_score": 0.65,
         "provider_infrastructure": 0.55
+      },
+      "local_info": {
+        "total_params_b": 8,
+        "active_params_b": null,
+        "is_moe": false,
+        "quant_options": [
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 5,
+            "quality_penalty": 0.05
+          },
+          {
+            "quant": "Q6_K",
+            "vram_gb": 6,
+            "quality_penalty": 0.02
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 9,
+            "quality_penalty": 0
+          }
+        ]
       }
     },
     "kimi-k2": {
@@ -1182,6 +1370,23 @@
         "training_footprint": null,
         "sustainability_score": 0.35,
         "provider_infrastructure": 0.2
+      },
+      "local_info": {
+        "total_params_b": 1000,
+        "active_params_b": 32,
+        "is_moe": true,
+        "quant_options": [
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 580,
+            "quality_penalty": 0.08
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 1050,
+            "quality_penalty": 0
+          }
+        ]
       }
     },
     "kimi-k2.5": {
@@ -1241,6 +1446,23 @@
         "training_footprint": null,
         "sustainability_score": 0.35,
         "provider_infrastructure": 0.2
+      },
+      "local_info": {
+        "total_params_b": 1000,
+        "active_params_b": 32,
+        "is_moe": true,
+        "quant_options": [
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 580,
+            "quality_penalty": 0.08
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 1050,
+            "quality_penalty": 0
+          }
+        ]
       }
     },
     "llama-4-maverick": {
@@ -1299,6 +1521,33 @@
         "training_footprint": null,
         "sustainability_score": 0.68,
         "provider_infrastructure": 0.8
+      },
+      "local_info": {
+        "total_params_b": 400,
+        "active_params_b": 17,
+        "is_moe": true,
+        "quant_options": [
+          {
+            "quant": "Q2_K",
+            "vram_gb": 128,
+            "quality_penalty": 0.15
+          },
+          {
+            "quant": "Q3_K_M",
+            "vram_gb": 172,
+            "quality_penalty": 0.1
+          },
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 240,
+            "quality_penalty": 0.08
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 420,
+            "quality_penalty": 0
+          }
+        ]
       }
     },
     "minimax-m2.5": {
@@ -1358,6 +1607,23 @@
         "training_footprint": null,
         "sustainability_score": 0.35,
         "provider_infrastructure": 0.2
+      },
+      "local_info": {
+        "total_params_b": 456,
+        "active_params_b": 46,
+        "is_moe": true,
+        "quant_options": [
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 270,
+            "quality_penalty": 0.08
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 480,
+            "quality_penalty": 0
+          }
+        ]
       }
     },
     "minimax-m2.7": {
@@ -1418,6 +1684,23 @@
         "training_footprint": null,
         "sustainability_score": 0.4,
         "provider_infrastructure": 0.2
+      },
+      "local_info": {
+        "total_params_b": 456,
+        "active_params_b": 46,
+        "is_moe": true,
+        "quant_options": [
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 270,
+            "quality_penalty": 0.08
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 480,
+            "quality_penalty": 0
+          }
+        ]
       }
     },
     "mistral-medium-3": {
@@ -1474,6 +1757,33 @@
         "training_footprint": null,
         "sustainability_score": 0.57,
         "provider_infrastructure": 0.55
+      },
+      "local_info": {
+        "total_params_b": 70,
+        "active_params_b": null,
+        "is_moe": false,
+        "quant_options": [
+          {
+            "quant": "Q3_K_M",
+            "vram_gb": 32,
+            "quality_penalty": 0.1
+          },
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 40,
+            "quality_penalty": 0.05
+          },
+          {
+            "quant": "Q6_K",
+            "vram_gb": 55,
+            "quality_penalty": 0.02
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 73,
+            "quality_penalty": 0
+          }
+        ]
       }
     },
     "mistral-ocr": {
@@ -1529,6 +1839,38 @@
         "training_footprint": null,
         "sustainability_score": 0.53,
         "provider_infrastructure": 0.55
+      },
+      "local_info": {
+        "total_params_b": 124,
+        "active_params_b": null,
+        "is_moe": false,
+        "quant_options": [
+          {
+            "quant": "Q2_K",
+            "vram_gb": 43,
+            "quality_penalty": 0.18
+          },
+          {
+            "quant": "Q3_K_M",
+            "vram_gb": 56,
+            "quality_penalty": 0.1
+          },
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 70,
+            "quality_penalty": 0.05
+          },
+          {
+            "quant": "Q6_K",
+            "vram_gb": 96,
+            "quality_penalty": 0.02
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 128,
+            "quality_penalty": 0
+          }
+        ]
       }
     },
     "qwen-2.5-72b": {
@@ -1584,6 +1926,33 @@
         "training_footprint": null,
         "sustainability_score": 0.5,
         "provider_infrastructure": null
+      },
+      "local_info": {
+        "total_params_b": 72,
+        "active_params_b": null,
+        "is_moe": false,
+        "quant_options": [
+          {
+            "quant": "Q3_K_M",
+            "vram_gb": 33,
+            "quality_penalty": 0.1
+          },
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 42,
+            "quality_penalty": 0.05
+          },
+          {
+            "quant": "Q6_K",
+            "vram_gb": 56,
+            "quality_penalty": 0.02
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 75,
+            "quality_penalty": 0
+          }
+        ]
       }
     },
     "qwen3-235b-a22b": {
@@ -1642,6 +2011,33 @@
         "training_footprint": null,
         "sustainability_score": 0.5,
         "provider_infrastructure": null
+      },
+      "local_info": {
+        "total_params_b": 235,
+        "active_params_b": 22,
+        "is_moe": true,
+        "quant_options": [
+          {
+            "quant": "Q2_K",
+            "vram_gb": 75,
+            "quality_penalty": 0.15
+          },
+          {
+            "quant": "Q3_K_M",
+            "vram_gb": 105,
+            "quality_penalty": 0.1
+          },
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 135,
+            "quality_penalty": 0.05
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 245,
+            "quality_penalty": 0
+          }
+        ]
       }
     },
     "qwen3.5-397b": {
@@ -1701,6 +2097,33 @@
         "training_footprint": null,
         "sustainability_score": 0.5,
         "provider_infrastructure": null
+      },
+      "local_info": {
+        "total_params_b": 397,
+        "active_params_b": 17,
+        "is_moe": true,
+        "quant_options": [
+          {
+            "quant": "Q2_K",
+            "vram_gb": 127,
+            "quality_penalty": 0.15
+          },
+          {
+            "quant": "Q3_K_M",
+            "vram_gb": 178,
+            "quality_penalty": 0.1
+          },
+          {
+            "quant": "Q4_K_M",
+            "vram_gb": 230,
+            "quality_penalty": 0.05
+          },
+          {
+            "quant": "Q8_0",
+            "vram_gb": 410,
+            "quality_penalty": 0
+          }
+        ]
       }
     }
   }
