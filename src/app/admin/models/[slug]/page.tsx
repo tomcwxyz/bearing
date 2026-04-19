@@ -47,6 +47,7 @@ function emptyModel() {
       provider_infrastructure: null as number | null,
       sustainability_score: 0, notes: '',
     },
+    active: true,
   }
 }
 
@@ -80,6 +81,7 @@ export default function AdminModelEditPage() {
               sustainability_score: data.sustainability.sustainability_score,
               notes: data.sustainability.notes,
             },
+            active: data.active,
           })
         }
         setLoading(false)
@@ -104,6 +106,7 @@ export default function AdminModelEditPage() {
     formData.set('privacy_score', String(model.privacy_score))
     formData.set('transparency', JSON.stringify(model.transparency))
     formData.set('sustainability', JSON.stringify(model.sustainability))
+    formData.set('active', String(model.active))
 
     startTransition(async () => {
       const result = await saveModelAdmin(formData)
@@ -180,6 +183,17 @@ export default function AdminModelEditPage() {
                 <option key={tier} value={tier}>{tier.replace(/_/g, ' ')}</option>
               ))}
             </select>
+          </Field>
+          <Field label="Status" hint={model.active ? 'Published — visible in recommendations' : 'Draft — hidden from recommendations'}>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={model.active}
+                onChange={(e) => setModel({ ...model, active: e.target.checked })}
+                className="h-4 w-4 accent-teal"
+              />
+              <span className="text-sm text-navy/80">Active</span>
+            </label>
           </Field>
         </Section>
 

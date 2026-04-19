@@ -276,12 +276,31 @@ export async function getAllModelsFromDb(): Promise<Model[]> {
   return rows.map(modelRowToModel)
 }
 
+/** Admin-only variant: returns all models (including drafts) with the active flag. */
+export type AdminModel = Model & { active: boolean }
+
+export async function getAllModelsForAdmin(): Promise<AdminModel[]> {
+  const rows = await getDb()`
+    SELECT * FROM models ORDER BY active DESC, name
+  `
+  return rows.map((row) => ({ ...modelRowToModel(row), active: row.active as boolean }))
+}
+
 /** Fetch a single model by slug. */
 export async function getModelFromDb(slug: string): Promise<Model | null> {
   const rows = await getDb()`
     SELECT * FROM models WHERE slug = ${slug}
   `
   return rows.length > 0 ? modelRowToModel(rows[0]) : null
+}
+
+/** Admin-only variant: includes the active flag so the edit UI can show Draft/Active. */
+export async function getModelForAdmin(slug: string): Promise<AdminModel | null> {
+  const rows = await getDb()`
+    SELECT * FROM models WHERE slug = ${slug}
+  `
+  if (rows.length === 0) return null
+  return { ...modelRowToModel(rows[0]), active: rows[0].active as boolean }
 }
 
 /** Get the openrouter_id for a model slug. Returns null if not found or not mapped. */
@@ -332,6 +351,7 @@ export async function upsertModel(model: {
       speed_score = EXCLUDED.speed_score, privacy_score = EXCLUDED.privacy_score,
       transparency = EXCLUDED.transparency, sustainability = EXCLUDED.sustainability,
       local_info = EXCLUDED.local_info, openrouter_id = EXCLUDED.openrouter_id,
+      active = EXCLUDED.active,
       updated_at = now()
   `
 }

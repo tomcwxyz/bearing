@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
-import { isUserAdmin, getAllModelsFromDb, getOpenRouterIds } from '@/lib/db'
+import { isUserAdmin, getAllModelsForAdmin, getOpenRouterIds } from '@/lib/db'
 import {
   getUsageSummary, getActivityOverTime, getModeBreakdown, getSignupsOverTime,
   getInsightsSummary, getTaskTypeDistribution, getModelLeaderboard,
@@ -8,7 +8,7 @@ import {
 } from '@/lib/dashboard'
 import { fetchOpenRouterModels, convertPricing, inferCapabilities, extractProvider } from '@/lib/openrouter'
 import AdminTabs from './admin-tabs'
-import type { DiscoverModel } from './actions'
+import type { DiscoverModel } from './types'
 
 export default async function AdminPage() {
   const user = await getCurrentUser()
@@ -23,7 +23,7 @@ export default async function AdminPage() {
     insightsSummary, taskTypes, leaderboard, outcomes, capabilities,
     orModels, existingIds,
   ] = await Promise.all([
-    getAllModelsFromDb(),
+    getAllModelsForAdmin(),
     getUsageSummary(),
     getActivityOverTime('day'),
     getModeBreakdown(),

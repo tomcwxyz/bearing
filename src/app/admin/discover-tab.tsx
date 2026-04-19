@@ -5,8 +5,8 @@ import {
   syncPricing,
   estimateModelScores,
   importModel,
-  type DiscoverModel,
 } from './actions'
+import type { DiscoverModel } from './types'
 
 const ALL_CAPABILITIES = [
   'vision', 'tools', 'code', 'long_context', 'extended_thinking',

@@ -10,7 +10,7 @@ import GranularityToggle from './granularity-toggle'
 import { fetchUsageData } from './actions'
 import type {
   UsageSummary, ActivityPoint, ModeCount, SignupPoint,
-} from './actions'
+} from './types'
 import type { Granularity } from '@/lib/dashboard'
 
 // ---------------------------------------------------------------------------

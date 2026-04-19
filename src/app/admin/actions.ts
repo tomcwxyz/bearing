@@ -4,8 +4,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import Anthropic from '@anthropic-ai/sdk'
 import { getCurrentUser } from '@/lib/auth'
-import { isUserAdmin, getAllModelsFromDb, getModelFromDb, upsertModel, deactivateModel, updateModelPricing, getOpenRouterIds } from '@/lib/db'
-import type { Model } from '@/lib/registry'
+import { isUserAdmin, getAllModelsFromDb, getAllModelsForAdmin, getModelForAdmin, upsertModel, deactivateModel, updateModelPricing, getOpenRouterIds, type AdminModel } from '@/lib/db'
 import { fetchOpenRouterModels, convertPricing, inferCapabilities, extractProvider, type OpenRouterModel } from '@/lib/openrouter'
 import {
   getUsageSummary, getActivityOverTime, getModeBreakdown, getSignupsOverTime,
@@ -16,9 +15,7 @@ import {
   type InsightsSummary, type TaskTypeCount, type LeaderboardEntry,
   type OutcomeBreakdown, type CapabilityDemand,
 } from '@/lib/dashboard'
-
-export type { UsageSummary, ActivityPoint, ModeCount, SignupPoint }
-export type { InsightsSummary, TaskTypeCount, LeaderboardEntry, OutcomeBreakdown, CapabilityDemand }
+import type { DiscoverModel } from './types'
 
 async function requireAdmin(): Promise<string> {
   const user = await getCurrentUser()
@@ -28,14 +25,14 @@ async function requireAdmin(): Promise<string> {
   return user.id
 }
 
-export async function listModelsAdmin(): Promise<Model[]> {
+export async function listModelsAdmin(): Promise<AdminModel[]> {
   await requireAdmin()
-  return getAllModelsFromDb()
+  return getAllModelsForAdmin()
 }
 
-export async function getModelAdmin(slug: string): Promise<Model | null> {
+export async function getModelAdmin(slug: string): Promise<AdminModel | null> {
   await requireAdmin()
-  return getModelFromDb(slug)
+  return getModelForAdmin(slug)
 }
 
 export async function saveModelAdmin(formData: FormData): Promise<{ success: boolean; error?: string }> {
@@ -58,6 +55,7 @@ export async function saveModelAdmin(formData: FormData): Promise<{ success: boo
       privacy_score: parseFloat(formData.get('privacy_score') as string),
       transparency: JSON.parse(formData.get('transparency') as string),
       sustainability: JSON.parse(formData.get('sustainability') as string),
+      active: formData.get('active') === 'true',
     }
     await upsertModel(model)
     return { success: true }
@@ -118,19 +116,6 @@ export async function fetchInsightsData(): Promise<{
 // ---------------------------------------------------------------------------
 // Discover
 // ---------------------------------------------------------------------------
-
-export interface DiscoverModel {
-  id: string
-  name: string
-  provider: string
-  modality: string
-  contextWindow: number
-  pricing: { input_per_1m: number; output_per_1m: number }
-  capabilities: string[]
-  description: string | null
-  supportedParameters: string[]
-  created: number
-}
 
 /** Fetch OpenRouter models not in our DB, plus count of matched models. */
 export async function fetchDiscoverData(): Promise<{
@@ -211,7 +196,8 @@ export async function estimateModelScores(model: DiscoverModel): Promise<{
     })
 
     const text = response.content[0].type === 'text' ? response.content[0].text : ''
-    const estimates = JSON.parse(text)
+    const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    const estimates = JSON.parse(cleaned)
     return { success: true, estimates }
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : 'Estimation failed' }

@@ -7,7 +7,7 @@ import {
 import type {
   InsightsSummary, TaskTypeCount, LeaderboardEntry,
   OutcomeBreakdown, CapabilityDemand,
-} from './actions'
+} from './types'
 
 // ---------------------------------------------------------------------------
 // Props

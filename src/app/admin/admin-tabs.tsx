@@ -6,10 +6,10 @@ import ModelsTable from './models-table'
 import UsageTab from './usage-tab'
 import InsightsTab from './insights-tab'
 import DiscoverTab from './discover-tab'
-import type { Model } from '@/lib/registry'
-import type { UsageSummary, ActivityPoint, ModeCount, SignupPoint } from './actions'
-import type { InsightsSummary, TaskTypeCount, LeaderboardEntry, OutcomeBreakdown, CapabilityDemand } from './actions'
-import type { DiscoverModel } from './actions'
+import type { AdminModel } from '@/lib/db'
+import type { UsageSummary, ActivityPoint, ModeCount, SignupPoint } from './types'
+import type { InsightsSummary, TaskTypeCount, LeaderboardEntry, OutcomeBreakdown, CapabilityDemand } from './types'
+import type { DiscoverModel } from './types'
 
 const TABS = [
   { key: 'models', label: 'Models' },
@@ -21,7 +21,7 @@ const TABS = [
 type TabKey = typeof TABS[number]['key']
 
 interface AdminTabsProps {
-  models: Model[]
+  models: AdminModel[]
   initialDiscover: {
     newModels: DiscoverModel[]
     matchedCount: number
