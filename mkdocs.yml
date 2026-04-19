@@ -23,6 +23,3 @@ nav:
   - Changelog: changelog.md
 extra_css:
   - stylesheets/bearing.css
-exclude_docs: |
-  plans/
-  .docs-state.json
