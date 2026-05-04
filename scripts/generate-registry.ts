@@ -58,7 +58,6 @@ async function generate() {
     meta: {
       ...existing.meta,
       updated: new Date().toISOString().split('T')[0],
-      notes: `Generated from database. ${Object.keys(models).length} active models.`,
     },
     scoring_methodology: existing.scoring_methodology,
     transparency_methodology: existing.transparency_methodology,
