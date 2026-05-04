@@ -10,6 +10,11 @@ export interface ScoringInput {
   needsCode: boolean
   priorityOrder: Factor[]
   excludedFactors?: string[]
+  // Optional map keyed by `${bearing_slug}::${taskType}` → 0..1 normalised
+  // benchmark mean. When present and a model+task has an entry, the quality
+  // score is blended with curated task_fitness via BENCHMARK_BLEND (env, 0..1,
+  // default 0 = curated only). Sync injection keeps scoring testable.
+  benchmarkScores?: Map<string, number>
 }
 
 export interface ScoredModel {
@@ -57,8 +62,25 @@ function costScore(model: Model, allModels: Model[], inputLength: string): numbe
   return Math.max(COST_SCORE_FLOOR, 1.0 - (logModel - logMin) / (logMax - logMin))
 }
 
-function qualityScore(model: Model, taskType: string): number {
-  return model.task_fitness[taskType] ?? 0.5
+function getBenchmarkBlend(): number {
+  const raw = process.env.BENCHMARK_BLEND
+  if (!raw) return 0
+  const parsed = Number(raw)
+  if (!Number.isFinite(parsed)) return 0
+  return Math.min(1, Math.max(0, parsed))
+}
+
+function qualityScore(
+  model: Model,
+  taskType: string,
+  benchmarkScores: Map<string, number> | undefined,
+  blend: number,
+): number {
+  const curated = model.task_fitness[taskType] ?? 0.5
+  if (blend <= 0 || !benchmarkScores) return curated
+  const benchmark = benchmarkScores.get(`${model.slug}::${taskType}`)
+  if (benchmark === undefined) return curated
+  return curated * (1 - blend) + benchmark * blend
 }
 
 function capabilityScore(model: Model, needs: { vision: boolean; tools: boolean; code: boolean }): number | null {
@@ -76,6 +98,7 @@ export function scoreModels(input: ScoringInput): ScoredModel[] {
     complexity: input.complexity,
     excludedFactors: input.excludedFactors,
   })
+  const blend = getBenchmarkBlend()
   const scored: ScoredModel[] = []
 
   for (const model of models) {
@@ -89,7 +112,7 @@ export function scoreModels(input: ScoringInput): ScoredModel[] {
     const factorScores: Record<Factor, number> = {
       cost: costScore(model, models, input.inputLength),
       speed: model.speed_score,
-      quality: qualityScore(model, input.taskType),
+      quality: qualityScore(model, input.taskType, input.benchmarkScores, blend),
       privacy: model.privacy_score,
       sustainability: model.sustainability.sustainability_score,
       transparency: model.transparency.transparency_score,

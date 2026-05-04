@@ -7,6 +7,10 @@ import { getCurrentUser } from '@/lib/auth'
 import { isUserAdmin, getAllModelsFromDb, getAllModelsForAdmin, getModelForAdmin, upsertModel, deactivateModel, updateModelPricing, getOpenRouterIds, type AdminModel } from '@/lib/db'
 import { fetchOpenRouterModels, convertPricing, inferCapabilities, extractProvider, type OpenRouterModel } from '@/lib/openrouter'
 import {
+  getBenchmarkSummary, getUnmatchedSourceModels, listAliases, upsertAlias, deleteAlias,
+  type BenchmarkSource, type BenchmarkAlias,
+} from '@/lib/benchmarks'
+import {
   getUsageSummary, getActivityOverTime, getModeBreakdown, getSignupsOverTime,
   getInsightsSummary, getTaskTypeDistribution, getModelLeaderboard,
   getOutcomeBreakdown, getCapabilityDemand,
@@ -231,6 +235,50 @@ export async function importModel(formData: FormData): Promise<{ success: boolea
     return { success: true }
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : 'Import failed' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Benchmarks
+// ---------------------------------------------------------------------------
+
+export interface BenchmarksData {
+  summary: { source: string; totalRows: number; matchedRows: number; latestSnapshot: string | null }[]
+  aliases: BenchmarkAlias[]
+  unmatched: { source: string; sourceModelName: string; maxVoteCount: number | null }[]
+}
+
+export async function fetchBenchmarksData(): Promise<BenchmarksData> {
+  await requireAdmin()
+  const [summary, aliases, unmatched] = await Promise.all([
+    getBenchmarkSummary(),
+    listAliases(),
+    getUnmatchedSourceModels(),
+  ])
+  return { summary, aliases, unmatched }
+}
+
+export async function addBenchmarkAlias(
+  source: string, sourceModelName: string, bearingSlug: string, notes: string | null,
+): Promise<{ success: boolean; error?: string }> {
+  await requireAdmin()
+  try {
+    await upsertAlias(source as BenchmarkSource, sourceModelName, bearingSlug, notes)
+    return { success: true }
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Add alias failed' }
+  }
+}
+
+export async function removeBenchmarkAlias(
+  source: string, sourceModelName: string,
+): Promise<{ success: boolean; error?: string }> {
+  await requireAdmin()
+  try {
+    await deleteAlias(source as BenchmarkSource, sourceModelName)
+    return { success: true }
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Remove alias failed' }
   }
 }
 

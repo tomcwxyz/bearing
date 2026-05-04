@@ -6,16 +6,19 @@ import ModelsTable from './models-table'
 import UsageTab from './usage-tab'
 import InsightsTab from './insights-tab'
 import DiscoverTab from './discover-tab'
+import BenchmarksTab from './benchmarks-tab'
 import type { AdminModel } from '@/lib/db'
 import type { UsageSummary, ActivityPoint, ModeCount, SignupPoint } from './types'
 import type { InsightsSummary, TaskTypeCount, LeaderboardEntry, OutcomeBreakdown, CapabilityDemand } from './types'
 import type { DiscoverModel } from './types'
+import type { BenchmarksData } from './actions'
 
 const TABS = [
   { key: 'models', label: 'Models' },
   { key: 'usage', label: 'Usage' },
   { key: 'insights', label: 'Insights' },
   { key: 'discover', label: 'Discover' },
+  { key: 'benchmarks', label: 'Benchmarks' },
 ] as const
 
 type TabKey = typeof TABS[number]['key']
@@ -39,9 +42,11 @@ interface AdminTabsProps {
     outcomes: OutcomeBreakdown
     capabilities: CapabilityDemand
   }
+  initialBenchmarks: BenchmarksData
+  activeSlugs: string[]
 }
 
-function AdminTabsInner({ models, initialDiscover, initialUsage, initialInsights }: AdminTabsProps) {
+function AdminTabsInner({ models, initialDiscover, initialUsage, initialInsights, initialBenchmarks, activeSlugs }: AdminTabsProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const activeTab = (searchParams.get('tab') as TabKey) || 'models'
@@ -73,6 +78,7 @@ function AdminTabsInner({ models, initialDiscover, initialUsage, initialInsights
         {activeTab === 'usage' && <UsageTab initialData={initialUsage} />}
         {activeTab === 'insights' && <InsightsTab initialData={initialInsights} />}
         {activeTab === 'discover' && <DiscoverTab initialModels={initialDiscover.newModels} matchedCount={initialDiscover.matchedCount} />}
+        {activeTab === 'benchmarks' && <BenchmarksTab initialData={initialBenchmarks} activeSlugs={activeSlugs} />}
       </div>
     </>
   )

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { getModel, getAllModels } from '@/lib/registry'
+import { getModelLive, getAllModels } from '@/lib/registry'
 import type { Capability } from '@/lib/registry'
 
 const capabilityLabels: Record<Capability, string> = {
@@ -42,6 +42,8 @@ const taskLabels: Record<string, string> = {
   other: 'Other',
 }
 
+// Pre-render the slugs we know about at build time; Next will render others
+// on demand (dynamicParams defaults to true).
 export function generateStaticParams() {
   return getAllModels().map((m) => ({ slug: m.slug }))
 }
@@ -52,7 +54,7 @@ export default async function ModelDetailPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const model = getModel(slug)
+  const model = await getModelLive(slug)
   if (!model) notFound()
 
   const t = model.transparency

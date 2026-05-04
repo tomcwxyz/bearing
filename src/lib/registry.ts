@@ -117,3 +117,21 @@ export async function getAllModelsLive(): Promise<Model[]> {
     return getAllModels()
   }
 }
+
+/** Detail-page lookup: DB first (so freshly imported active models resolve),
+ *  fall back to static JSON. */
+export async function getModelLive(slug: string): Promise<Model | undefined> {
+  try {
+    const { getModelForAdmin } = await import('./db')
+    const fromDb = await getModelForAdmin(slug)
+    // Drafts (active = false) shouldn't be publicly viewable.
+    if (fromDb?.active) {
+      // Strip the active flag — public Model type doesn't carry it.
+      const { active: _active, ...model } = fromDb
+      return model
+    }
+  } catch {
+    // DB unavailable — fall through to static JSON
+  }
+  return getModel(slug)
+}

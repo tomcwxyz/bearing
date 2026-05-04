@@ -7,6 +7,7 @@ import {
   getOutcomeBreakdown, getCapabilityDemand,
 } from '@/lib/dashboard'
 import { fetchOpenRouterModels, convertPricing, inferCapabilities, extractProvider } from '@/lib/openrouter'
+import { getBenchmarkSummary, getUnmatchedSourceModels, listAliases } from '@/lib/benchmarks'
 import AdminTabs from './admin-tabs'
 import type { DiscoverModel } from './types'
 
@@ -22,6 +23,7 @@ export default async function AdminPage() {
     usageSummary, activity, modes, signups,
     insightsSummary, taskTypes, leaderboard, outcomes, capabilities,
     orModels, existingIds,
+    benchmarkSummary, benchmarkAliases, benchmarkUnmatched,
   ] = await Promise.all([
     getAllModelsForAdmin(),
     getUsageSummary(),
@@ -35,6 +37,9 @@ export default async function AdminPage() {
     getCapabilityDemand(),
     fetchOpenRouterModels().catch(() => []),
     getOpenRouterIds(),
+    getBenchmarkSummary().catch(() => []),
+    listAliases().catch(() => []),
+    getUnmatchedSourceModels().catch(() => []),
   ])
 
   // Build discover data: OpenRouter models not in our DB
@@ -76,6 +81,12 @@ export default async function AdminPage() {
           initialDiscover={{ newModels, matchedCount }}
           initialUsage={{ summary: usageSummary, activity, modes, signups }}
           initialInsights={{ summary: insightsSummary, taskTypes, leaderboard, outcomes, capabilities }}
+          initialBenchmarks={{
+            summary: benchmarkSummary,
+            aliases: benchmarkAliases,
+            unmatched: benchmarkUnmatched,
+          }}
+          activeSlugs={models.filter(m => m.active).map(m => m.slug).sort()}
         />
       </div>
     </div>

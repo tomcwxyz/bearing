@@ -110,3 +110,51 @@ describe('scoreModels', () => {
     expect(costResults[0].weightedScore).not.toBeCloseTo(qualityResults[0].weightedScore, 3)
   })
 })
+
+describe('benchmark blending', () => {
+  const baseInput = {
+    taskType: 'code',
+    complexity: 'moderate',
+    inputLength: 'medium',
+    needsVision: false,
+    needsTools: false,
+    needsCode: true,
+    priorityOrder: defaultPriority,
+  }
+
+  it('does nothing when blend is 0 (default)', () => {
+    delete process.env.BENCHMARK_BLEND
+    const benchmarkScores = new Map<string, number>([['claude-sonnet-4.6::code', 0.0]])
+    const without = scoreModels(baseInput)
+    const withMap = scoreModels({ ...baseInput, benchmarkScores })
+    const a = without.find(m => m.slug === 'claude-sonnet-4.6')!
+    const b = withMap.find(m => m.slug === 'claude-sonnet-4.6')!
+    expect(a.factorScores.quality).toBeCloseTo(b.factorScores.quality, 6)
+  })
+
+  it('blends curated and benchmark when blend > 0', () => {
+    process.env.BENCHMARK_BLEND = '0.5'
+    try {
+      const benchmarkScores = new Map<string, number>([['claude-sonnet-4.6::code', 0.0]])
+      const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-sonnet-4.6')!
+      const blended = scoreModels({ ...baseInput, benchmarkScores }).find(m => m.slug === 'claude-sonnet-4.6')!
+      // Benchmark score 0.0 with 0.5 blend should pull quality halfway down.
+      expect(blended.factorScores.quality).toBeLessThan(baseline.factorScores.quality)
+      expect(blended.factorScores.quality).toBeCloseTo(baseline.factorScores.quality * 0.5, 5)
+    } finally {
+      delete process.env.BENCHMARK_BLEND
+    }
+  })
+
+  it('falls back to curated when no benchmark row exists for the model', () => {
+    process.env.BENCHMARK_BLEND = '1.0'
+    try {
+      const benchmarkScores = new Map<string, number>() // empty
+      const result = scoreModels({ ...baseInput, benchmarkScores }).find(m => m.slug === 'claude-sonnet-4.6')!
+      const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-sonnet-4.6')!
+      expect(result.factorScores.quality).toBeCloseTo(baseline.factorScores.quality, 6)
+    } finally {
+      delete process.env.BENCHMARK_BLEND
+    }
+  })
+})

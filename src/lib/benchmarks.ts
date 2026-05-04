@@ -1,0 +1,304 @@
+// Benchmark ingestion + read helpers.
+//
+// External sources (LMArena, LiveBench, ...) publish per-category scores for
+// many models. We store raw rows in `benchmark_snapshots`, resolve the source's
+// model name to our `bearing_slug` via `benchmark_aliases`, and at scoring time
+// blend the normalised score into `task_fitness[task]`.
+//
+// The category → bearing task type map is kept here (logic, not data) so it
+// version-controls alongside the scoring code.
+
+import { neon } from '@neondatabase/serverless'
+import type { TaskType } from './registry'
+
+function getDb() {
+  const url = process.env.NEON_DATABASE_URL
+  if (!url) throw new Error('NEON_DATABASE_URL is not set')
+  return neon(url)
+}
+
+export type BenchmarkSource = 'lmarena' | 'livebench'
+
+// Maps a source's category name onto one or more bearing task types.
+// A source category can map to multiple task types (e.g. LiveBench "language"
+// is a reasonable signal for both summarise and generate).
+// Translate has no direct benchmark coverage in either source — stays curated.
+export const CATEGORY_TO_TASKS: Record<BenchmarkSource, Record<string, TaskType[]>> = {
+  lmarena: {
+    // From the `text` subset (rows carry a per-category column).
+    overall: ['conversation'],
+    hard_prompts: ['analyse'],
+    coding: ['code'],
+    math: ['analyse'],
+    creative_writing: ['generate'],
+    instruction_following: ['extract'],
+    longer_query: ['analyse'],
+    multi_turn: ['conversation'],
+    // From the `webdev` subset — single 'overall' category.
+    webdev_overall: ['code'],
+    // From the `vision` subset — single 'overall' category.
+    vision_overall: ['vision'],
+  },
+  livebench: {
+    // LiveBench's six task categories.
+    reasoning: ['analyse'],
+    coding: ['code'],
+    mathematics: ['analyse'],
+    language: ['summarise', 'generate'],
+    data_analysis: ['analyse', 'extract'],
+    instruction_following: ['extract'],
+  },
+}
+
+export interface SnapshotRow {
+  source: BenchmarkSource
+  sourceCategory: string
+  sourceModelName: string
+  rawScore: number
+  voteCount: number | null
+  snapshotDate: string // YYYY-MM-DD
+}
+
+/** Look up the bearing_slug for a source's model name. */
+export async function resolveAlias(
+  source: BenchmarkSource,
+  sourceModelName: string,
+): Promise<string | null> {
+  const rows = await getDb()`
+    SELECT bearing_slug FROM benchmark_aliases
+    WHERE source = ${source} AND source_model_name = ${sourceModelName}
+  `
+  return rows.length > 0 ? (rows[0].bearing_slug as string) : null
+}
+
+/**
+ * Insert a batch of snapshot rows. Normalises raw scores linearly within each
+ * (source, source_category, snapshot_date) bucket so the highest-scoring model
+ * in the cohort lands at 1.0 and the lowest at 0.0.
+ *
+ * Resolves bearing_slug for each row via benchmark_aliases. Rows with no alias
+ * are still stored (so we can audit coverage) but bearing_slug is left NULL.
+ *
+ * Idempotent: re-running with the same (source, category, model, date) is a
+ * no-op via the unique constraint + DO UPDATE.
+ */
+export async function ingestSnapshot(rows: SnapshotRow[]): Promise<{
+  inserted: number
+  unmatched: string[]
+}> {
+  if (rows.length === 0) return { inserted: 0, unmatched: [] }
+
+  // Normalise per cohort.
+  const cohorts = new Map<string, { min: number; max: number }>()
+  for (const r of rows) {
+    const key = `${r.source}::${r.sourceCategory}::${r.snapshotDate}`
+    const c = cohorts.get(key)
+    if (!c) {
+      cohorts.set(key, { min: r.rawScore, max: r.rawScore })
+    } else {
+      if (r.rawScore < c.min) c.min = r.rawScore
+      if (r.rawScore > c.max) c.max = r.rawScore
+    }
+  }
+
+  // Pre-load alias map for the sources we're touching to avoid N round-trips.
+  const sources = [...new Set(rows.map(r => r.source))]
+  const aliasMap = new Map<string, string>() // key: `${source}::${sourceModelName}`
+  for (const source of sources) {
+    const aliasRows = await getDb()`
+      SELECT source_model_name, bearing_slug FROM benchmark_aliases
+      WHERE source = ${source}
+    `
+    for (const a of aliasRows) {
+      aliasMap.set(`${source}::${a.source_model_name}`, a.bearing_slug as string)
+    }
+  }
+
+  const sql = getDb()
+  const unmatched = new Set<string>()
+  let inserted = 0
+
+  for (const r of rows) {
+    const cohortKey = `${r.source}::${r.sourceCategory}::${r.snapshotDate}`
+    const cohort = cohorts.get(cohortKey)!
+    const range = cohort.max - cohort.min
+    const normalised = range > 0 ? (r.rawScore - cohort.min) / range : 1.0
+
+    const bearingSlug = aliasMap.get(`${r.source}::${r.sourceModelName}`) ?? null
+    if (!bearingSlug) unmatched.add(`${r.source}::${r.sourceModelName}`)
+
+    await sql`
+      INSERT INTO benchmark_snapshots (
+        source, source_category, source_model_name, bearing_slug,
+        raw_score, normalised_score, vote_count, snapshot_date
+      ) VALUES (
+        ${r.source}, ${r.sourceCategory}, ${r.sourceModelName}, ${bearingSlug},
+        ${r.rawScore}, ${normalised}, ${r.voteCount}, ${r.snapshotDate}
+      )
+      ON CONFLICT (source, source_category, source_model_name, snapshot_date)
+      DO UPDATE SET
+        raw_score = EXCLUDED.raw_score,
+        normalised_score = EXCLUDED.normalised_score,
+        vote_count = EXCLUDED.vote_count,
+        bearing_slug = EXCLUDED.bearing_slug,
+        captured_at = now()
+    `
+    inserted++
+  }
+
+  return { inserted, unmatched: [...unmatched] }
+}
+
+/**
+ * Fetch the latest normalised score per (bearing_slug, bearing_task) by
+ * averaging across all source categories that map to that task.
+ *
+ * Returns a Map keyed by `${slug}::${task}` for O(1) lookup at scoring time.
+ */
+export async function getLatestBenchmarkScores(): Promise<Map<string, number>> {
+  const rows = await getDb()`
+    WITH latest AS (
+      SELECT DISTINCT ON (source, source_category, bearing_slug)
+        source, source_category, bearing_slug, normalised_score
+      FROM benchmark_snapshots
+      WHERE bearing_slug IS NOT NULL
+      ORDER BY source, source_category, bearing_slug, snapshot_date DESC, captured_at DESC
+    )
+    SELECT source, source_category, bearing_slug, normalised_score
+    FROM latest
+  `
+
+  // Bucket by (slug, task) and average.
+  const buckets = new Map<string, number[]>()
+  for (const row of rows) {
+    const source = row.source as BenchmarkSource
+    const cat = row.source_category as string
+    const slug = row.bearing_slug as string
+    const score = row.normalised_score as number
+    const tasks = CATEGORY_TO_TASKS[source]?.[cat]
+    if (!tasks) continue
+    for (const task of tasks) {
+      const key = `${slug}::${task}`
+      const list = buckets.get(key) ?? []
+      list.push(score)
+      buckets.set(key, list)
+    }
+  }
+
+  const result = new Map<string, number>()
+  for (const [key, scores] of buckets) {
+    const mean = scores.reduce((a, b) => a + b, 0) / scores.length
+    result.set(key, mean)
+  }
+  return result
+}
+
+/** Admin summary: count rows per source, latest snapshot date, alias coverage. */
+export async function getBenchmarkSummary(): Promise<{
+  source: string
+  totalRows: number
+  matchedRows: number
+  latestSnapshot: string | null
+}[]> {
+  const rows = await getDb()`
+    SELECT
+      source,
+      COUNT(*)::int AS total_rows,
+      COUNT(bearing_slug)::int AS matched_rows,
+      MAX(snapshot_date)::text AS latest_snapshot
+    FROM benchmark_snapshots
+    GROUP BY source
+    ORDER BY source
+  `
+  return rows.map(r => ({
+    source: r.source as string,
+    totalRows: r.total_rows as number,
+    matchedRows: r.matched_rows as number,
+    latestSnapshot: r.latest_snapshot as string | null,
+  }))
+}
+
+/**
+ * Source model names that appear in snapshots but have no alias mapping yet.
+ * Returned with the highest vote_count we've seen for that name — useful for
+ * deciding which to map first (most-voted models give us the best signal).
+ */
+export async function getUnmatchedSourceModels(): Promise<{
+  source: string
+  sourceModelName: string
+  maxVoteCount: number | null
+}[]> {
+  const rows = await getDb()`
+    SELECT source, source_model_name, MAX(vote_count) AS max_vote_count
+    FROM benchmark_snapshots
+    WHERE bearing_slug IS NULL
+    GROUP BY source, source_model_name
+    ORDER BY MAX(vote_count) DESC NULLS LAST, source_model_name
+  `
+  return rows.map(r => ({
+    source: r.source as string,
+    sourceModelName: r.source_model_name as string,
+    maxVoteCount: r.max_vote_count as number | null,
+  }))
+}
+
+export interface BenchmarkAlias {
+  source: string
+  sourceModelName: string
+  bearingSlug: string
+  notes: string | null
+  createdAt: string
+}
+
+export async function listAliases(): Promise<BenchmarkAlias[]> {
+  const rows = await getDb()`
+    SELECT source, source_model_name, bearing_slug, notes, created_at
+    FROM benchmark_aliases
+    ORDER BY source, source_model_name
+  `
+  return rows.map(r => ({
+    source: r.source as string,
+    sourceModelName: r.source_model_name as string,
+    bearingSlug: r.bearing_slug as string,
+    notes: (r.notes as string | null) ?? null,
+    createdAt: r.created_at as string,
+  }))
+}
+
+/**
+ * Upsert an alias and back-fill bearing_slug on any existing snapshots that
+ * match (source, source_model_name). Without the back-fill, freshly mapped
+ * models would only become visible after the next ingest run.
+ */
+export async function upsertAlias(
+  source: BenchmarkSource,
+  sourceModelName: string,
+  bearingSlug: string,
+  notes: string | null = null,
+): Promise<void> {
+  const sql = getDb()
+  await sql`
+    INSERT INTO benchmark_aliases (source, source_model_name, bearing_slug, notes)
+    VALUES (${source}, ${sourceModelName}, ${bearingSlug}, ${notes})
+    ON CONFLICT (source, source_model_name)
+    DO UPDATE SET bearing_slug = EXCLUDED.bearing_slug, notes = EXCLUDED.notes
+  `
+  await sql`
+    UPDATE benchmark_snapshots
+    SET bearing_slug = ${bearingSlug}
+    WHERE source = ${source} AND source_model_name = ${sourceModelName}
+  `
+}
+
+export async function deleteAlias(source: BenchmarkSource, sourceModelName: string): Promise<void> {
+  const sql = getDb()
+  await sql`
+    DELETE FROM benchmark_aliases
+    WHERE source = ${source} AND source_model_name = ${sourceModelName}
+  `
+  await sql`
+    UPDATE benchmark_snapshots
+    SET bearing_slug = NULL
+    WHERE source = ${source} AND source_model_name = ${sourceModelName}
+  `
+}

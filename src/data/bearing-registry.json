@@ -1,22 +1,38 @@
 {
   "meta": {
     "name": "Bearing Model Registry",
-    "version": "0.5.0",
-    "updated": "2026-04-15",
+    "version": "0.6.0",
+    "updated": "2026-05-04",
     "maintainer": "The Good Ship · good-ship.co.uk",
     "license": "CC BY-NC 4.0",
-    "notes": "Generated from database. 29 active models."
+    "notes": "Generated from database. 29 active models. v0.6.0 introduces external benchmark ingestion (LMArena first) blended into the quality factor; blend defaults to 0 (curated only) until per-model alias coverage is verified."
   },
   "scoring_methodology": {
     "description": "Each model receives per-factor scores from 0.0 to 1.0 across seven dimensions. Combined using user-defined priority weights to produce a ranked recommendation list.",
     "factors": {
       "cost": "Inverse-normalised against cheapest model. Lower cost = higher score.",
       "speed": "Based on latency tiers and inference benchmarks. 1.0 = sub-second.",
-      "quality": "Composite of benchmark performance weighted toward task type. Weakest signal — will improve with outcome data.",
+      "quality": "Curated per-task fitness, optionally blended with normalised external benchmark scores via BENCHMARK_BLEND env var (0..1, default 0).",
       "privacy": "Based on data retention policies. 1.0 = no retention, no training on inputs.",
       "sustainability": "Composite of inference_energy, training_footprint, provider_infrastructure.",
       "transparency": "Composite of open_weights, open_training_data, open_methodology, licence_openness, provider_disclosure.",
       "capability": "Binary pass/fail for hard requirements. Graduated for soft matches."
+    },
+    "benchmarks": {
+      "description": "External benchmark scores are stored in benchmark_snapshots and mapped to bearing slugs via benchmark_aliases. Each source category maps to one or more bearing task types; per-task scores are averaged across all contributing categories.",
+      "sources": {
+        "lmarena": {
+          "url": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",
+          "license": "CC-BY-4.0",
+          "subsets": ["text", "webdev", "vision"],
+          "metric": "Bradley-Terry rating, normalised linearly within each (category, snapshot_date) cohort."
+        },
+        "livebench": {
+          "url": "https://huggingface.co/datasets/livebench/model_judgment",
+          "license": "pending — see docs/plans/2026-05-04-livebench-licence-request.md",
+          "status": "not yet ingested"
+        }
+      }
     },
     "default_weights": {
       "quality": 0.25,

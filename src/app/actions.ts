@@ -11,6 +11,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import Anthropic from '@anthropic-ai/sdk'
 import { scoreModels, type ScoredModel } from '@/lib/scoring'
+import { getLatestBenchmarkScores } from '@/lib/benchmarks'
 import { generateReasoning } from '@/lib/reasoning'
 import { scorePipeline, type PipelineResult } from '@/lib/pipeline'
 import {
@@ -164,6 +165,7 @@ export async function getResults(taskId: string) {
           : task.excluded_factors)
       : []
 
+    const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
     const models = scoreModels({
       taskType: task.task_type,
       complexity: task.complexity,
@@ -173,6 +175,7 @@ export async function getResults(taskId: string) {
       needsCode: task.needs_code,
       priorityOrder,
       excludedFactors,
+      benchmarkScores,
     })
 
     const recommendationsForDb = models.map((m, i) => ({
@@ -340,6 +343,7 @@ export async function getValidationResults(taskId: string, currentModelSlug: str
       ? (typeof task.priority_order === 'string' ? JSON.parse(task.priority_order) : task.priority_order)
       : ['quality', 'capability', 'cost', 'transparency', 'privacy', 'sustainability', 'speed']
 
+    const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
     const models = scoreModels({
       taskType: task.task_type,
       complexity: task.complexity,
@@ -348,6 +352,7 @@ export async function getValidationResults(taskId: string, currentModelSlug: str
       needsTools: task.needs_tools,
       needsCode: task.needs_code,
       priorityOrder,
+      benchmarkScores,
     })
 
     // Find the current model's position
