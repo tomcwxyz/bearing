@@ -1,0 +1,1 @@
+ALTER TABLE tasks ADD COLUMN needs_long_context BOOLEAN DEFAULT FALSE;

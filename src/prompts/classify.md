@@ -17,6 +17,10 @@ Return JSON only, no other text.
   "data_sensitivity": "none" | "pii" | "regulated_health" | "regulated_finance" | "on_prem_required",
   "latency_target": "realtime" | "interactive" | "batch",
   "volume": "one_off" | "hundreds_per_day" | "thousands_per_day" | "millions_per_day",
+  "needs_long_context": boolean,
+  "needs_multilingual": boolean,
+  "is_agentic": boolean,
+  "output_length": "short" | "medium" | "long" | "very_long",
   "confidence": number (0.0-1.0),
   "clarification_needed": boolean,
   "suggested_questions": [
@@ -82,6 +86,38 @@ Return JSON only, no other text.
   - "Process invoices weekly" → `hundreds_per_day` (round up; 50/week ≈ low hundreds/day equivalent)
   - "Refactor this codebase" → `one_off`
   Default to `one_off`.
+- needs_long_context = true when the task requires the model to process a single
+  input that exceeds typical context windows (~roughly >100k tokens):
+  - "Summarise a 200-page board report" → true
+  - "Analyse a 50k-line codebase" → true
+  - "Process meeting transcripts of ~30k tokens each" → true
+  - "Write a tweet" / "Translate one sentence" → false
+  Default to false.
+- needs_multilingual = true when the task involves non-English content or
+  multiple locales beyond English. This is broader than `task_type='translate'`
+  — it covers any multilingual *requirement* on the model:
+  - "Build a chatbot that handles English, Arabic, Mandarin, Swahili" → true
+  - "Translate Japanese paper to English" → true (cross-language work)
+  - "Localise product copy into 12 EU languages" → true
+  - "Write a regex" / English-only tasks → false
+  Default to false.
+- is_agentic = true when the task expects the model to operate autonomously
+  with multiple tools or steps over time (browsing, code execution, external
+  API calls combined into a multi-step loop):
+  - "Build an agent that browses the web, runs code, calls our API to schedule meetings" → true
+  - "Customer-support chatbot that calls our refund API" → true (multi-tool, autonomous-ish)
+  - "Write me an email" → false
+  - "Refactor this codebase" → false (single task, not agentic)
+  Default to false.
+- output_length classifies how long the model's *output* should be — this is
+  independent of input_length and the two often differ:
+  - "Write a 1500-word short story" → output_length: long (input is short — the
+    story prompt is brief; the long thing is the output)
+  - "Summarise a 200-page report into a 2-page brief" → input_length: very_long,
+    output_length: medium
+  - "Reply yes/no to this question" → output_length: short
+  - "Generate a 20-page market-research report" → output_length: very_long
+  Default to `medium`.
 
 ## Pipeline detection
 

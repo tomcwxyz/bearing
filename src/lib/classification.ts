@@ -15,6 +15,10 @@ export interface Classification {
   data_sensitivity: 'none' | 'pii' | 'regulated_health' | 'regulated_finance' | 'on_prem_required'
   latency_target: 'realtime' | 'interactive' | 'batch'
   volume: 'one_off' | 'hundreds_per_day' | 'thousands_per_day' | 'millions_per_day'
+  needs_long_context: boolean
+  needs_multilingual: boolean
+  is_agentic: boolean
+  output_length: 'short' | 'medium' | 'long' | 'very_long'
   confidence: number
   clarification_needed: boolean
   suggested_questions: { question: string; options: string[] }[]

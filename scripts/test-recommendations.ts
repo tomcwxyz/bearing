@@ -138,11 +138,15 @@ async function main() {
         dataSensitivity: cls.data_sensitivity,
         latencyTarget: cls.latency_target,
         volume: cls.volume,
+        needsLongContext: cls.needs_long_context,
+        needsMultilingual: cls.needs_multilingual,
+        isAgentic: cls.is_agentic,
+        outputLength: cls.output_length,
         priorityOrder: DEFAULT_PRIORITIES,
         benchmarkScores,
       })
       const top3 = topN(scored, 3)
-      console.log(`\n#${p.id} [${p.category}] complexity=${cls.complexity} type=${cls.task_type}/${cls.task_subtype ?? '-'} len=${cls.input_length} v=${cls.needs_vision?'Y':'-'} t=${cls.needs_tools?'Y':'-'} c=${cls.needs_code?'Y':'-'} sens=${cls.data_sensitivity} lat=${cls.latency_target} vol=${cls.volume} conf=${cls.confidence} clarify=${cls.clarification_needed} pipeline=${cls.pipeline_recommended}`)
+      console.log(`\n#${p.id} [${p.category}] complexity=${cls.complexity} type=${cls.task_type}/${cls.task_subtype ?? '-'} in=${cls.input_length} out=${cls.output_length} v=${cls.needs_vision?'Y':'-'} t=${cls.needs_tools?'Y':'-'} c=${cls.needs_code?'Y':'-'} r=${cls.needs_reasoning?'Y':'-'} ml=${cls.needs_multilingual?'Y':'-'} ag=${cls.is_agentic?'Y':'-'} lc=${cls.needs_long_context?'Y':'-'} sens=${cls.data_sensitivity} lat=${cls.latency_target} vol=${cls.volume} conf=${cls.confidence} clarify=${cls.clarification_needed} pipeline=${cls.pipeline_recommended}`)
       console.log(`  prompt:  ${p.text.slice(0, 110)}${p.text.length > 110 ? '…' : ''}`)
       console.log(`  expect:  ${p.expect}`)
       console.log(`  top 3:`)

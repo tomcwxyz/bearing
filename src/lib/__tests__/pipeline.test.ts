@@ -33,14 +33,14 @@ describe('scorePipelineStage', () => {
 
 describe('scorePipeline', () => {
   it('scores a multi-stage pipeline', () => {
-    const result = scorePipeline(
-      [
+    const result = scorePipeline({
+      stages: [
         { stage: 1, task_type: 'extract', description: 'Extract from PDF', requires_capabilities: ['vision'] },
         { stage: 2, task_type: 'summarise', description: 'Summarise content', requires_capabilities: [] },
       ],
-      'long',
-      defaultPriorities,
-    )
+      inputLength: 'long',
+      priorityOrder: defaultPriorities,
+    })
     expect(result.stages).toHaveLength(2)
     expect(result.stages[0].recommended.slug).toBeTruthy()
     expect(result.stages[1].recommended.slug).toBeTruthy()

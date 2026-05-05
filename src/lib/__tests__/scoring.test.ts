@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { scoreModels, costScore } from '../scoring'
+import { scoreModels, costScore, estimateCost } from '../scoring'
 import { getAllModels, getModel, type Factor } from '../registry'
 
 const defaultPriority: Factor[] = ['quality', 'capability', 'cost', 'transparency', 'privacy', 'sustainability', 'speed']
@@ -457,5 +457,170 @@ describe('benchmark blending', () => {
     } finally {
       delete process.env.BENCHMARK_BLEND
     }
+  })
+})
+
+describe('needs_long_context (Phase 4.4)', () => {
+  const baseInput = {
+    taskType: 'summarise',
+    complexity: 'moderate',
+    inputLength: 'very_long',
+    needsVision: false,
+    needsTools: false,
+    needsCode: false,
+    priorityOrder: defaultPriority,
+  }
+
+  it('hard-filters models with context_window < 100k when needsLongContext=true', () => {
+    const results = scoreModels({ ...baseInput, needsLongContext: true })
+    expect(results.length).toBeGreaterThan(0)
+    for (const m of results) {
+      const reg = getModel(m.slug)!
+      expect(reg.context_window).toBeGreaterThanOrEqual(100_000)
+    }
+  })
+
+  it('keeps known long-context flagships when needsLongContext=true', () => {
+    const results = scoreModels({ ...baseInput, needsLongContext: true })
+    // Gemini 2.5 Pro and Sonnet 4.6 are flagship long-context models — they
+    // should still be present after the filter.
+    const sonnet = results.find(m => m.slug === 'claude-sonnet-4.6')
+    expect(sonnet).toBeDefined()
+  })
+
+  it('does not filter when needsLongContext is false (or omitted)', () => {
+    const filtered = scoreModels({ ...baseInput, needsLongContext: true })
+    const unfiltered = scoreModels({ ...baseInput, needsLongContext: false })
+    // Unfiltered should include at least as many models as filtered, and
+    // generally more (any model with context_window < 100k drops out).
+    expect(unfiltered.length).toBeGreaterThanOrEqual(filtered.length)
+  })
+})
+
+describe('needs_multilingual (Phase 4.5a)', () => {
+  const baseInput = {
+    taskType: 'translate',
+    complexity: 'moderate',
+    inputLength: 'medium',
+    needsVision: false,
+    needsTools: false,
+    needsCode: false,
+    priorityOrder: defaultPriority,
+  }
+
+  // Find a multilingual-capable model and a non-multilingual one for asymmetric checks.
+  const multilingualModel = getAllModels().find(m => m.capabilities.includes('multilingual'))!
+  const nonMultilingualModel = getAllModels().find(m => !m.capabilities.includes('multilingual'))!
+
+  it('boosts quality by 1.10× on a multilingual-capable model when needsMultilingual=true', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === multilingualModel.slug)!
+    const boosted = scoreModels({ ...baseInput, needsMultilingual: true })
+      .find(m => m.slug === multilingualModel.slug)!
+    expect(boosted.factorScores.quality).toBeCloseTo(baseline.factorScores.quality * 1.10, 6)
+  })
+
+  it('leaves quality unchanged on a non-multilingual model even when needsMultilingual=true', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === nonMultilingualModel.slug)!
+    const boosted = scoreModels({ ...baseInput, needsMultilingual: true })
+      .find(m => m.slug === nonMultilingualModel.slug)!
+    expect(boosted.factorScores.quality).toBeCloseTo(baseline.factorScores.quality, 6)
+  })
+
+  it('leaves quality unchanged when needsMultilingual is false regardless of capability', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === multilingualModel.slug)!
+    const noFlag = scoreModels({ ...baseInput, needsMultilingual: false })
+      .find(m => m.slug === multilingualModel.slug)!
+    expect(noFlag.factorScores.quality).toBeCloseTo(baseline.factorScores.quality, 6)
+  })
+})
+
+describe('is_agentic (Phase 4.5b)', () => {
+  const baseInput = {
+    taskType: 'analyse',
+    complexity: 'moderate',
+    inputLength: 'medium',
+    needsVision: false,
+    needsTools: false, // not a hard filter; just a capability hint to scoreModels
+    needsCode: false,
+    priorityOrder: defaultPriority,
+  }
+
+  // Opus has both tools and extended_thinking — the canonical agentic host.
+  const opus = getModel('claude-opus-4.6')!
+  const opusHasBoth = opus.capabilities.includes('tools') && opus.capabilities.includes('extended_thinking')
+
+  it('boosts quality by 1.15× when isAgentic=true and model has both tools + extended_thinking', () => {
+    expect(opusHasBoth).toBe(true)
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const boosted = scoreModels({ ...baseInput, isAgentic: true })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(boosted.factorScores.quality).toBeCloseTo(baseline.factorScores.quality * 1.15, 6)
+  })
+
+  it('leaves quality unchanged when model has tools but no extended_thinking', () => {
+    // Find a model with tools but NOT extended_thinking.
+    const toolsOnly = getAllModels().find(
+      m => m.capabilities.includes('tools') && !m.capabilities.includes('extended_thinking')
+    )
+    if (!toolsOnly) return // skip silently if registry doesn't have such a model
+    const baseline = scoreModels(baseInput).find(m => m.slug === toolsOnly.slug)!
+    const boosted = scoreModels({ ...baseInput, isAgentic: true })
+      .find(m => m.slug === toolsOnly.slug)!
+    expect(boosted.factorScores.quality).toBeCloseTo(baseline.factorScores.quality, 6)
+  })
+
+  it('leaves quality unchanged when model has extended_thinking but no tools', () => {
+    const thinkingOnly = getAllModels().find(
+      m => m.capabilities.includes('extended_thinking') && !m.capabilities.includes('tools')
+    )
+    if (!thinkingOnly) return
+    const baseline = scoreModels(baseInput).find(m => m.slug === thinkingOnly.slug)!
+    const boosted = scoreModels({ ...baseInput, isAgentic: true })
+      .find(m => m.slug === thinkingOnly.slug)!
+    expect(boosted.factorScores.quality).toBeCloseTo(baseline.factorScores.quality, 6)
+  })
+
+  it('leaves quality unchanged when isAgentic is false', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const noFlag = scoreModels({ ...baseInput, isAgentic: false })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(noFlag.factorScores.quality).toBeCloseTo(baseline.factorScores.quality, 6)
+  })
+})
+
+describe('output_length cost separation (Phase 4.6)', () => {
+  const opus = getModel('claude-opus-4.6')!
+
+  it('estimateCost reflects higher output tokens for longer outputs (same input)', () => {
+    const shortOut = estimateCost(opus, 'short', 'short')
+    const veryLongOut = estimateCost(opus, 'short', 'very_long')
+    // very_long output (16k tokens) costs much more than short output (100 tokens)
+    // for the same input — the output term dominates.
+    expect(veryLongOut).toBeGreaterThan(shortOut)
+  })
+
+  it('estimateCost defaults to medium output when outputLength is omitted', () => {
+    const defaulted = estimateCost(opus, 'medium')
+    const explicit = estimateCost(opus, 'medium', 'medium')
+    expect(defaulted).toBeCloseTo(explicit, 9)
+  })
+
+  it('cost factor reflects output_length difference between two scoreModels calls', () => {
+    const baseInput = {
+      taskType: 'generate',
+      complexity: 'moderate',
+      inputLength: 'short' as const,
+      needsVision: false,
+      needsTools: false,
+      needsCode: false,
+      priorityOrder: defaultPriority,
+    }
+    // Using Opus (expensive) should produce a lower cost score with very_long
+    // output than with short output, because relative to other models the
+    // output-token cost dominates.
+    const shortOut = scoreModels({ ...baseInput, outputLength: 'short' }).find(m => m.slug === 'claude-opus-4.6')!
+    const veryLongOut = scoreModels({ ...baseInput, outputLength: 'very_long' }).find(m => m.slug === 'claude-opus-4.6')!
+    // estimatedCost should differ noticeably.
+    expect(veryLongOut.estimatedCost).toBeGreaterThan(shortOut.estimatedCost)
   })
 })

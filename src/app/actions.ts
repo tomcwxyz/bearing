@@ -68,6 +68,10 @@ export async function submitTask(formData: FormData) {
       dataSensitivity: classification.data_sensitivity,
       latencyTarget: classification.latency_target,
       volume: classification.volume,
+      needsLongContext: classification.needs_long_context,
+      needsMultilingual: classification.needs_multilingual,
+      isAgentic: classification.is_agentic,
+      outputLength: classification.output_length,
       classificationConfidence: classification.confidence,
       pipelineStages: classification.pipeline_stages ?? null,
     })
@@ -117,6 +121,10 @@ export async function submitClarification(
         data_sensitivity = ${classification.data_sensitivity},
         latency_target = ${classification.latency_target},
         volume = ${classification.volume},
+        needs_long_context = ${classification.needs_long_context},
+        needs_multilingual = ${classification.needs_multilingual},
+        is_agentic = ${classification.is_agentic},
+        output_length = ${classification.output_length},
         classification_confidence = ${classification.confidence},
         pipeline_stages = ${classification.pipeline_stages ? JSON.stringify(classification.pipeline_stages) : null}
       WHERE id = ${taskId}
@@ -185,6 +193,10 @@ export async function getResults(taskId: string) {
       dataSensitivity: task.data_sensitivity ?? 'none',
       latencyTarget: task.latency_target ?? 'interactive',
       volume: task.volume ?? 'one_off',
+      needsLongContext: task.needs_long_context ?? false,
+      needsMultilingual: task.needs_multilingual ?? false,
+      isAgentic: task.is_agentic ?? false,
+      outputLength: task.output_length ?? 'medium',
       priorityOrder,
       excludedFactors,
       benchmarkScores,
@@ -210,15 +222,19 @@ export async function getResults(taskId: string) {
       const stages = typeof task.pipeline_stages === 'string'
         ? JSON.parse(task.pipeline_stages)
         : task.pipeline_stages
-      const pipelineResult = scorePipeline(
+      const pipelineResult = scorePipeline({
         stages,
-        task.input_length,
+        inputLength: task.input_length,
         priorityOrder,
-        task.needs_reasoning ?? false,
-        task.data_sensitivity ?? 'none',
-        task.latency_target ?? 'interactive',
-        task.volume ?? 'one_off',
-      )
+        needsReasoning: task.needs_reasoning ?? false,
+        dataSensitivity: task.data_sensitivity ?? 'none',
+        latencyTarget: task.latency_target ?? 'interactive',
+        volume: task.volume ?? 'one_off',
+        needsLongContext: task.needs_long_context ?? false,
+        needsMultilingual: task.needs_multilingual ?? false,
+        isAgentic: task.is_agentic ?? false,
+        outputLength: task.output_length ?? 'medium',
+      })
       const pipelineReasoning = await generatePipelineReasoning(
         task.task_type,
         pipelineResult,
@@ -303,6 +319,10 @@ export async function submitValidation(formData: FormData) {
       dataSensitivity: classification.data_sensitivity,
       latencyTarget: classification.latency_target,
       volume: classification.volume,
+      needsLongContext: classification.needs_long_context,
+      needsMultilingual: classification.needs_multilingual,
+      isAgentic: classification.is_agentic,
+      outputLength: classification.output_length,
       mode: 'validate',
       classificationConfidence: classification.confidence,
     })
@@ -379,6 +399,10 @@ export async function getValidationResults(taskId: string, currentModelSlug: str
       dataSensitivity: task.data_sensitivity ?? 'none',
       latencyTarget: task.latency_target ?? 'interactive',
       volume: task.volume ?? 'one_off',
+      needsLongContext: task.needs_long_context ?? false,
+      needsMultilingual: task.needs_multilingual ?? false,
+      isAgentic: task.is_agentic ?? false,
+      outputLength: task.output_length ?? 'medium',
       priorityOrder,
       benchmarkScores,
     })

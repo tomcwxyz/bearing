@@ -1,0 +1,1 @@
+ALTER TABLE tasks ADD COLUMN needs_multilingual BOOLEAN DEFAULT FALSE;
