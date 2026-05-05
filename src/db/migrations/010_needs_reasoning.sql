@@ -1,0 +1,1 @@
+ALTER TABLE tasks ADD COLUMN needs_reasoning BOOLEAN DEFAULT FALSE;

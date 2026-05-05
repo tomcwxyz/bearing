@@ -194,6 +194,44 @@ describe('complex-task tier-floor demotion (Phase 3.1)', () => {
   })
 })
 
+describe('reasoning multiplier (Phase 3.2)', () => {
+  // Use a moderate-complexity, non-code task to avoid interaction with the
+  // tier-floor demotion. Opus has extended_thinking; gpt-5.4-mini does not.
+  const baseInput = {
+    taskType: 'analyse',
+    complexity: 'moderate',
+    inputLength: 'medium',
+    needsVision: false,
+    needsTools: false,
+    needsCode: false,
+    priorityOrder: defaultPriority,
+  }
+
+  const opus = getModel('claude-opus-4.6')!
+  const opusCurated = opus.task_fitness['analyse'] ?? 0.5
+
+  it('boosts quality by 1.20 on a reasoning-capable flagship when needsReasoning=true', () => {
+    const results = scoreModels({ ...baseInput, needsReasoning: true })
+    const opusResult = results.find(m => m.slug === 'claude-opus-4.6')!
+    expect(opusResult.factorScores.quality).toBeCloseTo(opusCurated * 1.20, 6)
+  })
+
+  it('leaves quality unchanged when needsReasoning is false (or omitted)', () => {
+    const results = scoreModels({ ...baseInput, needsReasoning: false })
+    const opusResult = results.find(m => m.slug === 'claude-opus-4.6')!
+    expect(opusResult.factorScores.quality).toBeCloseTo(opusCurated, 6)
+  })
+
+  it('does not boost models without extended_thinking even when needsReasoning=true', () => {
+    // gpt-5.4-mini does not list extended_thinking in its capabilities.
+    const mini = getModel('gpt-5.4-mini')!
+    const miniCurated = mini.task_fitness['analyse'] ?? 0.5
+    const results = scoreModels({ ...baseInput, needsReasoning: true })
+    const miniResult = results.find(m => m.slug === 'gpt-5.4-mini')!
+    expect(miniResult.factorScores.quality).toBeCloseTo(miniCurated, 6)
+  })
+})
+
 describe('benchmark blending', () => {
   const baseInput = {
     taskType: 'code',

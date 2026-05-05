@@ -12,6 +12,7 @@ Return JSON only, no other text.
   "needs_vision": boolean,
   "needs_tools": boolean,
   "needs_code": boolean,
+  "needs_reasoning": boolean,
   "is_recurring": boolean,
   "confidence": number (0.0-1.0),
   "clarification_needed": boolean,
@@ -49,6 +50,14 @@ Return JSON only, no other text.
 - If unsure, set confidence between 0.3-0.6 and provide 1-3 suggested_questions with tappable options.
 - If confident, set confidence above 0.6 and clarification_needed to false.
 - Infer needs_vision, needs_tools, needs_code from context.
+- needs_reasoning = true if the task requires multi-step reasoning, symbolic
+  mathematics, complex strategic analysis, legal-risk assessment, or proof
+  construction. Examples:
+  - "Solve this system of nonlinear PDEs symbolically" → true
+  - "Should we expand into the German market — pros, cons, risks" → true
+  - "Review this commercial lease and flag risky clauses" → true
+  - "Write a regex" → false
+  - "Summarise this email" → false
 - Estimate input_length from the task description.
 - is_recurring = true if the task sounds like something done regularly.
 

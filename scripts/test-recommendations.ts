@@ -134,6 +134,7 @@ async function main() {
         needsVision: cls.needs_vision,
         needsTools: cls.needs_tools,
         needsCode: cls.needs_code,
+        needsReasoning: cls.needs_reasoning,
         priorityOrder: DEFAULT_PRIORITIES,
         benchmarkScores,
       })

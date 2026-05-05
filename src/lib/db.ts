@@ -20,6 +20,7 @@ export interface TaskParams {
   needsVision?: boolean
   needsTools?: boolean
   needsCode?: boolean
+  needsReasoning?: boolean
   isRecurring?: boolean
   mode?: string
   priorityOrder?: string[]
@@ -51,6 +52,7 @@ export async function createTask(params: TaskParams): Promise<string> {
       needs_vision,
       needs_tools,
       needs_code,
+      needs_reasoning,
       is_recurring,
       mode,
       priority_order,
@@ -65,6 +67,7 @@ export async function createTask(params: TaskParams): Promise<string> {
       ${params.needsVision ?? false},
       ${params.needsTools ?? false},
       ${params.needsCode ?? false},
+      ${params.needsReasoning ?? false},
       ${params.isRecurring ?? false},
       ${params.mode ?? 'recommend'},
       ${params.priorityOrder ? JSON.stringify(params.priorityOrder) : null},

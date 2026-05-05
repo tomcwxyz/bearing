@@ -8,6 +8,7 @@ export interface ScoringInput {
   needsVision: boolean
   needsTools: boolean
   needsCode: boolean
+  needsReasoning?: boolean
   priorityOrder: Factor[]
   excludedFactors?: string[]
   // Optional map keyed by `${bearing_slug}::${taskType}` → 0..1 normalised
@@ -60,6 +61,14 @@ const DEMOTED_TIERS_FOR_COMPLEX = new Set([
   'sustainable_balanced',
   'enterprise_transparent',
 ])
+
+// Phase 3.2: when the classifier flags a task as needing multi-step reasoning,
+// boost the quality factor of models with the `extended_thinking` capability
+// so reasoning-tuned models (Opus, Sonnet, DeepSeek R1, etc.) surface for
+// math, strategy, legal-risk, and proof prompts. Note this can push quality
+// above 1.0 — that's intentional. Quality is a score multiplied by a weight,
+// not a probability, so values >1 still produce sensible orderings.
+const REASONING_QUALITY_BOOST = 1.20
 
 export function costScore(
   model: Model,
@@ -165,6 +174,11 @@ export function scoreModels(input: ScoringInput): ScoredModel[] {
       !userPrioritisesEthics
     ) {
       factorScores.quality *= COMPLEX_TASK_QUALITY_DEMOTION
+    }
+
+    // Phase 3.2: reasoning multiplier. May push quality > 1.0 (see constant).
+    if (input.needsReasoning && model.capabilities.includes('extended_thinking')) {
+      factorScores.quality *= REASONING_QUALITY_BOOST
     }
 
     const weightedScore = Object.entries(factorScores).reduce(
