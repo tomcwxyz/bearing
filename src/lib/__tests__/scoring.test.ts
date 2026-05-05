@@ -90,11 +90,11 @@ describe('scoreModels', () => {
     })
     const normalOpus = normal.findIndex(m => m.slug === 'claude-opus-4.6')
     const focusedOpus = focused.findIndex(m => m.slug === 'claude-opus-4.6')
-    // Phase 2.2's rank-5+ weight damping already does most of the work that
-    // explicit exclusions used to: privacy/sustainability/transparency are
-    // ranks 4–6 here and barely move the score, so excluding them only
-    // marginally shifts results. Opus should still be in roughly the same
-    // place — within one rank of the normal run.
+    // Phase 2.2 damps rank-5+ factors (×0.4 before normalisation). Under the
+    // default priority order used here, transparency/sustainability/privacy
+    // sit at ranks 5/6/7 and are damped — so excluding them on top of the
+    // damping only marginally shifts the result. Opus should still land in
+    // roughly the same place — within one rank of the normal run.
     expect(Math.abs(focusedOpus - normalOpus)).toBeLessThanOrEqual(1)
   })
 
