@@ -67,9 +67,11 @@ export function costScore(
   const baseScore = Math.max(COST_SCORE_FLOOR, 1.0 - (logModel - logMin) / (logMax - logMin))
 
   // Compress towards 0.5 when cost is low priority. At costWeightHint >= 0.30
-  // no compression; at 0 max compression (0.6 strength keeps some spread).
+  // no compression; at 0 max compression (0.85 strength — Phase 2.4 raised
+  // from 0.6 to better honour low cost priority and let flagship quality
+  // leads close the cost gap).
   const compression = Math.max(0, 1 - costWeightHint / 0.30)
-  return baseScore + (0.5 - baseScore) * compression * 0.6
+  return baseScore + (0.5 - baseScore) * compression * 0.85
 }
 
 function getBenchmarkBlend(): number {

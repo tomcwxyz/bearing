@@ -21,7 +21,8 @@ These are illustrative, not exhaustive — 3–4 reference points per task type.
 - 0.96: Claude Opus 4.6, GPT-5.4 (Aider/SWE-Bench leaders)
 - 0.93: Claude Sonnet 4.6
 - 0.91: Gemini 3.1 Pro
-- 0.82: Gemini 3 Flash, Llama 4 Maverick
+- 0.82: Llama 4 Maverick
+- 0.78: Gemini 3 Flash
 - 0.70: IBM Granite, Mistral Small
 
 ### `analyse`
@@ -29,7 +30,8 @@ These are illustrative, not exhaustive — 3–4 reference points per task type.
 - 0.95: Gemini 3.1 Pro
 - 0.93: GPT-5.4
 - 0.91: Claude Sonnet 4.6
-- 0.80: Gemini 3 Flash, GPT-5.4 mini
+- 0.80: GPT-5.4 mini
+- 0.74: Gemini 3 Flash
 - 0.68: Mistral Small (24B)
 
 ### `generate`

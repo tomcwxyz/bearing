@@ -123,17 +123,17 @@ describe('costScore priority-aware compression', () => {
   it('preserves full spread when costWeightHint is 0.30 (no compression)', () => {
     // Expensive flagship at long inputs should still score low — full spread.
     const score = costScore(opus, allModels, 'long', 0.30)
-    expect(score).toBeLessThanOrEqual(0.20)
+    expect(score).toBeLessThanOrEqual(0.10)
   })
 
   it('compresses toward 0.5 when costWeightHint is low (0.05)', () => {
     // Opus hits the 0.05 cost floor; at weight=0.05, compression=0.833 and
-    // the formula yields ~0.275 — well above the floor, demonstrating
-    // significant compression toward 0.5. (Spec said >=0.30; the formula it
-    // mandates can't produce that for the floor case, so we use the actual
-    // achievable bound as evidence of compression.)
+    // strength=0.85, the formula yields ~0.368 — well above the floor,
+    // demonstrating significant compression toward 0.5. Phase 2.4 raised
+    // strength from 0.6 to 0.85 so flagships' quality leads can outweigh
+    // the residual cost penalty when users de-prioritise cost.
     const score = costScore(opus, allModels, 'long', 0.05)
-    expect(score).toBeGreaterThanOrEqual(0.25)
+    expect(score).toBeGreaterThanOrEqual(0.30)
   })
 
   it('produces an intermediate value at the default rank-3 weight (0.18)', () => {
