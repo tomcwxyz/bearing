@@ -50,7 +50,12 @@ function estimateCost(model: Model, inputLength: string): number {
 // cost is the user's lowest priority.
 const COST_SCORE_FLOOR = 0.05
 
-function costScore(model: Model, allModels: Model[], inputLength: string): number {
+export function costScore(
+  model: Model,
+  allModels: Model[],
+  inputLength: string,
+  costWeightHint = 0.18,
+): number {
   const costs = allModels.map(m => estimateCost(m, inputLength))
   const minCost = Math.min(...costs)
   const maxCost = Math.max(...costs)
@@ -59,7 +64,12 @@ function costScore(model: Model, allModels: Model[], inputLength: string): numbe
   const logMin = Math.log(minCost + 0.0001)
   const logMax = Math.log(maxCost + 0.0001)
   const logModel = Math.log(modelCost + 0.0001)
-  return Math.max(COST_SCORE_FLOOR, 1.0 - (logModel - logMin) / (logMax - logMin))
+  const baseScore = Math.max(COST_SCORE_FLOOR, 1.0 - (logModel - logMin) / (logMax - logMin))
+
+  // Compress towards 0.5 when cost is low priority. At costWeightHint >= 0.30
+  // no compression; at 0 max compression (0.6 strength keeps some spread).
+  const compression = Math.max(0, 1 - costWeightHint / 0.30)
+  return baseScore + (0.5 - baseScore) * compression * 0.6
 }
 
 function getBenchmarkBlend(): number {
@@ -119,7 +129,7 @@ export function scoreModels(input: ScoringInput): ScoredModel[] {
     if (capScore === null) continue
 
     const factorScores: Record<Factor, number> = {
-      cost: costScore(model, models, input.inputLength),
+      cost: costScore(model, models, input.inputLength, weights.cost),
       speed: model.speed_score,
       quality: qualityScore(model, input.taskType, input.benchmarkScores, blend),
       privacy: model.privacy_score,

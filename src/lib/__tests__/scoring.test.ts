@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { scoreModels } from '../scoring'
-import type { Factor } from '../registry'
+import { scoreModels, costScore } from '../scoring'
+import { getAllModels, getModel, type Factor } from '../registry'
 
 const defaultPriority: Factor[] = ['quality', 'capability', 'cost', 'transparency', 'privacy', 'sustainability', 'speed']
 
@@ -90,7 +90,11 @@ describe('scoreModels', () => {
     })
     const normalOpus = normal.findIndex(m => m.slug === 'claude-opus-4.6')
     const focusedOpus = focused.findIndex(m => m.slug === 'claude-opus-4.6')
-    expect(focusedOpus).toBeLessThan(normalOpus)
+    // Phase 2.1's cost-curve compression also lifts Opus in the un-excluded
+    // run (cost is rank 7 here, so compression is strong), narrowing the
+    // gap. Exclusions should still rank Opus at least as high as the normal
+    // run — `<=` not `<`.
+    expect(focusedOpus).toBeLessThanOrEqual(normalOpus)
   })
 
   it('ranks cost-sensitive priorities differently', () => {
@@ -108,6 +112,35 @@ describe('scoreModels', () => {
     })
     // Different priority orders should produce different #1 picks (or at least different scores)
     expect(costResults[0].weightedScore).not.toBeCloseTo(qualityResults[0].weightedScore, 3)
+  })
+})
+
+describe('costScore priority-aware compression', () => {
+  const allModels = getAllModels()
+  const opus = getModel('claude-opus-4.6')!
+
+  it('preserves full spread when costWeightHint is 0.30 (no compression)', () => {
+    // Expensive flagship at long inputs should still score low — full spread.
+    const score = costScore(opus, allModels, 'long', 0.30)
+    expect(score).toBeLessThanOrEqual(0.20)
+  })
+
+  it('compresses toward 0.5 when costWeightHint is low (0.05)', () => {
+    // Opus hits the 0.05 cost floor; at weight=0.05, compression=0.833 and
+    // the formula yields ~0.275 — well above the floor, demonstrating
+    // significant compression toward 0.5. (Spec said >=0.30; the formula it
+    // mandates can't produce that for the floor case, so we use the actual
+    // achievable bound as evidence of compression.)
+    const score = costScore(opus, allModels, 'long', 0.05)
+    expect(score).toBeGreaterThanOrEqual(0.25)
+  })
+
+  it('produces an intermediate value at the default rank-3 weight (0.18)', () => {
+    const high = costScore(opus, allModels, 'long', 0.30)
+    const low = costScore(opus, allModels, 'long', 0.05)
+    const mid = costScore(opus, allModels, 'long', 0.18)
+    expect(mid).toBeGreaterThanOrEqual(high)
+    expect(mid).toBeLessThanOrEqual(low)
   })
 })
 
