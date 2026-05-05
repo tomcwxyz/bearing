@@ -251,7 +251,9 @@ These all follow the same pattern: prompt update → interface field → DB colu
 
 - Migration `011_data_sensitivity.sql`
 - Classifier prompt: examples for "patient records", "credit-card data", "must run on-prem"
-- Scoring: `on_prem_required` → hard filter to models with `local_info != null`; `regulated_*` → bump privacy weight by 1.5×; `pii` → bump privacy by 1.2×
+- Scoring: `on_prem_required` → hard filter to models with `local_info != null`; `regulated_*` → multiply `factorScores.privacy` by 1.5×; `pii` → multiply by 1.2×
+
+**Note on landing**: applied as score multipliers, not weight multipliers. Cleaner drop-in into `scoreModels`'s per-model loop without restructuring `priorityToWeights`. Documented inline in `src/lib/scoring.ts`.
 
 **Acceptance:** prompt #30 (medical, on-prem) top recommends a Llama / Granite / Mistral with `local_info`, not Gemini.
 
@@ -261,7 +263,7 @@ These all follow the same pattern: prompt update → interface field → DB colu
 
 - Migration `012_latency_target.sql`
 - Prompt: "voice assistant under 200ms" → realtime
-- Scoring: `realtime` → hard filter `speed_score >= 0.85`; `batch` → cost weight × 1.3
+- Scoring: `realtime` → hard filter `speed_score >= 0.85`; `batch` → multiply `factorScores.cost` by 1.3 (score multiplier — see Task 4.1 note)
 
 **Acceptance:** prompt #34 returns only fast tier; prompt #20 (bulk translate) drops cost-heavy models.
 
@@ -270,7 +272,7 @@ These all follow the same pattern: prompt update → interface field → DB colu
 **Schema:** `'one_off' | 'hundreds_per_day' | 'thousands_per_day' | 'millions_per_day'`
 
 - Migration `013_volume.sql`
-- Scoring: `thousands_per_day` → cost weight floor 0.30; `millions_per_day` → 0.45 (overrides priority order partially — document this trade-off in code)
+- Scoring: `thousands_per_day` → multiply `factorScores.cost` by 1.3; `millions_per_day` → 1.6 (score multiplier — see Task 4.1 note). When latency=batch and volume>=thousands both apply, take `max()` not the product — they're aliasing the same "cost matters more" signal, not stacking.
 
 **Acceptance:** prompt #33 (1M tweets/day under $50/month) recommends cheapest-viable tier.
 
