@@ -70,6 +70,14 @@ function getBenchmarkBlend(): number {
   return Math.min(1, Math.max(0, parsed))
 }
 
+// When curated and benchmark disagree by more than this, skip the blend and
+// use curated only. Phase 1.4 inspection found 43/134 pairs (32%) with
+// |delta| > 0.10 — driven by specialist models the LMArena cohort doesn't
+// cover (devstral, mistral-ocr) and budget models that LMArena over-rates
+// versus our task-specific rubric. Blending these pairs imports noise; the
+// blend works well for the well-aligned majority below the threshold.
+export const BENCHMARK_DELTA_SKIP_THRESHOLD = 0.10
+
 function qualityScore(
   model: Model,
   taskType: string,
@@ -80,6 +88,7 @@ function qualityScore(
   if (blend <= 0 || !benchmarkScores) return curated
   const benchmark = benchmarkScores.get(`${model.slug}::${taskType}`)
   if (benchmark === undefined) return curated
+  if (Math.abs(curated - benchmark) > BENCHMARK_DELTA_SKIP_THRESHOLD) return curated
   return curated * (1 - blend) + benchmark * blend
 }
 

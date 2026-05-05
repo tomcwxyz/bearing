@@ -132,15 +132,53 @@ describe('benchmark blending', () => {
     expect(a.factorScores.quality).toBeCloseTo(b.factorScores.quality, 6)
   })
 
-  it('blends curated and benchmark when blend > 0', () => {
+  it('blends curated and benchmark when blend > 0 and delta within threshold', () => {
     process.env.BENCHMARK_BLEND = '0.5'
     try {
+      // claude-sonnet-4.6 code curated ≈ 0.93. Pick a benchmark within 0.10
+      // so the skip rule doesn't fire and we actually exercise blending.
+      const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-sonnet-4.6')!
+      const benchmarkVal = baseline.factorScores.quality - 0.05
+      const benchmarkScores = new Map<string, number>([['claude-sonnet-4.6::code', benchmarkVal]])
+      const blended = scoreModels({ ...baseInput, benchmarkScores }).find(m => m.slug === 'claude-sonnet-4.6')!
+      expect(blended.factorScores.quality).toBeLessThan(baseline.factorScores.quality)
+      expect(blended.factorScores.quality).toBeCloseTo(
+        baseline.factorScores.quality * 0.5 + benchmarkVal * 0.5,
+        5,
+      )
+    } finally {
+      delete process.env.BENCHMARK_BLEND
+    }
+  })
+
+  it('skips the blend when |curated − benchmark| exceeds the skip threshold', () => {
+    process.env.BENCHMARK_BLEND = '0.5'
+    try {
+      // Curated for claude-sonnet-4.6 code is ~0.93. A benchmark of 0.0 gives
+      // |delta| ≈ 0.93, well above 0.10 — the blend must be skipped, leaving
+      // quality identical to the curated baseline (no benchmarkScores).
       const benchmarkScores = new Map<string, number>([['claude-sonnet-4.6::code', 0.0]])
       const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-sonnet-4.6')!
+      const result = scoreModels({ ...baseInput, benchmarkScores }).find(m => m.slug === 'claude-sonnet-4.6')!
+      expect(result.factorScores.quality).toBeCloseTo(baseline.factorScores.quality, 6)
+    } finally {
+      delete process.env.BENCHMARK_BLEND
+    }
+  })
+
+  it('applies the blend at the threshold boundary (delta ≤ 0.10)', () => {
+    process.env.BENCHMARK_BLEND = '0.5'
+    try {
+      const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-sonnet-4.6')!
+      // Delta exactly 0.10 — should still blend (threshold is strict >).
+      const benchmarkVal = baseline.factorScores.quality - 0.10
+      const benchmarkScores = new Map<string, number>([['claude-sonnet-4.6::code', benchmarkVal]])
       const blended = scoreModels({ ...baseInput, benchmarkScores }).find(m => m.slug === 'claude-sonnet-4.6')!
-      // Benchmark score 0.0 with 0.5 blend should pull quality halfway down.
+      expect(blended.factorScores.quality).toBeCloseTo(
+        baseline.factorScores.quality * 0.5 + benchmarkVal * 0.5,
+        5,
+      )
       expect(blended.factorScores.quality).toBeLessThan(baseline.factorScores.quality)
-      expect(blended.factorScores.quality).toBeCloseTo(baseline.factorScores.quality * 0.5, 5)
     } finally {
       delete process.env.BENCHMARK_BLEND
     }
