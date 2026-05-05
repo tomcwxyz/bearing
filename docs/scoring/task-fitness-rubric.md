@@ -25,8 +25,10 @@ These are illustrative, not exhaustive — 3–4 reference points per task type.
 - 0.70: IBM Granite, Mistral Small
 
 ### `analyse`
-- 0.95: Claude Opus 4.6, GPT-5.4 (deep reasoning, long-context synthesis)
-- 0.90: Claude Sonnet 4.6, Gemini 3.1 Pro
+- 0.97: Claude Opus 4.6 (top-of-range — long-context synthesis, multi-step reasoning)
+- 0.95: Gemini 3.1 Pro
+- 0.93: GPT-5.4
+- 0.91: Claude Sonnet 4.6
 - 0.80: Gemini 3 Flash, GPT-5.4 mini
 - 0.68: Mistral Small (24B)
 
@@ -37,8 +39,10 @@ These are illustrative, not exhaustive — 3–4 reference points per task type.
 - 0.70: Mistral Small, Granite
 
 ### `summarise`
-- 0.93: Claude Sonnet 4.6, GPT-5.4 (faithful, concise, low hallucination)
-- 0.88: Gemini 3.1 Pro, Claude Haiku 4.5
+- 0.93: Claude Opus 4.6 (faithful, concise, low hallucination)
+- 0.92: Gemini 3.1 Pro
+- 0.90: Claude Sonnet 4.6
+- 0.88: GPT-5.4, Claude Haiku 4.5
 - 0.80: Gemini 3 Flash, GPT-5.4 mini
 - 0.70: Llama 4 Maverick
 
@@ -61,10 +65,12 @@ These are illustrative, not exhaustive — 3–4 reference points per task type.
 - 0.70: Mistral Small
 
 ### `vision`
-- 0.93: GPT-5.4, Gemini 3.1 Pro (chart/diagram reasoning, OCR, spatial)
-- 0.88: Claude Opus 4.6, Claude Sonnet 4.6
+- 0.93: Gemini 3.1 Pro (chart/diagram reasoning, OCR, spatial)
+- 0.88: Claude Opus 4.6, Claude Sonnet 4.6, GPT-5.4
 - 0.78: Gemini 3 Flash
 - 0.50: text-only models (use `unknown_default` if unsure)
+
+Vision anchors are noisier than text — re-check against current benchmark coverage when grading.
 
 ## Rules of thumb
 
