@@ -50,6 +50,17 @@ function estimateCost(model: Model, inputLength: string): number {
 // cost is the user's lowest priority.
 const COST_SCORE_FLOOR = 0.05
 
+// Tiers that are systematically demoted on the quality factor when the task
+// is complex AND the user did NOT prioritise transparency/sustainability.
+// These tiers are not built for hard work — even if their TF score is high
+// for a task, complex tasks should bias toward flagship-tier models.
+const COMPLEX_TASK_QUALITY_DEMOTION = 0.85
+const DEMOTED_TIERS_FOR_COMPLEX = new Set([
+  'budget',
+  'sustainable_balanced',
+  'enterprise_transparent',
+])
+
 export function costScore(
   model: Model,
   allModels: Model[],
@@ -138,6 +149,22 @@ export function scoreModels(input: ScoringInput): ScoredModel[] {
       sustainability: model.sustainability.sustainability_score,
       transparency: model.transparency.transparency_score,
       capability: capScore,
+    }
+
+    // Phase 3.1: demote quality on tiers that aren't built for hard work when
+    // the task is complex — unless the user explicitly elevated transparency
+    // or sustainability into their top 3 priorities (their editorial choice
+    // wins over the systematic demotion).
+    const userPrioritisesEthics =
+      input.priorityOrder.slice(0, 3).includes('transparency') ||
+      input.priorityOrder.slice(0, 3).includes('sustainability')
+
+    if (
+      input.complexity === 'complex' &&
+      DEMOTED_TIERS_FOR_COMPLEX.has(model.tier) &&
+      !userPrioritisesEthics
+    ) {
+      factorScores.quality *= COMPLEX_TASK_QUALITY_DEMOTION
     }
 
     const weightedScore = Object.entries(factorScores).reduce(

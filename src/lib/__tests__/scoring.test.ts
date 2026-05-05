@@ -145,6 +145,55 @@ describe('costScore priority-aware compression', () => {
   })
 })
 
+describe('complex-task tier-floor demotion (Phase 3.1)', () => {
+  const baseInput = {
+    taskType: 'code',
+    inputLength: 'long',
+    needsVision: false,
+    needsTools: false,
+    needsCode: true,
+    priorityOrder: defaultPriority,
+  }
+
+  // claude-haiku-4.5 has tier 'budget' — confirm before testing.
+  const haiku = getModel('claude-haiku-4.5')!
+  const rawCuratedQuality = haiku.task_fitness['code'] ?? 0.5
+
+  it('demotes a budget-tier model quality by 0.85 on complex tasks (default priorities)', () => {
+    const results = scoreModels({ ...baseInput, complexity: 'complex' })
+    const haikuResult = results.find(m => m.slug === 'claude-haiku-4.5')!
+    expect(haikuResult.factorScores.quality).toBeCloseTo(rawCuratedQuality * 0.85, 6)
+  })
+
+  it('leaves the same budget model unchanged on simple tasks', () => {
+    const results = scoreModels({ ...baseInput, complexity: 'simple', inputLength: 'short' })
+    const haikuResult = results.find(m => m.slug === 'claude-haiku-4.5')!
+    expect(haikuResult.factorScores.quality).toBeCloseTo(rawCuratedQuality, 6)
+  })
+
+  it('skips demotion on complex tasks when the user prioritises transparency in top 3', () => {
+    // transparency moved into rank 2 — user has opted in to ethics emphasis.
+    const ethicsPriority: Factor[] = [
+      'quality', 'transparency', 'capability', 'cost', 'privacy', 'sustainability', 'speed',
+    ]
+    const results = scoreModels({
+      ...baseInput,
+      complexity: 'complex',
+      priorityOrder: ethicsPriority,
+    })
+    const haikuResult = results.find(m => m.slug === 'claude-haiku-4.5')!
+    expect(haikuResult.factorScores.quality).toBeCloseTo(rawCuratedQuality, 6)
+  })
+
+  it('does not demote a flagship-tier model on complex tasks', () => {
+    const opus = getModel('claude-opus-4.6')!
+    const opusCurated = opus.task_fitness['code'] ?? 0.5
+    const results = scoreModels({ ...baseInput, complexity: 'complex' })
+    const opusResult = results.find(m => m.slug === 'claude-opus-4.6')!
+    expect(opusResult.factorScores.quality).toBeCloseTo(opusCurated, 6)
+  })
+})
+
 describe('benchmark blending', () => {
   const baseInput = {
     taskType: 'code',
