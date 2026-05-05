@@ -5,7 +5,7 @@
     "updated": "2026-05-05",
     "maintainer": "The Good Ship · good-ship.co.uk",
     "license": "CC BY-NC 4.0",
-    "notes": "Generated from database. 29 active models. v0.6.0 introduces external benchmark ingestion (LMArena first) blended into the quality factor; blend defaults to 0 (curated only) until per-model alias coverage is verified."
+    "notes": "Generated from database. 29 active models. The v0.6 line introduces external benchmark ingestion (LMArena first) blended into the quality factor; blend defaults to 0 (curated only) until per-model alias coverage is verified. v0.6.1 widens the flagship task_fitness range per docs/scoring/task-fitness-rubric.md."
   },
   "scoring_methodology": {
     "description": "Each model receives per-factor scores from 0.0 to 1.0 across seven dimensions. Combined using user-defined priority weights to produce a ranked recommendation list.",
