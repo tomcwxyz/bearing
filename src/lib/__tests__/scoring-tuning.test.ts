@@ -74,15 +74,14 @@ describe('scoring tuning regressions (to be flipped in Phase 2)', () => {
     })
     const simpleTop3 = simple.slice(0, 3).map(m => m.slug)
     const complexTop3 = complex.slice(0, 3).map(m => m.slug)
-    // Pin the bug: complexity barely shifts the recommendation set today.
-    // The top 3 for "simple short" and "complex long" coding tasks overlap
-    // by at least 2 of 3 models — essentially the same recommendation. After
-    // Phase 2's weight compression / complexity boost, complex+long should
-    // pull in flagships and the overlap should drop to ≤1. Flip this to
-    // `toBeLessThanOrEqual(1)` once that lands.
+    // Flipped during Phase 1.3 because TF widening + budget pull-down was
+    // sufficient to differentiate simple vs complex coding recommendations:
+    // the top-3 overlap now drops to ≤1 (complex+long surfaces a different
+    // mix of mid-tier models than simple+short, even though Opus still
+    // hasn't broken into the top 3 — that's still Phase 2's job).
     const overlap = simpleTop3.filter(slug => complexTop3.includes(slug)).length
-    expect(overlap).toBeGreaterThanOrEqual(2)
-    // And: neither top 3 should already contain Claude Opus today (otherwise
+    expect(overlap).toBeLessThanOrEqual(1)
+    // Neither top 3 should already contain Claude Opus today (otherwise
     // Phase 2 has effectively already happened).
     expect(simpleTop3).not.toContain('claude-opus-4.6')
     expect(complexTop3).not.toContain('claude-opus-4.6')

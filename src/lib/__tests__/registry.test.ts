@@ -5,7 +5,7 @@ describe('registry', () => {
   it('loads the registry with metadata', () => {
     const registry = getRegistry()
     expect(registry.meta.name).toBe('Bearing Model Registry')
-    expect(registry.meta.version).toBe('0.6.1')
+    expect(registry.meta.version).toBe('0.6.2')
   })
 
   it('returns a model by slug', () => {
