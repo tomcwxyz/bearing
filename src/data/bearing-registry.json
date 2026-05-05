@@ -1,8 +1,8 @@
 {
   "meta": {
     "name": "Bearing Model Registry",
-    "version": "0.6.0",
-    "updated": "2026-05-04",
+    "version": "0.6.1",
+    "updated": "2026-05-05",
     "maintainer": "The Good Ship · good-ship.co.uk",
     "license": "CC BY-NC 4.0",
     "notes": "Generated from database. 29 active models. v0.6.0 introduces external benchmark ingestion (LMArena first) blended into the quality factor; blend defaults to 0 (curated only) until per-model alias coverage is verified."
@@ -149,12 +149,12 @@
         "Slower than Sonnet/Haiku"
       ],
       "task_fitness": {
-        "code": 0.92,
+        "code": 0.96,
         "vision": 0.85,
-        "analyse": 0.95,
+        "analyse": 0.97,
         "extract": 0.9,
-        "generate": 0.95,
-        "summarise": 0.9,
+        "generate": 0.96,
+        "summarise": 0.93,
         "translate": 0.85,
         "conversation": 0.9
       },
@@ -205,12 +205,12 @@
         "Not the cheapest for simple tasks"
       ],
       "task_fitness": {
-        "code": 0.9,
+        "code": 0.93,
         "vision": 0.82,
-        "analyse": 0.88,
+        "analyse": 0.91,
         "extract": 0.88,
-        "generate": 0.9,
-        "summarise": 0.88,
+        "generate": 0.92,
+        "summarise": 0.9,
         "translate": 0.82,
         "conversation": 0.88
       },
@@ -824,12 +824,12 @@
         "Privacy varies by tier"
       ],
       "task_fitness": {
-        "code": 0.88,
+        "code": 0.91,
         "vision": 0.92,
-        "analyse": 0.93,
-        "extract": 0.88,
-        "generate": 0.85,
-        "summarise": 0.88,
+        "analyse": 0.95,
+        "extract": 0.9,
+        "generate": 0.88,
+        "summarise": 0.92,
         "translate": 0.88,
         "conversation": 0.82
       },
@@ -881,11 +881,11 @@
         "Premium pricing on output-heavy tasks"
       ],
       "task_fitness": {
-        "code": 0.93,
+        "code": 0.96,
         "vision": 0.88,
-        "analyse": 0.9,
-        "extract": 0.9,
-        "generate": 0.88,
+        "analyse": 0.93,
+        "extract": 0.88,
+        "generate": 0.91,
         "summarise": 0.88,
         "translate": 0.85,
         "conversation": 0.85
@@ -1221,11 +1221,11 @@
         "Newer API ecosystem"
       ],
       "task_fitness": {
-        "code": 0.9,
+        "code": 0.92,
         "vision": 0.82,
-        "analyse": 0.92,
-        "extract": 0.88,
-        "generate": 0.85,
+        "analyse": 0.94,
+        "extract": 0.83,
+        "generate": 0.87,
         "summarise": 0.85,
         "translate": 0.82,
         "conversation": 0.82
