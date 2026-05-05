@@ -28,7 +28,7 @@ These are illustrative, not exhaustive — 3–4 reference points per task type.
 - 0.95: Claude Opus 4.6, GPT-5.4 (deep reasoning, long-context synthesis)
 - 0.90: Claude Sonnet 4.6, Gemini 3.1 Pro
 - 0.80: Gemini 3 Flash, GPT-5.4 mini
-- 0.68: Llama 4 Scout, Mistral Small
+- 0.68: Mistral Small (24B)
 
 ### `generate`
 - 0.94: Claude Opus 4.6, GPT-5.4 (long-form prose, creative writing)
@@ -38,13 +38,13 @@ These are illustrative, not exhaustive — 3–4 reference points per task type.
 
 ### `summarise`
 - 0.93: Claude Sonnet 4.6, GPT-5.4 (faithful, concise, low hallucination)
-- 0.88: Gemini 3.1 Pro, Claude Haiku 4.6
+- 0.88: Gemini 3.1 Pro, Claude Haiku 4.5
 - 0.80: Gemini 3 Flash, GPT-5.4 mini
-- 0.70: Llama 4 Scout
+- 0.70: Llama 4 Maverick
 
 ### `extract`
 - 0.93: GPT-5.4, Claude Sonnet 4.6 (structured output, schema adherence)
-- 0.88: Gemini 3.1 Pro, Claude Haiku 4.6
+- 0.88: Gemini 3.1 Pro, Claude Haiku 4.5
 - 0.80: Gemini 3 Flash, GPT-5.4 mini
 - 0.68: Mistral Small
 
@@ -56,7 +56,7 @@ These are illustrative, not exhaustive — 3–4 reference points per task type.
 
 ### `conversation`
 - 0.93: Claude Sonnet 4.6, GPT-5.4 (tone, steerability, multi-turn coherence)
-- 0.88: Claude Haiku 4.6, Gemini 3.1 Pro
+- 0.88: Claude Haiku 4.5, Gemini 3.1 Pro
 - 0.80: Gemini 3 Flash, Llama 4 Maverick
 - 0.70: Mistral Small
 
