@@ -1,0 +1,2236 @@
+[
+  {
+    "id": 1,
+    "category": "code-hard",
+    "text": "Refactor a 5,000-line legacy Python service into modular packages with full type hints and 90% test coverage.",
+    "expect": "Top-tier coder (Opus 4.7 / Sonnet 4.6 / GPT-5.4)",
+    "classification": {
+      "task_type": "code",
+      "task_subtype": "refactoring",
+      "complexity": "complex",
+      "input_length": "very_long",
+      "needs_vision": false,
+      "needs_tools": true,
+      "needs_code": true,
+      "needs_reasoning": true,
+      "is_recurring": false,
+      "confidence": 0.92,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": true,
+      "pipeline_stages": [
+        {
+          "stage": 1,
+          "task_type": "code",
+          "description": "Analyze the existing 5,000-line codebase to understand structure, dependencies, and patterns",
+          "requires_capabilities": [
+            "code_analysis",
+            "python_expertise",
+            "reasoning"
+          ]
+        },
+        {
+          "stage": 2,
+          "task_type": "code",
+          "description": "Design and implement modular package architecture with dependency injection and clear interfaces",
+          "requires_capabilities": [
+            "code_generation",
+            "python_expertise",
+            "refactoring"
+          ]
+        },
+        {
+          "stage": 3,
+          "task_type": "code",
+          "description": "Add comprehensive type hints (PEP 484) throughout the refactored code",
+          "requires_capabilities": [
+            "code_generation",
+            "python_type_system",
+            "linting"
+          ]
+        },
+        {
+          "stage": 4,
+          "task_type": "code",
+          "description": "Write unit and integration tests to achieve 90% code coverage",
+          "requires_capabilities": [
+            "code_generation",
+            "testing_frameworks",
+            "test_design"
+          ]
+        }
+      ]
+    },
+    "top3": [
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.8024844575736415,
+        "estimatedCost": 0.112
+      },
+      {
+        "slug": "minimax-m2.7",
+        "name": "MiniMax M2.7",
+        "provider": "MiniMax",
+        "tier": "flagship",
+        "weightedScore": 0.7878007222235675,
+        "estimatedCost": 0.0144
+      },
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.7872657922051343,
+        "estimatedCost": 0.028
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "category": "code-simple",
+    "text": "Write a regex in JavaScript that matches UK postcodes.",
+    "expect": "Cheap fast model (Haiku / Gemini Flash / Mistral Small)",
+    "classification": {
+      "task_type": "code",
+      "task_subtype": "regex_generation",
+      "complexity": "moderate",
+      "input_length": "short",
+      "needs_vision": false,
+      "needs_tools": false,
+      "needs_code": true,
+      "needs_reasoning": false,
+      "is_recurring": false,
+      "confidence": 0.95,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "minimax-m2.7",
+        "name": "MiniMax M2.7",
+        "provider": "MiniMax",
+        "tier": "flagship",
+        "weightedScore": 0.7181011173005746,
+        "estimatedCost": 0.00045
+      },
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.713879610063062,
+        "estimatedCost": 0.001
+      },
+      {
+        "slug": "llama-4-maverick",
+        "name": "Llama 4 Maverick",
+        "provider": "Meta (via hosted providers)",
+        "tier": "open_source_flagship",
+        "weightedScore": 0.7102549396349888,
+        "estimatedCost": 0.0003475
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "category": "code-debug",
+    "text": "I have a flaky integration test in our Node.js CI; help me identify likely race conditions.",
+    "expect": "Strong reasoner (Opus / Sonnet / o-series)",
+    "classification": {
+      "task_type": "analyse",
+      "task_subtype": "debugging_race_conditions",
+      "complexity": "complex",
+      "input_length": "medium",
+      "needs_vision": false,
+      "needs_tools": false,
+      "needs_code": true,
+      "needs_reasoning": true,
+      "is_recurring": true,
+      "confidence": 0.85,
+      "clarification_needed": false,
+      "suggested_questions": [
+        {
+          "question": "Can you share the test code and a sample of the failure logs?",
+          "options": [
+            "Yes, I can paste the code",
+            "I can describe the test but not paste it",
+            "I need help setting up the analysis first"
+          ]
+        },
+        {
+          "question": "Does the flakiness happen randomly, or in specific scenarios?",
+          "options": [
+            "Random failures",
+            "Fails under load/high concurrency",
+            "Specific timing conditions"
+          ]
+        }
+      ],
+      "pipeline_recommended": true,
+      "pipeline_stages": [
+        {
+          "stage": 1,
+          "task_type": "extract",
+          "description": "Extract test code, async patterns, shared state, and timing-sensitive operations",
+          "requires_capabilities": [
+            "code_understanding"
+          ]
+        },
+        {
+          "stage": 2,
+          "task_type": "analyse",
+          "description": "Identify potential race conditions: unhandled promise chains, missing await, shared mutable state, timing assumptions, event handler ordering",
+          "requires_capabilities": [
+            "reasoning",
+            "async_semantics"
+          ]
+        },
+        {
+          "stage": 3,
+          "task_type": "generate",
+          "description": "Propose fixes: proper await/async, locks/mutexes, test isolation, deterministic ordering",
+          "requires_capabilities": [
+            "code_generation"
+          ]
+        }
+      ]
+    },
+    "top3": [
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.8323835815760405,
+        "estimatedCost": 0.016
+      },
+      {
+        "slug": "qwen3.5-397b",
+        "name": "Qwen 3.5 397B",
+        "provider": "Alibaba",
+        "tier": "flagship",
+        "weightedScore": 0.7925861806624085,
+        "estimatedCost": 0.0036
+      },
+      {
+        "slug": "minimax-m2.7",
+        "name": "MiniMax M2.7",
+        "provider": "MiniMax",
+        "tier": "flagship",
+        "weightedScore": 0.7847641738749223,
+        "estimatedCost": 0.0018
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "category": "code-frontend",
+    "text": "Build a React + Tailwind dashboard component that visualises time-series metrics with brushing and zoom.",
+    "expect": "Sonnet 4.6 / Opus 4.7 (frontend strength)",
+    "classification": {
+      "task_type": "code",
+      "task_subtype": "component development",
+      "complexity": "complex",
+      "input_length": "medium",
+      "needs_vision": false,
+      "needs_tools": true,
+      "needs_code": true,
+      "needs_reasoning": true,
+      "is_recurring": false,
+      "confidence": 0.92,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.8012514677137345,
+        "estimatedCost": 0.016
+      },
+      {
+        "slug": "minimax-m2.7",
+        "name": "MiniMax M2.7",
+        "provider": "MiniMax",
+        "tier": "flagship",
+        "weightedScore": 0.7895395320006362,
+        "estimatedCost": 0.0018
+      },
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.7861322611665108,
+        "estimatedCost": 0.004
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "category": "sum-short",
+    "text": "Summarise this 3-paragraph press release into a tweet.",
+    "expect": "Haiku / Flash / cheapest decent",
+    "classification": {
+      "task_type": "summarise",
+      "task_subtype": "condensation_to_tweet",
+      "complexity": "simple",
+      "input_length": "short",
+      "needs_vision": false,
+      "needs_tools": false,
+      "needs_code": false,
+      "needs_reasoning": false,
+      "is_recurring": true,
+      "confidence": 0.95,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.7310017018008012,
+        "estimatedCost": 0.001
+      },
+      {
+        "slug": "llama-4-maverick",
+        "name": "Llama 4 Maverick",
+        "provider": "Meta (via hosted providers)",
+        "tier": "open_source_flagship",
+        "weightedScore": 0.7215521437876096,
+        "estimatedCost": 0.0003475
+      },
+      {
+        "slug": "greenpt-greenr",
+        "name": "GreenPT GreenR (GPT-OSS 120B)",
+        "provider": "GreenPT",
+        "tier": "sustainable_flagship",
+        "weightedScore": 0.704268348767014,
+        "estimatedCost": 0.0004125
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "category": "sum-long",
+    "text": "Summarise a 200-page board report into a 2-page exec brief, preserving numerical figures exactly.",
+    "expect": "Long-context model (Gemini 2.5 Pro / Sonnet)",
+    "classification": {
+      "task_type": "summarise",
+      "task_subtype": "executive_brief",
+      "complexity": "moderate",
+      "input_length": "very_long",
+      "needs_vision": false,
+      "needs_tools": false,
+      "needs_code": false,
+      "needs_reasoning": true,
+      "is_recurring": true,
+      "confidence": 0.92,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.801815984666396,
+        "estimatedCost": 0.028
+      },
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.7809988337762405,
+        "estimatedCost": 0.112
+      },
+      {
+        "slug": "greenpt-greenr",
+        "name": "GreenPT GreenR (GPT-OSS 120B)",
+        "provider": "GreenPT",
+        "tier": "sustainable_flagship",
+        "weightedScore": 0.7492920999443228,
+        "estimatedCost": 0.015
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "category": "sum-meeting",
+    "text": "Summarise weekly Zoom meeting transcripts (~30k tokens each) into action items.",
+    "expect": "Haiku / Flash long-context, recurring → cost-sensitive",
+    "classification": {
+      "task_type": "summarise",
+      "task_subtype": "meeting_notes_to_action_items",
+      "complexity": "moderate",
+      "input_length": "very_long",
+      "needs_vision": false,
+      "needs_tools": false,
+      "needs_code": false,
+      "needs_reasoning": true,
+      "is_recurring": true,
+      "confidence": 0.92,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.801815984666396,
+        "estimatedCost": 0.028
+      },
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.7809988337762405,
+        "estimatedCost": 0.112
+      },
+      {
+        "slug": "greenpt-greenr",
+        "name": "GreenPT GreenR (GPT-OSS 120B)",
+        "provider": "GreenPT",
+        "tier": "sustainable_flagship",
+        "weightedScore": 0.7492920999443228,
+        "estimatedCost": 0.015
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "category": "extract-pdf",
+    "text": "Extract line items, totals and VAT from scanned PDF invoices.",
+    "expect": "Vision-capable (Gemini / Sonnet / GPT-5.4) — likely pipeline",
+    "classification": {
+      "task_type": "extract",
+      "task_subtype": "invoice_data_extraction",
+      "complexity": "moderate",
+      "input_length": "medium",
+      "needs_vision": true,
+      "needs_tools": false,
+      "needs_code": false,
+      "needs_reasoning": false,
+      "is_recurring": true,
+      "confidence": 0.92,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.739444190714685,
+        "estimatedCost": 0.004
+      },
+      {
+        "slug": "llama-4-maverick",
+        "name": "Llama 4 Maverick",
+        "provider": "Meta (via hosted providers)",
+        "tier": "open_source_flagship",
+        "weightedScore": 0.7126291081650633,
+        "estimatedCost": 0.00139
+      },
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.7090045047634257,
+        "estimatedCost": 0.016
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "category": "extract-text",
+    "text": "Pull all email addresses and phone numbers out of a 50-page contract.",
+    "expect": "Cheap structured-output model",
+    "classification": {
+      "task_type": "extract",
+      "task_subtype": "contact_information_extraction",
+      "complexity": "simple",
+      "input_length": "long",
+      "needs_vision": false,
+      "needs_tools": false,
+      "needs_code": false,
+      "needs_reasoning": false,
+      "is_recurring": false,
+      "confidence": 0.92,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.726578439219674,
+        "estimatedCost": 0.01
+      },
+      {
+        "slug": "ibm-granite-3.3",
+        "name": "IBM Granite 4.0 Micro",
+        "provider": "IBM",
+        "tier": "enterprise_transparent",
+        "weightedScore": 0.7240656275653506,
+        "estimatedCost": 0.0032
+      },
+      {
+        "slug": "llama-4-maverick",
+        "name": "Llama 4 Maverick",
+        "provider": "Meta (via hosted providers)",
+        "tier": "open_source_flagship",
+        "weightedScore": 0.7080374959585369,
+        "estimatedCost": 0.0038599999999999997
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "category": "extract-struct",
+    "text": "Convert messy free-text product reviews into JSON with sentiment, topics and aspect ratings.",
+    "expect": "Structured-output mid-tier",
+    "classification": {
+      "task_type": "extract",
+      "task_subtype": "structured_data_extraction",
+      "complexity": "moderate",
+      "input_length": "medium",
+      "needs_vision": false,
+      "needs_tools": false,
+      "needs_code": false,
+      "needs_reasoning": true,
+      "is_recurring": true,
+      "confidence": 0.85,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.8007397015426959,
+        "estimatedCost": 0.004
+      },
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.7744522020149914,
+        "estimatedCost": 0.016
+      },
+      {
+        "slug": "greenpt-greenr",
+        "name": "GreenPT GreenR (GPT-OSS 120B)",
+        "provider": "GreenPT",
+        "tier": "sustainable_flagship",
+        "weightedScore": 0.7534732052651614,
+        "estimatedCost": 0.00165
+      }
+    ]
+  },
+  {
+    "id": 11,
+    "category": "gen-creative",
+    "text": "Write a 1500-word short story in the style of Ursula K Le Guin about an AI that learns to garden.",
+    "expect": "Creative-writing top model (Opus / Sonnet)",
+    "classification": {
+      "task_type": "generate",
+      "task_subtype": "creative_fiction",
+      "complexity": "moderate",
+      "input_length": "short",
+      "needs_vision": false,
+      "needs_tools": false,
+      "needs_code": false,
+      "needs_reasoning": true,
+      "is_recurring": false,
+      "confidence": 0.92,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.7831263421092438,
+        "estimatedCost": 0.001
+      },
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.7641662869581903,
+        "estimatedCost": 0.004
+      },
+      {
+        "slug": "minimax-m2.7",
+        "name": "MiniMax M2.7",
+        "provider": "MiniMax",
+        "tier": "flagship",
+        "weightedScore": 0.7449392729313848,
+        "estimatedCost": 0.00045
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "category": "gen-marketing",
+    "text": "Draft 5 LinkedIn posts announcing a new B2B SaaS feature, varied in tone.",
+    "expect": "Mid-tier (Sonnet / Gemini Pro / GPT-5.4 mini)",
+    "classification": {
+      "task_type": "generate",
+      "task_subtype": "social_media_content",
+      "complexity": "moderate",
+      "input_length": "short",
+      "needs_vision": false,
+      "needs_tools": false,
+      "needs_code": false,
+      "needs_reasoning": true,
+      "is_recurring": true,
+      "confidence": 0.92,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.7831263421092438,
+        "estimatedCost": 0.001
+      },
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.7641662869581903,
+        "estimatedCost": 0.004
+      },
+      {
+        "slug": "minimax-m2.7",
+        "name": "MiniMax M2.7",
+        "provider": "MiniMax",
+        "tier": "flagship",
+        "weightedScore": 0.7449392729313848,
+        "estimatedCost": 0.00045
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "category": "gen-email",
+    "text": "Write a polite follow-up email to a client who has not replied for 2 weeks.",
+    "expect": "Cheap fast (Haiku / Flash)",
+    "classification": {
+      "task_type": "generate",
+      "task_subtype": "email",
+      "complexity": "simple",
+      "input_length": "short",
+      "needs_vision": false,
+      "needs_tools": false,
+      "needs_code": false,
+      "needs_reasoning": false,
+      "is_recurring": true,
+      "confidence": 0.95,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.7146411966343258,
+        "estimatedCost": 0.001
+      },
+      {
+        "slug": "llama-4-maverick",
+        "name": "Llama 4 Maverick",
+        "provider": "Meta (via hosted providers)",
+        "tier": "open_source_flagship",
+        "weightedScore": 0.7084637396544293,
+        "estimatedCost": 0.0003475
+      },
+      {
+        "slug": "ibm-granite-3.3",
+        "name": "IBM Granite 4.0 Micro",
+        "provider": "IBM",
+        "tier": "enterprise_transparent",
+        "weightedScore": 0.6897447955760525,
+        "estimatedCost": 0.00030000000000000003
+      }
+    ]
+  },
+  {
+    "id": 14,
+    "category": "gen-report",
+    "text": "Generate a 20-page market-research report on the UK ed-tech sector with citations and charts described.",
+    "expect": "Strong + long-context (Opus / Gemini 2.5 Pro)",
+    "classification": {
+      "task_type": "generate",
+      "task_subtype": "market research report",
+      "complexity": "complex",
+      "input_length": "medium",
+      "needs_vision": false,
+      "needs_tools": true,
+      "needs_code": false,
+      "needs_reasoning": true,
+      "is_recurring": false,
+      "confidence": 0.85,
+      "clarification_needed": false,
+      "suggested_questions": [
+        {
+          "question": "Do you have existing research materials or data to draw from, or should the model research from general knowledge?",
+          "options": [
+            "I have source materials to provide",
+            "Use general knowledge and public data",
+            "Both – I'll provide some sources plus fill gaps"
+          ]
+        },
+        {
+          "question": "What's the primary audience for this report?",
+          "options": [
+            "Investors/financial stakeholders",
+            "Industry professionals",
+            "Government/policymakers",
+            "General business audience"
+          ]
+        }
+      ],
+      "pipeline_recommended": true,
+      "pipeline_stages": [
+        {
+          "stage": 1,
+          "task_type": "analyse",
+          "description": "Research and analyse UK ed-tech sector trends, market size, key players, growth drivers, and competitive landscape",
+          "requires_capabilities": [
+            "reasoning",
+            "knowledge retrieval"
+          ]
+        },
+        {
+          "stage": 2,
+          "task_type": "generate",
+          "description": "Synthesise analysis into structured 20-page report with executive summary, sections, findings, and recommendations",
+          "requires_capabilities": [
+            "long-form generation",
+            "structured writing"
+          ]
+        },
+        {
+          "stage": 3,
+          "task_type": "generate",
+          "description": "Generate descriptions of charts, visualisations, and cite sources throughout the report",
+          "requires_capabilities": [
+            "citation formatting",
+            "data visualisation description"
+          ]
+        }
+      ]
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.8014744446192041,
+        "estimatedCost": 0.004
+      },
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.7978579692323094,
+        "estimatedCost": 0.016
+      },
+      {
+        "slug": "claude-opus-4.6",
+        "name": "Claude Opus 4.6",
+        "provider": "Anthropic",
+        "tier": "flagship",
+        "weightedScore": 0.770326042356404,
+        "estimatedCost": 0.035
+      }
+    ]
+  },
+  {
+    "id": 15,
+    "category": "analyse-data",
+    "text": "Analyse this CSV of 10k customer transactions and identify churn predictors.",
+    "expect": "Strong reasoner with code/tools (Opus / GPT-5.4)",
+    "classification": {
+      "task_type": "analyse",
+      "task_subtype": "predictive analytics / churn prediction",
+      "complexity": "complex",
+      "input_length": "long",
+      "needs_vision": false,
+      "needs_tools": true,
+      "needs_code": true,
+      "needs_reasoning": true,
+      "is_recurring": true,
+      "confidence": 0.85,
+      "clarification_needed": false,
+      "suggested_questions": [
+        {
+          "question": "What format is your CSV in, and do you have labels for churned vs. active customers?",
+          "options": [
+            "Yes, clearly labeled churn column",
+            "No labels, need to infer from behavior",
+            "Unsure"
+          ]
+        },
+        {
+          "question": "Do you want just correlation analysis, or predictive model building?",
+          "options": [
+            "Correlation/statistical analysis only",
+            "Build a predictive model (e.g., logistic regression, decision tree)",
+            "Both"
+          ]
+        }
+      ],
+      "pipeline_recommended": true,
+      "pipeline_stages": [
+        {
+          "stage": 1,
+          "task_type": "extract",
+          "description": "Parse and validate CSV; handle missing values, outliers, and data quality issues",
+          "requires_capabilities": [
+            "data manipulation",
+            "code execution"
+          ]
+        },
+        {
+          "stage": 2,
+          "task_type": "analyse",
+          "description": "Exploratory data analysis: compute correlations, statistical tests, identify patterns in churned vs. active cohorts",
+          "requires_capabilities": [
+            "statistical reasoning",
+            "code execution",
+            "data visualization"
+          ]
+        },
+        {
+          "stage": 3,
+          "task_type": "code",
+          "description": "Build and train predictive model; feature engineering; evaluate feature importance",
+          "requires_capabilities": [
+            "machine learning libraries",
+            "code execution",
+            "statistical reasoning"
+          ]
+        },
+        {
+          "stage": 4,
+          "task_type": "generate",
+          "description": "Summarize findings and recommendations in a report with visualizations and actionable insights",
+          "requires_capabilities": [
+            "structured writing",
+            "data visualization"
+          ]
+        }
+      ]
+    },
+    "top3": [
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.8328466600350403,
+        "estimatedCost": 0.04
+      },
+      {
+        "slug": "qwen3.5-397b",
+        "name": "Qwen 3.5 397B",
+        "provider": "Alibaba",
+        "tier": "flagship",
+        "weightedScore": 0.7893866783884099,
+        "estimatedCost": 0.0104
+      },
+      {
+        "slug": "minimax-m2.7",
+        "name": "MiniMax M2.7",
+        "provider": "MiniMax",
+        "tier": "flagship",
+        "weightedScore": 0.783651997682121,
+        "estimatedCost": 0.0048
+      }
+    ]
+  },
+  {
+    "id": 16,
+    "category": "analyse-legal",
+    "text": "Review a 40-page commercial lease and flag clauses that are unusual or risky for the tenant.",
+    "expect": "High-quality + long-context (Opus / Sonnet / Gemini Pro)",
+    "classification": {
+      "task_type": "analyse",
+      "task_subtype": "legal-risk-assessment",
+      "complexity": "complex",
+      "input_length": "long",
+      "needs_vision": false,
+      "needs_tools": false,
+      "needs_code": false,
+      "needs_reasoning": true,
+      "is_recurring": false,
+      "confidence": 0.92,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.8328466600350403,
+        "estimatedCost": 0.04
+      },
+      {
+        "slug": "qwen3.5-397b",
+        "name": "Qwen 3.5 397B",
+        "provider": "Alibaba",
+        "tier": "flagship",
+        "weightedScore": 0.7893866783884099,
+        "estimatedCost": 0.0104
+      },
+      {
+        "slug": "minimax-m2.7",
+        "name": "MiniMax M2.7",
+        "provider": "MiniMax",
+        "tier": "flagship",
+        "weightedScore": 0.783651997682121,
+        "estimatedCost": 0.0048
+      }
+    ]
+  },
+  {
+    "id": 17,
+    "category": "analyse-math",
+    "text": "Solve this system of nonlinear PDEs symbolically and explain the steps.",
+    "expect": "Reasoning model (o-series / DeepSeek R1 / Opus)",
+    "classification": {
+      "task_type": "code",
+      "task_subtype": "symbolic_mathematics",
+      "complexity": "complex",
+      "input_length": "medium",
+      "needs_vision": false,
+      "needs_tools": true,
+      "needs_code": true,
+      "needs_reasoning": true,
+      "is_recurring": false,
+      "confidence": 0.95,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": true,
+      "pipeline_stages": [
+        {
+          "stage": 1,
+          "task_type": "code",
+          "description": "Parse and set up the system of nonlinear PDEs using symbolic mathematics library (e.g., SymPy, Mathematica)",
+          "requires_capabilities": [
+            "symbolic_math",
+            "code_execution"
+          ]
+        },
+        {
+          "stage": 2,
+          "task_type": "code",
+          "description": "Attempt symbolic solution using available methods (separation of variables, Fourier transforms, numerical approximation if needed)",
+          "requires_capabilities": [
+            "symbolic_math",
+            "advanced_calculus",
+            "code_execution"
+          ]
+        },
+        {
+          "stage": 3,
+          "task_type": "analyse",
+          "description": "Analyze solution validity, convergence, and special cases",
+          "requires_capabilities": [
+            "mathematical_reasoning",
+            "proof_construction"
+          ]
+        },
+        {
+          "stage": 4,
+          "task_type": "generate",
+          "description": "Generate clear step-by-step explanation of the solution process",
+          "requires_capabilities": [
+            "mathematical_communication"
+          ]
+        }
+      ]
+    },
+    "top3": [
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.8012514677137345,
+        "estimatedCost": 0.016
+      },
+      {
+        "slug": "minimax-m2.7",
+        "name": "MiniMax M2.7",
+        "provider": "MiniMax",
+        "tier": "flagship",
+        "weightedScore": 0.7895395320006362,
+        "estimatedCost": 0.0018
+      },
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.7861322611665108,
+        "estimatedCost": 0.004
+      }
+    ]
+  },
+  {
+    "id": 18,
+    "category": "analyse-strat",
+    "text": "Help me think through whether to expand into the German market — pros, cons, risks.",
+    "expect": "Strategic reasoner (Opus / Sonnet)",
+    "classification": {
+      "task_type": "analyse",
+      "task_subtype": "strategic_decision_analysis",
+      "complexity": "complex",
+      "input_length": "medium",
+      "needs_vision": false,
+      "needs_tools": false,
+      "needs_code": false,
+      "needs_reasoning": true,
+      "is_recurring": false,
+      "confidence": 0.85,
+      "clarification_needed": false,
+      "suggested_questions": [
+        {
+          "question": "What industry or sector is your business in?",
+          "options": [
+            "Technology/SaaS",
+            "E-commerce/Retail",
+            "Manufacturing",
+            "Services",
+            "Other"
+          ]
+        },
+        {
+          "question": "Do you have existing market entry research or data to work from?",
+          "options": [
+            "No, starting from scratch",
+            "Yes, preliminary research done",
+            "Yes, comprehensive market analysis"
+          ]
+        }
+      ],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.8323835815760405,
+        "estimatedCost": 0.016
+      },
+      {
+        "slug": "qwen3.5-397b",
+        "name": "Qwen 3.5 397B",
+        "provider": "Alibaba",
+        "tier": "flagship",
+        "weightedScore": 0.7925861806624085,
+        "estimatedCost": 0.0036
+      },
+      {
+        "slug": "minimax-m2.7",
+        "name": "MiniMax M2.7",
+        "provider": "MiniMax",
+        "tier": "flagship",
+        "weightedScore": 0.7847641738749223,
+        "estimatedCost": 0.0018
+      }
+    ]
+  },
+  {
+    "id": 19,
+    "category": "translate",
+    "text": "Translate this technical white paper from English into Brazilian Portuguese, preserving terminology.",
+    "expect": "Multilingual top model (Gemini / GPT / DeepSeek)",
+    "classification": {
+      "task_type": "translate",
+      "task_subtype": "technical translation with terminology preservation",
+      "complexity": "moderate",
+      "input_length": "long",
+      "needs_vision": false,
+      "needs_tools": false,
+      "needs_code": false,
+      "needs_reasoning": true,
+      "is_recurring": false,
+      "confidence": 0.85,
+      "clarification_needed": false,
+      "suggested_questions": [
+        {
+          "question": "Do you have a glossary or list of preferred technical terms for this domain?",
+          "options": [
+            "Yes, I'll provide it",
+            "No, use standard terminology",
+            "Not sure"
+          ]
+        }
+      ],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.8007248679186957,
+        "estimatedCost": 0.01
+      },
+      {
+        "slug": "qwen3.5-397b",
+        "name": "Qwen 3.5 397B",
+        "provider": "Alibaba",
+        "tier": "flagship",
+        "weightedScore": 0.7646444457463979,
+        "estimatedCost": 0.0104
+      },
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.7627452713175663,
+        "estimatedCost": 0.04
+      }
+    ]
+  },
+  {
+    "id": 20,
+    "category": "translate-bulk",
+    "text": "Translate 200 short product descriptions from English to French daily.",
+    "expect": "Cheap multilingual (Mistral / Haiku / Flash)",
+    "classification": {
+      "task_type": "translate",
+      "task_subtype": "batch_product_descriptions",
+      "complexity": "simple",
+      "input_length": "medium",
+      "needs_vision": false,
+      "needs_tools": false,
+      "needs_code": false,
+      "needs_reasoning": false,
+      "is_recurring": true,
+      "confidence": 0.95,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "llama-4-maverick",
+        "name": "Llama 4 Maverick",
+        "provider": "Meta (via hosted providers)",
+        "tier": "open_source_flagship",
+        "weightedScore": 0.7272025045199995,
+        "estimatedCost": 0.00139
+      },
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.7259400237612449,
+        "estimatedCost": 0.004
+      },
+      {
+        "slug": "greenpt-greenl",
+        "name": "GreenPT GreenL (Mistral Small 3.2 24B)",
+        "provider": "GreenPT",
+        "tier": "sustainable_balanced",
+        "weightedScore": 0.7044337082015604,
+        "estimatedCost": 0.0013
+      }
+    ]
+  },
+  {
+    "id": 21,
+    "category": "convo-tutor",
+    "text": "Build a chatbot that tutors GCSE maths students step-by-step.",
+    "expect": "Mid-tier with reasoning (Sonnet / Gemini Pro / GPT-5.4 mini)",
+    "classification": {
+      "task_type": "conversation",
+      "task_subtype": "tutoring_chatbot",
+      "complexity": "complex",
+      "input_length": "medium",
+      "needs_vision": false,
+      "needs_tools": true,
+      "needs_code": true,
+      "needs_reasoning": true,
+      "is_recurring": true,
+      "confidence": 0.85,
+      "clarification_needed": true,
+      "suggested_questions": [
+        {
+          "question": "What's your delivery method preference?",
+          "options": [
+            "API integration",
+            "Standalone web interface",
+            "Messaging platform (Discord/Slack/Telegram)"
+          ]
+        },
+        {
+          "question": "Should the chatbot handle symbolic maths, or text-based explanations only?",
+          "options": [
+            "Text explanations only",
+            "Include mathematical notation/LaTeX rendering",
+            "Include step-by-step worked solutions with diagrams"
+          ]
+        },
+        {
+          "question": "Do you need to track student progress/analytics, or just conversation?",
+          "options": [
+            "Conversation only",
+            "Track progress and scores",
+            "Full analytics dashboard"
+          ]
+        }
+      ],
+      "pipeline_recommended": true,
+      "pipeline_stages": [
+        {
+          "stage": 1,
+          "task_type": "code",
+          "description": "Set up chatbot framework and conversation management system",
+          "requires_capabilities": [
+            "code",
+            "tools"
+          ]
+        },
+        {
+          "stage": 2,
+          "task_type": "generate",
+          "description": "Craft prompts and response templates for step-by-step tutoring pedagogy",
+          "requires_capabilities": [
+            "conversation",
+            "reasoning"
+          ]
+        },
+        {
+          "stage": 3,
+          "task_type": "analyse",
+          "description": "Evaluate student responses and determine next tutoring steps",
+          "requires_capabilities": [
+            "reasoning",
+            "conversation"
+          ]
+        },
+        {
+          "stage": 4,
+          "task_type": "code",
+          "description": "Integrate with backend (data storage, logging, optional analytics)",
+          "requires_capabilities": [
+            "code",
+            "tools"
+          ]
+        }
+      ]
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.8014744446192041,
+        "estimatedCost": 0.004
+      },
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.7692971452553213,
+        "estimatedCost": 0.016
+      },
+      {
+        "slug": "minimax-m2.7",
+        "name": "MiniMax M2.7",
+        "provider": "MiniMax",
+        "tier": "flagship",
+        "weightedScore": 0.7639987301131156,
+        "estimatedCost": 0.0018
+      }
+    ]
+  },
+  {
+    "id": 23,
+    "category": "convo-therapy",
+    "text": "A reflective journaling companion that asks gentle follow-up questions.",
+    "expect": "Haiku / Sonnet (warmth + safety)",
+    "classification": {
+      "task_type": "conversation",
+      "task_subtype": "reflective dialogue / journaling support",
+      "complexity": "moderate",
+      "input_length": "medium",
+      "needs_vision": false,
+      "needs_tools": false,
+      "needs_code": false,
+      "needs_reasoning": true,
+      "is_recurring": true,
+      "confidence": 0.85,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.7787850482030279,
+        "estimatedCost": 0.004
+      },
+      {
+        "slug": "minimax-m2.7",
+        "name": "MiniMax M2.7",
+        "provider": "MiniMax",
+        "tier": "flagship",
+        "weightedScore": 0.7507693188405227,
+        "estimatedCost": 0.0018
+      },
+      {
+        "slug": "greenpt-greenr",
+        "name": "GreenPT GreenR (GPT-OSS 120B)",
+        "provider": "GreenPT",
+        "tier": "sustainable_flagship",
+        "weightedScore": 0.7471349069015125,
+        "estimatedCost": 0.00165
+      }
+    ]
+  },
+  {
+    "id": 24,
+    "category": "vision-classify",
+    "text": "Classify product photos into 30 categories from an e-commerce catalogue.",
+    "expect": "Vision capable cheap (Gemini Flash / Haiku vision)",
+    "classification": {
+      "task_type": "extract",
+      "task_subtype": "multi-class image classification",
+      "complexity": "moderate",
+      "input_length": "long",
+      "needs_vision": true,
+      "needs_tools": true,
+      "needs_code": false,
+      "needs_reasoning": false,
+      "is_recurring": true,
+      "confidence": 0.85,
+      "clarification_needed": false,
+      "suggested_questions": [
+        {
+          "question": "How many product photos do you need to classify?",
+          "options": [
+            "A few dozen (< 100)",
+            "Hundreds (100-1000)",
+            "Thousands (1000+)"
+          ]
+        },
+        {
+          "question": "Do you have labeled training examples or a reference catalogue?",
+          "options": [
+            "Yes, I have examples",
+            "No, descriptions only",
+            "Unsure"
+          ]
+        }
+      ],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.7397703597035781,
+        "estimatedCost": 0.01
+      },
+      {
+        "slug": "llama-4-maverick",
+        "name": "Llama 4 Maverick",
+        "provider": "Meta (via hosted providers)",
+        "tier": "open_source_flagship",
+        "weightedScore": 0.7102237450812257,
+        "estimatedCost": 0.0038599999999999997
+      },
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.7095835047841583,
+        "estimatedCost": 0.04
+      }
+    ]
+  },
+  {
+    "id": 25,
+    "category": "vision-ocr",
+    "text": "OCR handwritten doctor notes from scanned charts into searchable text.",
+    "expect": "Vision + accuracy (Gemini Pro / Sonnet / GPT-5.4)",
+    "classification": {
+      "task_type": "extract",
+      "task_subtype": "OCR handwriting recognition",
+      "complexity": "moderate",
+      "input_length": "medium",
+      "needs_vision": true,
+      "needs_tools": false,
+      "needs_code": false,
+      "needs_reasoning": false,
+      "is_recurring": true,
+      "confidence": 0.85,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.739444190714685,
+        "estimatedCost": 0.004
+      },
+      {
+        "slug": "llama-4-maverick",
+        "name": "Llama 4 Maverick",
+        "provider": "Meta (via hosted providers)",
+        "tier": "open_source_flagship",
+        "weightedScore": 0.7126291081650633,
+        "estimatedCost": 0.00139
+      },
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.7090045047634257,
+        "estimatedCost": 0.016
+      }
+    ]
+  },
+  {
+    "id": 26,
+    "category": "pipeline-1",
+    "text": "Extract text from these 100 scanned receipts then categorise the spending and produce a monthly summary.",
+    "expect": "Pipeline: vision-extract → analyse → summarise",
+    "classification": {
+      "task_type": "extract",
+      "task_subtype": "multi-stage extraction and analysis",
+      "complexity": "complex",
+      "input_length": "very_long",
+      "needs_vision": true,
+      "needs_tools": true,
+      "needs_code": false,
+      "needs_reasoning": true,
+      "is_recurring": true,
+      "confidence": 0.92,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": true,
+      "pipeline_stages": [
+        {
+          "stage": 1,
+          "task_type": "extract",
+          "description": "OCR / text extraction from 100 scanned receipt images",
+          "requires_capabilities": [
+            "vision",
+            "ocr"
+          ]
+        },
+        {
+          "stage": 2,
+          "task_type": "extract",
+          "description": "Parse extracted text to pull structured data (date, vendor, amount, category hints)",
+          "requires_capabilities": [
+            "extraction",
+            "parsing"
+          ]
+        },
+        {
+          "stage": 3,
+          "task_type": "analyse",
+          "description": "Categorise spending by merchant/category and aggregate into monthly summary",
+          "requires_capabilities": [
+            "reasoning",
+            "data_aggregation"
+          ]
+        },
+        {
+          "stage": 4,
+          "task_type": "generate",
+          "description": "Produce formatted monthly spending summary report",
+          "requires_capabilities": [
+            "generation",
+            "formatting"
+          ]
+        }
+      ]
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.8267841701932743,
+        "estimatedCost": 0.028
+      },
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.8126200750612,
+        "estimatedCost": 0.112
+      },
+      {
+        "slug": "minimax-m2.7",
+        "name": "MiniMax M2.7",
+        "provider": "MiniMax",
+        "tier": "flagship",
+        "weightedScore": 0.7590270577896197,
+        "estimatedCost": 0.0144
+      }
+    ]
+  },
+  {
+    "id": 27,
+    "category": "pipeline-2",
+    "text": "Translate this Japanese research paper into English then write a 1-page lay summary.",
+    "expect": "Pipeline: translate → summarise",
+    "classification": {
+      "task_type": "generate",
+      "task_subtype": "translate_then_summarise",
+      "complexity": "moderate",
+      "input_length": "long",
+      "needs_vision": false,
+      "needs_tools": false,
+      "needs_code": false,
+      "needs_reasoning": true,
+      "is_recurring": false,
+      "confidence": 0.85,
+      "clarification_needed": false,
+      "suggested_questions": [],
+      "pipeline_recommended": true,
+      "pipeline_stages": [
+        {
+          "stage": 1,
+          "task_type": "translate",
+          "description": "Translate the Japanese research paper into English, preserving technical terminology and scientific accuracy.",
+          "requires_capabilities": [
+            "language_translation",
+            "domain_knowledge_science"
+          ]
+        },
+        {
+          "stage": 2,
+          "task_type": "summarise",
+          "description": "Condense the translated paper into a 1-page lay summary, making it accessible to a non-specialist audience.",
+          "requires_capabilities": [
+            "summarisation",
+            "writing",
+            "technical_simplification"
+          ]
+        }
+      ]
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.7791112171919209,
+        "estimatedCost": 0.01
+      },
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.7627452713175663,
+        "estimatedCost": 0.04
+      },
+      {
+        "slug": "minimax-m2.7",
+        "name": "MiniMax M2.7",
+        "provider": "MiniMax",
+        "tier": "flagship",
+        "weightedScore": 0.739462916186501,
+        "estimatedCost": 0.0048
+      }
+    ]
+  },
+  {
+    "id": 28,
+    "category": "pipeline-3",
+    "text": "Read our codebase, generate API docs, and translate them into Spanish.",
+    "expect": "Pipeline: code → generate → translate",
+    "classification": {
+      "task_type": "generate",
+      "task_subtype": "API documentation with translation",
+      "complexity": "complex",
+      "input_length": "long",
+      "needs_vision": false,
+      "needs_tools": true,
+      "needs_code": true,
+      "needs_reasoning": true,
+      "is_recurring": true,
+      "confidence": 0.85,
+      "clarification_needed": false,
+      "suggested_questions": [
+        {
+          "question": "How large is your codebase?",
+          "options": [
+            "Small (< 5 files)",
+            "Medium (5-50 files)",
+            "Large (50+ files)"
+          ]
+        },
+        {
+          "question": "Do you want the Spanish docs to maintain code examples in English, or translate those too?",
+          "options": [
+            "Keep code in English",
+            "Translate all text including examples"
+          ]
+        }
+      ],
+      "pipeline_recommended": true,
+      "pipeline_stages": [
+        {
+          "stage": 1,
+          "task_type": "code",
+          "description": "Read and analyse the codebase to understand API structure, functions, parameters, and return types",
+          "requires_capabilities": [
+            "code_understanding",
+            "reasoning"
+          ]
+        },
+        {
+          "stage": 2,
+          "task_type": "generate",
+          "description": "Generate comprehensive API documentation in English with clear descriptions, usage examples, and parameter details",
+          "requires_capabilities": [
+            "code_knowledge",
+            "technical_writing"
+          ]
+        },
+        {
+          "stage": 3,
+          "task_type": "translate",
+          "description": "Translate the generated API documentation from English to Spanish while preserving technical terminology and code examples",
+          "requires_capabilities": [
+            "translation",
+            "technical_language"
+          ]
+        }
+      ]
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.801735311333093,
+        "estimatedCost": 0.01
+      },
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.7983210476913093,
+        "estimatedCost": 0.04
+      },
+      {
+        "slug": "claude-opus-4.6",
+        "name": "Claude Opus 4.6",
+        "provider": "Anthropic",
+        "tier": "flagship",
+        "weightedScore": 0.770326042356404,
+        "estimatedCost": 0.09
+      }
+    ]
+  },
+  {
+    "id": 29,
+    "category": "vague",
+    "text": "Help me with AI stuff.",
+    "expect": "Should ask for clarification",
+    "classification": {
+      "task_type": "other",
+      "task_subtype": null,
+      "complexity": "simple",
+      "input_length": "short",
+      "needs_vision": false,
+      "needs_tools": false,
+      "needs_code": false,
+      "needs_reasoning": false,
+      "is_recurring": false,
+      "confidence": 0,
+      "clarification_needed": true,
+      "suggested_questions": [
+        {
+          "question": "What do you want to use AI for?",
+          "options": [
+            "Writing or generating content",
+            "Analysing or understanding information",
+            "Writing or debugging code",
+            "Summarising text",
+            "Extracting data",
+            "Something else"
+          ]
+        },
+        {
+          "question": "Do you have specific content or files you want to work with?",
+          "options": [
+            "Yes, text content",
+            "Yes, images or PDFs",
+            "Yes, code files",
+            "No, just a general task"
+          ]
+        },
+        {
+          "question": "Is this a one-off task or something you'll do regularly?",
+          "options": [
+            "One-off",
+            "Recurring (weekly, daily, etc.)"
+          ]
+        }
+      ],
+      "pipeline_recommended": false,
+      "pipeline_stages": null
+    },
+    "top3": [
+      {
+        "slug": "ibm-granite-3.3",
+        "name": "IBM Granite 4.0 Micro",
+        "provider": "IBM",
+        "tier": "enterprise_transparent",
+        "weightedScore": 0.6308469769767413,
+        "estimatedCost": 0.00030000000000000003
+      },
+      {
+        "slug": "greenpt-greenl",
+        "name": "GreenPT GreenL (Mistral Small 3.2 24B)",
+        "provider": "GreenPT",
+        "tier": "sustainable_balanced",
+        "weightedScore": 0.6265938133187541,
+        "estimatedCost": 0.000325
+      },
+      {
+        "slug": "llama-4-maverick",
+        "name": "Llama 4 Maverick",
+        "provider": "Meta (via hosted providers)",
+        "tier": "open_source_flagship",
+        "weightedScore": 0.6168449107221676,
+        "estimatedCost": 0.0003475
+      }
+    ]
+  },
+  {
+    "id": 30,
+    "category": "privacy-heavy",
+    "text": "Process patient medical records to identify high-risk cases — must run on-prem with zero data egress.",
+    "expect": "Local / open-weight model (Llama / Mistral / Granite)",
+    "classification": {
+      "task_type": "analyse",
+      "task_subtype": "risk_assessment_medical",
+      "complexity": "complex",
+      "input_length": "long",
+      "needs_vision": false,
+      "needs_tools": true,
+      "needs_code": true,
+      "needs_reasoning": true,
+      "is_recurring": true,
+      "confidence": 0.85,
+      "clarification_needed": false,
+      "suggested_questions": [
+        {
+          "question": "What format are the medical records in?",
+          "options": [
+            "Unstructured text (notes/PDFs)",
+            "Structured (HL7/FHIR)",
+            "Mix of both",
+            "Database/EHR system export"
+          ]
+        },
+        {
+          "question": "What defines 'high-risk' for your use case?",
+          "options": [
+            "Clinical criteria (specific diagnoses/labs)",
+            "Readmission probability",
+            "Complication risk",
+            "Custom scoring model"
+          ]
+        },
+        {
+          "question": "Do you need real-time processing or batch?",
+          "options": [
+            "Real-time/streaming",
+            "Daily batch",
+            "Weekly batch",
+            "On-demand"
+          ]
+        }
+      ],
+      "pipeline_recommended": true,
+      "pipeline_stages": [
+        {
+          "stage": 1,
+          "task_type": "extract",
+          "description": "Parse and extract key clinical entities from medical records (diagnoses, lab values, medications, vital signs)",
+          "requires_capabilities": [
+            "nlp",
+            "entity_extraction",
+            "medical_domain_knowledge",
+            "on_premise"
+          ]
+        },
+        {
+          "stage": 2,
+          "task_type": "analyse",
+          "description": "Apply risk stratification logic and reasoning against clinical criteria to identify high-risk cases",
+          "requires_capabilities": [
+            "reasoning",
+            "medical_domain_knowledge",
+            "on_premise"
+          ]
+        },
+        {
+          "stage": 3,
+          "task_type": "generate",
+          "description": "Generate risk reports/alerts with explanations and recommended actions",
+          "requires_capabilities": [
+            "on_premise"
+          ]
+        }
+      ]
+    },
+    "top3": [
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.8328466600350403,
+        "estimatedCost": 0.04
+      },
+      {
+        "slug": "qwen3.5-397b",
+        "name": "Qwen 3.5 397B",
+        "provider": "Alibaba",
+        "tier": "flagship",
+        "weightedScore": 0.7893866783884099,
+        "estimatedCost": 0.0104
+      },
+      {
+        "slug": "minimax-m2.7",
+        "name": "MiniMax M2.7",
+        "provider": "MiniMax",
+        "tier": "flagship",
+        "weightedScore": 0.783651997682121,
+        "estimatedCost": 0.0048
+      }
+    ]
+  },
+  {
+    "id": 31,
+    "category": "multilingual",
+    "text": "Build a chatbot that handles English, Arabic, Mandarin and Swahili customer queries.",
+    "expect": "Multilingual capable (Gemini / GPT-5.4 / DeepSeek)",
+    "classification": {
+      "task_type": "conversation",
+      "task_subtype": "multilingual_chatbot_development",
+      "complexity": "complex",
+      "input_length": "medium",
+      "needs_vision": false,
+      "needs_tools": true,
+      "needs_code": true,
+      "needs_reasoning": true,
+      "is_recurring": true,
+      "confidence": 0.75,
+      "clarification_needed": true,
+      "suggested_questions": [
+        {
+          "question": "What's the primary use case? (e.g., customer support, sales, FAQ)",
+          "options": [
+            "General customer support",
+            "Sales & product inquiry",
+            "Technical support",
+            "FAQ/self-service"
+          ]
+        },
+        {
+          "question": "Do you need to build this from scratch or integrate with existing systems?",
+          "options": [
+            "Build from scratch",
+            "Integrate with CRM/ticketing system",
+            "Deploy on specific platform (Slack, WhatsApp, etc.)"
+          ]
+        },
+        {
+          "question": "Should the chatbot handle context across multiple turns, or single-query responses?",
+          "options": [
+            "Single-query responses",
+            "Multi-turn conversation with context",
+            "Full session memory with history"
+          ]
+        }
+      ],
+      "pipeline_recommended": true,
+      "pipeline_stages": [
+        {
+          "stage": 1,
+          "task_type": "code",
+          "description": "Set up chatbot framework and integrate multilingual language detection/routing",
+          "requires_capabilities": [
+            "code",
+            "multi-language support"
+          ]
+        },
+        {
+          "stage": 2,
+          "task_type": "conversation",
+          "description": "Design conversation flows and response templates for each language",
+          "requires_capabilities": [
+            "conversation",
+            "domain knowledge",
+            "translation"
+          ]
+        },
+        {
+          "stage": 3,
+          "task_type": "code",
+          "description": "Implement backend integration (APIs, databases, business logic)",
+          "requires_capabilities": [
+            "code",
+            "tools"
+          ]
+        },
+        {
+          "stage": 4,
+          "task_type": "analyse",
+          "description": "Test, evaluate response quality across languages, and optimize",
+          "requires_capabilities": [
+            "reasoning",
+            "multilingual evaluation"
+          ]
+        }
+      ]
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.8014744446192041,
+        "estimatedCost": 0.004
+      },
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.7692971452553213,
+        "estimatedCost": 0.016
+      },
+      {
+        "slug": "minimax-m2.7",
+        "name": "MiniMax M2.7",
+        "provider": "MiniMax",
+        "tier": "flagship",
+        "weightedScore": 0.7639987301131156,
+        "estimatedCost": 0.0018
+      }
+    ]
+  },
+  {
+    "id": 32,
+    "category": "tools-agent",
+    "text": "Build an agent that can browse the web, run code, and call our internal API to schedule meetings.",
+    "expect": "Tool-use strong (Sonnet / Opus / GPT-5.4)",
+    "classification": {
+      "task_type": "code",
+      "task_subtype": "agent_development",
+      "complexity": "complex",
+      "input_length": "medium",
+      "needs_vision": false,
+      "needs_tools": true,
+      "needs_code": true,
+      "needs_reasoning": true,
+      "is_recurring": false,
+      "confidence": 0.85,
+      "clarification_needed": true,
+      "suggested_questions": [
+        {
+          "question": "What framework or runtime do you want to use?",
+          "options": [
+            "Python (e.g. LangChain, AutoGen)",
+            "JavaScript/Node.js",
+            "Other/framework-agnostic"
+          ]
+        },
+        {
+          "question": "Do you need help with the full implementation, or just architecture/design?",
+          "options": [
+            "Full implementation",
+            "Architecture & design only",
+            "Code review & refinement"
+          ]
+        },
+        {
+          "question": "Should the agent handle authentication to your internal API?",
+          "options": [
+            "Yes, include auth logic",
+            "No, assume auth is pre-configured",
+            "Unsure"
+          ]
+        }
+      ],
+      "pipeline_recommended": true,
+      "pipeline_stages": [
+        {
+          "stage": 1,
+          "task_type": "code",
+          "description": "Design and scaffold the agent architecture with tool bindings for web browsing, code execution, and API calls",
+          "requires_capabilities": [
+            "code_generation",
+            "system_design"
+          ]
+        },
+        {
+          "stage": 2,
+          "task_type": "code",
+          "description": "Implement tool definitions and integrations (web search/browsing, sandboxed execution, API client)",
+          "requires_capabilities": [
+            "code_generation",
+            "api_integration"
+          ]
+        },
+        {
+          "stage": 3,
+          "task_type": "code",
+          "description": "Build agent orchestration logic with reasoning loop and error handling",
+          "requires_capabilities": [
+            "code_generation",
+            "reasoning"
+          ]
+        },
+        {
+          "stage": 4,
+          "task_type": "analyse",
+          "description": "Review security, reliability, and performance considerations",
+          "requires_capabilities": [
+            "security_analysis",
+            "reasoning"
+          ]
+        }
+      ]
+    },
+    "top3": [
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.8012514677137345,
+        "estimatedCost": 0.016
+      },
+      {
+        "slug": "minimax-m2.7",
+        "name": "MiniMax M2.7",
+        "provider": "MiniMax",
+        "tier": "flagship",
+        "weightedScore": 0.7895395320006362,
+        "estimatedCost": 0.0018
+      },
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.7861322611665108,
+        "estimatedCost": 0.004
+      }
+    ]
+  },
+  {
+    "id": 34,
+    "category": "realtime",
+    "text": "A voice assistant that responds in under 200ms.",
+    "expect": "Fast tier (Flash / Haiku / Mistral Small)",
+    "classification": {
+      "task_type": "conversation",
+      "task_subtype": "real-time voice assistant",
+      "complexity": "complex",
+      "input_length": "short",
+      "needs_vision": false,
+      "needs_tools": true,
+      "needs_code": true,
+      "needs_reasoning": true,
+      "is_recurring": true,
+      "confidence": 0.5,
+      "clarification_needed": true,
+      "suggested_questions": [
+        {
+          "question": "What should the assistant do?",
+          "options": [
+            "Answer factual questions",
+            "Control smart home / IoT devices",
+            "Execute commands or workflows",
+            "Multiple of the above"
+          ]
+        },
+        {
+          "question": "Is the 200ms latency constraint for the full round-trip (including network), or just the model inference?",
+          "options": [
+            "Full round-trip (network + processing)",
+            "Model inference only",
+            "Unsure / flexible"
+          ]
+        },
+        {
+          "question": "Should this run on-device or cloud-based?",
+          "options": [
+            "On-device (phone, edge device)",
+            "Cloud-based",
+            "Hybrid"
+          ]
+        }
+      ],
+      "pipeline_recommended": true,
+      "pipeline_stages": [
+        {
+          "stage": 1,
+          "task_type": "extract",
+          "description": "Speech-to-text (transcribe audio input)",
+          "requires_capabilities": [
+            "audio_processing",
+            "low_latency"
+          ]
+        },
+        {
+          "stage": 2,
+          "task_type": "conversation",
+          "description": "Intent recognition and response generation",
+          "requires_capabilities": [
+            "fast_inference",
+            "context_awareness",
+            "tool_use"
+          ]
+        },
+        {
+          "stage": 3,
+          "task_type": "generate",
+          "description": "Text-to-speech (synthesize audio response)",
+          "requires_capabilities": [
+            "audio_synthesis",
+            "low_latency"
+          ]
+        }
+      ]
+    },
+    "top3": [
+      {
+        "slug": "gemini-3-flash",
+        "name": "Gemini 3 Flash",
+        "provider": "Google",
+        "tier": "balanced",
+        "weightedScore": 0.8049465683155247,
+        "estimatedCost": 0.001
+      },
+      {
+        "slug": "gemini-3.1-pro",
+        "name": "Gemini 3.1 Pro",
+        "provider": "Google",
+        "tier": "flagship",
+        "weightedScore": 0.7708967378930982,
+        "estimatedCost": 0.004
+      },
+      {
+        "slug": "minimax-m2.7",
+        "name": "MiniMax M2.7",
+        "provider": "MiniMax",
+        "tier": "flagship",
+        "weightedScore": 0.7672664895879251,
+        "estimatedCost": 0.00045
+      }
+    ]
+  }
+]
