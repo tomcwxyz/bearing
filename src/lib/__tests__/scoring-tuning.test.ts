@@ -42,14 +42,16 @@ describe('scoring tuning regressions (to be flipped in Phase 2)', () => {
       priorityOrder: defaultPriority,
     })
     const top3 = results.slice(0, 3).map(m => m.slug)
-    // Pin the bug: Claude Opus (the flagship coding model) is missing from
-    // the top 3 even when the user explicitly prioritises quality+capability
-    // for a complex coding task. Phase 2's weight compression should flip
-    // this — once it does, replace `not.toContain` with `toContain`.
+    // Phase 2.2 (rank-5+ weight damping) moved Claude Opus from rank ~14
+    // to rank ~11, but it still isn't in the top 3 — the open-weight
+    // benchmark/cost advantage in Gemini Flash and the open MiniMax/Qwen
+    // models is too strong even after damping. We're keeping the pin as
+    // `not.toContain` and will revisit in Phase 2.3+ (further task-fitness
+    // re-grades or quality-weight increase). Comment updated to reflect
+    // this so the next phase knows where it stands.
     expect(top3).not.toContain('claude-opus-4.6')
     // Looser secondary check: at least one of the four obvious flagships
-    // should be missing from the top 3 today. Once Phase 2 lands, the top 3
-    // should be dominated by flagships and this will fail too.
+    // should be missing from the top 3 today.
     const flagshipsInTop3 = top3.filter(slug => flagshipSlugs.includes(slug))
     expect(flagshipsInTop3.length).toBeLessThan(3)
   })
@@ -78,13 +80,12 @@ describe('scoring tuning regressions (to be flipped in Phase 2)', () => {
     // sufficient to differentiate simple vs complex coding recommendations:
     // the top-3 overlap dropped to ≤1. Phase 2.1's cost-curve compression
     // softens cost penalties for expensive models when cost is rank-3, which
-    // mildly re-homogenises the simple-vs-complex top-3 (overlap ≤2). The
-    // important property — neither top 3 contains Opus until Phase 2.2 — is
-    // still asserted below.
+    // mildly re-homogenises the simple-vs-complex top-3 (overlap ≤2).
     const overlap = simpleTop3.filter(slug => complexTop3.includes(slug)).length
     expect(overlap).toBeLessThanOrEqual(2)
-    // Neither top 3 should already contain Claude Opus today (otherwise
-    // Phase 2 has effectively already happened).
+    // Phase 2.2 did not yet flip these: Opus is still outside the top 3
+    // for both simple and complex code with default priorities. Will
+    // revisit in a later phase.
     expect(simpleTop3).not.toContain('claude-opus-4.6')
     expect(complexTop3).not.toContain('claude-opus-4.6')
   })
