@@ -78,6 +78,44 @@ function topN<T extends { name: string; provider: string; tier: string; weighted
   return arr.slice(0, n).map(m => `${m.name} (${m.provider}, ${m.tier}, w=${m.weightedScore.toFixed(3)}, $${m.estimatedCost.toFixed(4)})`)
 }
 
+// Simple CLI parsing — `--diff <baseline-path>` enables diff mode against a locked baseline.
+const diffFlagIndex = process.argv.indexOf('--diff')
+const diffBaselinePath = diffFlagIndex !== -1 ? process.argv[diffFlagIndex + 1] : undefined
+
+interface BaselineEntry {
+  id: number
+  category: string
+  top3: Array<{ slug: string; name: string }>
+}
+
+function loadBaseline(path: string): Map<number, BaselineEntry> {
+  const fs = require('fs') as typeof import('fs')
+  const raw = fs.readFileSync(path, 'utf8')
+  const parsed = JSON.parse(raw) as BaselineEntry[]
+  const map = new Map<number, BaselineEntry>()
+  for (const entry of parsed) map.set(entry.id, entry)
+  return map
+}
+
+// Compare two ordered slug lists. Returns null when identical (same set + same order),
+// otherwise a human-readable diff string built from added/removed/reordered slugs.
+function diffTop3(baseSlugs: string[], currentSlugs: string[]): string | null {
+  const baseSet = new Set(baseSlugs)
+  const currSet = new Set(currentSlugs)
+  const added = currentSlugs.filter(s => !baseSet.has(s))
+  const removed = baseSlugs.filter(s => !currSet.has(s))
+  const sameSet = added.length === 0 && removed.length === 0
+  const sameOrder = sameSet && baseSlugs.every((s, i) => s === currentSlugs[i])
+  if (sameOrder) return null
+  const parts: string[] = []
+  for (const slug of added) parts.push(`+${slug}`)
+  for (const slug of removed) parts.push(`-${slug}`)
+  if (sameSet && !sameOrder) {
+    parts.push(`~${baseSlugs.join(',')}→${currentSlugs.join(',')}`)
+  }
+  return parts.join(' ')
+}
+
 async function main() {
   const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
   console.log(`Benchmark scores loaded: ${benchmarkScores ? benchmarkScores.size + ' entries' : 'NONE (curated only)'}`)
@@ -114,10 +152,40 @@ async function main() {
     }
   }
 
-  // Write JSON for analysis
-  const fs = await import('fs')
-  fs.writeFileSync('test-recommendations-output.json', JSON.stringify(results, null, 2))
-  console.log('\n\nWrote test-recommendations-output.json')
+  if (diffBaselinePath) {
+    // Diff mode: compare current run's top-3 slugs against locked baseline. Informational only.
+    const baseline = loadBaseline(diffBaselinePath)
+    console.log('\n\n' + '='.repeat(100))
+    console.log(`DIFF vs ${diffBaselinePath}`)
+    console.log('='.repeat(100))
+    let changed = 0
+    let unchanged = 0
+    for (const r of results) {
+      const base = baseline.get(r.id)
+      if (!base) {
+        console.log(`#${r.id} [${r.category}] (not in baseline)`)
+        continue
+      }
+      const baseSlugs = base.top3.map(m => m.slug)
+      const currSlugs = r.top3.map((m: { slug: string }) => m.slug)
+      const diff = diffTop3(baseSlugs, currSlugs)
+      if (diff === null) {
+        console.log(`= #${r.id}`)
+        unchanged++
+      } else {
+        console.log(`#${r.id} [${r.category}] ${diff}`)
+        changed++
+      }
+    }
+    const total = changed + unchanged
+    console.log('='.repeat(100))
+    console.log(`${changed}/${total} prompts changed top-3, ${unchanged} unchanged`)
+  } else {
+    // Default mode: write JSON snapshot for downstream analysis / future baselines.
+    const fs = await import('fs')
+    fs.writeFileSync('test-recommendations-output.json', JSON.stringify(results, null, 2))
+    console.log('\n\nWrote test-recommendations-output.json')
+  }
 }
 
 main().catch(err => { console.error(err); process.exit(1) })
