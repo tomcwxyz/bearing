@@ -6,6 +6,7 @@ export interface PipelineStageInput {
   inputLength: string
   requiresCapabilities: string[]
   priorityOrder: Factor[]
+  needsReasoning?: boolean
 }
 
 export interface PipelineStageResult {
@@ -33,6 +34,7 @@ export function scorePipelineStage(input: PipelineStageInput): PipelineStageResu
     needsTools: input.requiresCapabilities.includes('tools'),
     needsCode: input.requiresCapabilities.includes('code'),
     priorityOrder: input.priorityOrder,
+    needsReasoning: input.needsReasoning ?? false,
   })
 
   // Further filter by additional required capabilities
@@ -52,6 +54,7 @@ export function scorePipeline(
   stages: Array<{ stage: number; task_type: string; description: string; requires_capabilities: string[] }>,
   inputLength: string,
   priorityOrder: Factor[],
+  needsReasoning: boolean = false,
 ): PipelineResult {
   const results = stages.map(stage => {
     const stageResult = scorePipelineStage({
@@ -59,6 +62,7 @@ export function scorePipeline(
       inputLength,
       requiresCapabilities: stage.requires_capabilities,
       priorityOrder,
+      needsReasoning,
     })
     return {
       stage: stage.stage,

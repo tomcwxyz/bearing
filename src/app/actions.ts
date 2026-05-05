@@ -201,7 +201,7 @@ export async function getResults(taskId: string) {
       const stages = typeof task.pipeline_stages === 'string'
         ? JSON.parse(task.pipeline_stages)
         : task.pipeline_stages
-      const pipelineResult = scorePipeline(stages, task.input_length, priorityOrder)
+      const pipelineResult = scorePipeline(stages, task.input_length, priorityOrder, task.needs_reasoning ?? false)
       const pipelineReasoning = await generatePipelineReasoning(
         task.task_type,
         pipelineResult,
