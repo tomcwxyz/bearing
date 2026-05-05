@@ -14,6 +14,9 @@ Return JSON only, no other text.
   "needs_code": boolean,
   "needs_reasoning": boolean,
   "is_recurring": boolean,
+  "data_sensitivity": "none" | "pii" | "regulated_health" | "regulated_finance" | "on_prem_required",
+  "latency_target": "realtime" | "interactive" | "batch",
+  "volume": "one_off" | "hundreds_per_day" | "thousands_per_day" | "millions_per_day",
   "confidence": number (0.0-1.0),
   "clarification_needed": boolean,
   "suggested_questions": [
@@ -60,6 +63,25 @@ Return JSON only, no other text.
   - "Summarise this email" → false
 - Estimate input_length from the task description.
 - is_recurring = true if the task sounds like something done regularly.
+- data_sensitivity classifies what kind of data the model will see:
+  - "Process patient medical records" → `regulated_health`
+  - "Analyse credit card transactions" → `regulated_finance`
+  - "Must run on-prem with zero data egress" → `on_prem_required`
+  - "Customer feedback survey responses" → `pii`
+  - "Classify product photos" → `none`
+  Default to `none` when no sensitive data is implied.
+- latency_target captures how fast a single response must be:
+  - "Voice assistant that responds under 200ms" → `realtime`
+  - "Translate 200 product descriptions daily" → `batch`
+  - "Customer-support chatbot" → `interactive` (default; chat is the baseline)
+  - "Generate a market-research report" → `batch`
+  Default to `interactive`.
+- volume estimates how often the task runs:
+  - "Classify a million tweets per day" → `millions_per_day`
+  - "Translate 200 product descriptions daily" → `hundreds_per_day`
+  - "Process invoices weekly" → `hundreds_per_day` (round up; 50/week ≈ low hundreds/day equivalent)
+  - "Refactor this codebase" → `one_off`
+  Default to `one_off`.
 
 ## Pipeline detection
 

@@ -65,6 +65,9 @@ export async function submitTask(formData: FormData) {
       needsCode: classification.needs_code,
       needsReasoning: classification.needs_reasoning,
       isRecurring: classification.is_recurring,
+      dataSensitivity: classification.data_sensitivity,
+      latencyTarget: classification.latency_target,
+      volume: classification.volume,
       classificationConfidence: classification.confidence,
       pipelineStages: classification.pipeline_stages ?? null,
     })
@@ -111,6 +114,9 @@ export async function submitClarification(
         needs_code = ${classification.needs_code},
         needs_reasoning = ${classification.needs_reasoning},
         is_recurring = ${classification.is_recurring},
+        data_sensitivity = ${classification.data_sensitivity},
+        latency_target = ${classification.latency_target},
+        volume = ${classification.volume},
         classification_confidence = ${classification.confidence},
         pipeline_stages = ${classification.pipeline_stages ? JSON.stringify(classification.pipeline_stages) : null}
       WHERE id = ${taskId}
@@ -176,6 +182,9 @@ export async function getResults(taskId: string) {
       needsTools: task.needs_tools,
       needsCode: task.needs_code,
       needsReasoning: task.needs_reasoning ?? false,
+      dataSensitivity: task.data_sensitivity ?? 'none',
+      latencyTarget: task.latency_target ?? 'interactive',
+      volume: task.volume ?? 'one_off',
       priorityOrder,
       excludedFactors,
       benchmarkScores,
@@ -201,7 +210,15 @@ export async function getResults(taskId: string) {
       const stages = typeof task.pipeline_stages === 'string'
         ? JSON.parse(task.pipeline_stages)
         : task.pipeline_stages
-      const pipelineResult = scorePipeline(stages, task.input_length, priorityOrder, task.needs_reasoning ?? false)
+      const pipelineResult = scorePipeline(
+        stages,
+        task.input_length,
+        priorityOrder,
+        task.needs_reasoning ?? false,
+        task.data_sensitivity ?? 'none',
+        task.latency_target ?? 'interactive',
+        task.volume ?? 'one_off',
+      )
       const pipelineReasoning = await generatePipelineReasoning(
         task.task_type,
         pipelineResult,
@@ -283,6 +300,9 @@ export async function submitValidation(formData: FormData) {
       needsCode: classification.needs_code,
       needsReasoning: classification.needs_reasoning,
       isRecurring: classification.is_recurring,
+      dataSensitivity: classification.data_sensitivity,
+      latencyTarget: classification.latency_target,
+      volume: classification.volume,
       mode: 'validate',
       classificationConfidence: classification.confidence,
     })
@@ -356,6 +376,9 @@ export async function getValidationResults(taskId: string, currentModelSlug: str
       needsTools: task.needs_tools,
       needsCode: task.needs_code,
       needsReasoning: task.needs_reasoning ?? false,
+      dataSensitivity: task.data_sensitivity ?? 'none',
+      latencyTarget: task.latency_target ?? 'interactive',
+      volume: task.volume ?? 'one_off',
       priorityOrder,
       benchmarkScores,
     })

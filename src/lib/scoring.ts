@@ -9,6 +9,11 @@ export interface ScoringInput {
   needsTools: boolean
   needsCode: boolean
   needsReasoning?: boolean
+  // Phase 4 batch A: classification dimensions that influence hard filters and
+  // factor-score multipliers (NOT weight multipliers — see notes on each).
+  dataSensitivity?: string
+  latencyTarget?: string
+  volume?: string
   priorityOrder: Factor[]
   excludedFactors?: string[]
   // Optional map keyed by `${bearing_slug}::${taskType}` → 0..1 normalised
@@ -69,6 +74,34 @@ const DEMOTED_TIERS_FOR_COMPLEX = new Set([
 // above 1.0 — that's intentional. Quality is a score multiplied by a weight,
 // not a probability, so values >1 still produce sensible orderings.
 const REASONING_QUALITY_BOOST = 1.20
+
+// Phase 4.1 (data_sensitivity): privacy factor-score multipliers. These
+// multiply the privacy *score*, not the weight — values >1.0 may push privacy
+// above 1.0, which is fine because scores combine multiplicatively with
+// weights and a higher score correctly raises a model's overall ranking.
+const PRIVACY_BOOST_REGULATED = 1.5  // regulated_health, regulated_finance
+const PRIVACY_BOOST_PII = 1.2
+
+// Phase 4.1: when on-prem is required, hard-filter to models with local_info.
+// Applied BEFORE factor scores are built so filtered models never appear.
+
+// Phase 4.2 (latency_target): realtime requires speed_score >= 0.85. Below
+// that threshold the model is hard-filtered out. Batch latency targets boost
+// the cost factor *score* by 1.3 (you'd expect a weight bump, but the priority
+// pipeline already determines weights — boosting the score is a cleaner
+// drop-in that achieves the same surfacing-cheap-models effect).
+const REALTIME_SPEED_THRESHOLD = 0.85
+const COST_BOOST_BATCH = 1.3
+
+// Phase 4.3 (volume): cost-factor-score amplification by volume tier. Same
+// score-multiplier (not weight) approach as latency batch above.
+const COST_BOOST_THOUSANDS = 1.3
+const COST_BOOST_MILLIONS = 1.6
+
+// Volume × latency interaction: when both apply, take max() rather than
+// multiplying. Volume is the dominant signal and stacking multiplicatively
+// would runaway-boost cheap models on batch + high-volume tasks; max() keeps
+// the boost capped at the strongest applicable signal.
 
 export function costScore(
   model: Model,
@@ -143,6 +176,14 @@ export function scoreModels(input: ScoringInput): ScoredModel[] {
   const scored: ScoredModel[] = []
 
   for (const model of models) {
+    // Phase 4.1: on-prem hard filter — drop any model that isn't locally
+    // deployable when the task requires zero data egress.
+    if (input.dataSensitivity === 'on_prem_required' && !model.local_info) continue
+
+    // Phase 4.2: realtime hard filter — drop slow models when sub-200ms is
+    // expected. Threshold is the registry's normalised speed_score.
+    if (input.latencyTarget === 'realtime' && model.speed_score < REALTIME_SPEED_THRESHOLD) continue
+
     const capScore = capabilityScore(model, {
       vision: input.needsVision,
       tools: input.needsTools,
@@ -180,6 +221,23 @@ export function scoreModels(input: ScoringInput): ScoredModel[] {
     if (input.needsReasoning && model.capabilities.includes('extended_thinking')) {
       factorScores.quality *= REASONING_QUALITY_BOOST
     }
+
+    // Phase 4.1: privacy boost for sensitive data. Score multiplier (not
+    // weight) — see note on PRIVACY_BOOST_REGULATED.
+    if (input.dataSensitivity === 'regulated_health' || input.dataSensitivity === 'regulated_finance') {
+      factorScores.privacy *= PRIVACY_BOOST_REGULATED
+    } else if (input.dataSensitivity === 'pii') {
+      factorScores.privacy *= PRIVACY_BOOST_PII
+    }
+
+    // Phase 4.2 + 4.3: cost-factor-score boost. Volume is the dominant signal,
+    // so we take max() of the two boosts rather than multiplying — see note
+    // on COST_BOOST_MILLIONS for the rationale.
+    let costBoost = 1.0
+    if (input.latencyTarget === 'batch') costBoost = Math.max(costBoost, COST_BOOST_BATCH)
+    if (input.volume === 'thousands_per_day') costBoost = Math.max(costBoost, COST_BOOST_THOUSANDS)
+    if (input.volume === 'millions_per_day') costBoost = Math.max(costBoost, COST_BOOST_MILLIONS)
+    if (costBoost !== 1.0) factorScores.cost *= costBoost
 
     const weightedScore = Object.entries(factorScores).reduce(
       (sum, [factor, score]) => sum + score * weights[factor as Factor], 0

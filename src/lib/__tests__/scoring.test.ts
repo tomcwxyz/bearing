@@ -232,6 +232,148 @@ describe('reasoning multiplier (Phase 3.2)', () => {
   })
 })
 
+describe('data_sensitivity (Phase 4.1)', () => {
+  const baseInput = {
+    taskType: 'analyse',
+    complexity: 'moderate',
+    inputLength: 'medium',
+    needsVision: false,
+    needsTools: false,
+    needsCode: false,
+    priorityOrder: defaultPriority,
+  }
+
+  it('hard-filters to only locally deployable models when on_prem_required', () => {
+    const results = scoreModels({ ...baseInput, dataSensitivity: 'on_prem_required' })
+    // Every surviving model must have local_info populated in the registry.
+    for (const m of results) {
+      const reg = getModel(m.slug)!
+      expect(reg.local_info).toBeDefined()
+    }
+    // Spot-check a known-hosted model is excluded.
+    const opus = results.find(m => m.slug === 'claude-opus-4.6')
+    expect(opus).toBeUndefined()
+    // Spot-check a known-local model survives.
+    const llama = results.find(m => m.slug === 'llama-4-maverick')
+    expect(llama).toBeDefined()
+  })
+
+  it('boosts privacy by 1.5× for regulated_health', () => {
+    const opus = getModel('claude-opus-4.6')!
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const boosted = scoreModels({ ...baseInput, dataSensitivity: 'regulated_health' })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(boosted.factorScores.privacy).toBeCloseTo(opus.privacy_score * 1.5, 6)
+    expect(boosted.factorScores.privacy).toBeGreaterThan(baseline.factorScores.privacy)
+  })
+
+  it('boosts privacy by 1.5× for regulated_finance', () => {
+    const opus = getModel('claude-opus-4.6')!
+    const boosted = scoreModels({ ...baseInput, dataSensitivity: 'regulated_finance' })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(boosted.factorScores.privacy).toBeCloseTo(opus.privacy_score * 1.5, 6)
+  })
+
+  it('boosts privacy by 1.2× for pii', () => {
+    const opus = getModel('claude-opus-4.6')!
+    const boosted = scoreModels({ ...baseInput, dataSensitivity: 'pii' })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(boosted.factorScores.privacy).toBeCloseTo(opus.privacy_score * 1.2, 6)
+  })
+
+  it('leaves privacy unchanged when dataSensitivity is none or omitted', () => {
+    const opus = getModel('claude-opus-4.6')!
+    const noneResult = scoreModels({ ...baseInput, dataSensitivity: 'none' })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    const omittedResult = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    expect(noneResult.factorScores.privacy).toBeCloseTo(opus.privacy_score, 6)
+    expect(omittedResult.factorScores.privacy).toBeCloseTo(opus.privacy_score, 6)
+  })
+})
+
+describe('latency_target (Phase 4.2)', () => {
+  const baseInput = {
+    taskType: 'conversation',
+    complexity: 'simple',
+    inputLength: 'short',
+    needsVision: false,
+    needsTools: false,
+    needsCode: false,
+    priorityOrder: defaultPriority,
+  }
+
+  it('hard-filters to models with speed_score >= 0.85 when realtime', () => {
+    const results = scoreModels({ ...baseInput, latencyTarget: 'realtime' })
+    for (const m of results) {
+      const reg = getModel(m.slug)!
+      expect(reg.speed_score).toBeGreaterThanOrEqual(0.85)
+    }
+    // Slow flagship excluded.
+    expect(results.find(m => m.slug === 'claude-opus-4.6')).toBeUndefined()
+    // Fast model survives.
+    expect(results.find(m => m.slug === 'gemini-2.5-flash-lite')).toBeDefined()
+  })
+
+  it('boosts cost factor by 1.3× when latency_target=batch', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const batched = scoreModels({ ...baseInput, latencyTarget: 'batch' })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(batched.factorScores.cost).toBeCloseTo(baseline.factorScores.cost * 1.3, 6)
+  })
+
+  it('leaves cost unchanged for interactive (default) latency', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const interactive = scoreModels({ ...baseInput, latencyTarget: 'interactive' })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(interactive.factorScores.cost).toBeCloseTo(baseline.factorScores.cost, 6)
+  })
+})
+
+describe('volume (Phase 4.3)', () => {
+  const baseInput = {
+    taskType: 'extract',
+    complexity: 'moderate',
+    inputLength: 'medium',
+    needsVision: false,
+    needsTools: false,
+    needsCode: false,
+    priorityOrder: defaultPriority,
+  }
+
+  it('boosts cost factor by 1.6× for millions_per_day', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const millions = scoreModels({ ...baseInput, volume: 'millions_per_day' })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(millions.factorScores.cost).toBeCloseTo(baseline.factorScores.cost * 1.6, 6)
+  })
+
+  it('boosts cost factor by 1.3× for thousands_per_day', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const thousands = scoreModels({ ...baseInput, volume: 'thousands_per_day' })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(thousands.factorScores.cost).toBeCloseTo(baseline.factorScores.cost * 1.3, 6)
+  })
+
+  it('leaves cost unchanged for one_off (default) volume', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const oneOff = scoreModels({ ...baseInput, volume: 'one_off' })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(oneOff.factorScores.cost).toBeCloseTo(baseline.factorScores.cost, 6)
+  })
+
+  it('uses max() not multiplication when batch latency stacks with millions volume', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const stacked = scoreModels({
+      ...baseInput,
+      latencyTarget: 'batch',
+      volume: 'millions_per_day',
+    }).find(m => m.slug === 'claude-opus-4.6')!
+    // Expected: max(1.3, 1.6) = 1.6 (NOT 1.3 * 1.6 = 2.08).
+    expect(stacked.factorScores.cost).toBeCloseTo(baseline.factorScores.cost * 1.6, 6)
+    expect(stacked.factorScores.cost).not.toBeCloseTo(baseline.factorScores.cost * 1.3 * 1.6, 4)
+  })
+})
+
 describe('benchmark blending', () => {
   const baseInput = {
     taskType: 'code',

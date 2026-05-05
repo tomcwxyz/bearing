@@ -12,6 +12,9 @@ export interface Classification {
   needs_code: boolean
   needs_reasoning: boolean
   is_recurring: boolean
+  data_sensitivity: 'none' | 'pii' | 'regulated_health' | 'regulated_finance' | 'on_prem_required'
+  latency_target: 'realtime' | 'interactive' | 'batch'
+  volume: 'one_off' | 'hundreds_per_day' | 'thousands_per_day' | 'millions_per_day'
   confidence: number
   clarification_needed: boolean
   suggested_questions: { question: string; options: string[] }[]
