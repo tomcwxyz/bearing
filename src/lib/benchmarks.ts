@@ -17,12 +17,16 @@ function getDb() {
   return neon(url)
 }
 
-export type BenchmarkSource = 'lmarena' | 'livebench'
+export type BenchmarkSource = 'lmarena' | 'livebench' | 'artificialanalysis'
+
+export type SignalType = 'task' | 'speed' | 'latency'
 
 // Maps a source's category name onto one or more bearing task types.
 // A source category can map to multiple task types (e.g. LiveBench "language"
 // is a reasonable signal for both summarise and generate).
-// Translate has no direct benchmark coverage in either source — stays curated.
+// Translate has no direct benchmark coverage in any source — stays curated.
+// Non-task signals (speed, latency) are NOT in this map; they're read by
+// getLatestPerformanceSignals() instead.
 export const CATEGORY_TO_TASKS: Record<BenchmarkSource, Record<string, TaskType[]>> = {
   lmarena: {
     // From the `text` subset (rows carry a per-category column).
@@ -48,6 +52,25 @@ export const CATEGORY_TO_TASKS: Record<BenchmarkSource, Record<string, TaskType[
     data_analysis: ['analyse', 'extract'],
     instruction_following: ['extract'],
   },
+  artificialanalysis: {
+    // AA top-line indices.
+    aa_intelligence: ['analyse'],
+    aa_coding: ['code'],
+    aa_math: ['analyse'],
+    // Specific evaluations.
+    mmlu_pro: ['analyse'],
+    gpqa: ['analyse'],
+    hle: ['analyse'],
+    livecodebench: ['code'],
+    scicode: ['code'],
+    aime_25: ['analyse'],
+    math_500: ['analyse'],
+    ifbench: ['extract'],
+    // Agentic-coding benchmarks — closest task fit is `code`.
+    tau2: ['code'],
+    terminalbench_hard: ['code'],
+    lcr: ['code'],
+  },
 }
 
 export interface SnapshotRow {
@@ -57,6 +80,10 @@ export interface SnapshotRow {
   rawScore: number
   voteCount: number | null
   snapshotDate: string // YYYY-MM-DD
+  /** 'task' (default) | 'speed' | 'latency'. Non-task rows are excluded from getLatestBenchmarkScores. */
+  signalType?: SignalType
+  /** When true, normalisation inverts so the lowest raw score becomes 1.0 (e.g. latency, where lower is better). */
+  lowerIsBetter?: boolean
 }
 
 /** Look up the bearing_slug for a source's model name. */
@@ -122,7 +149,9 @@ export async function ingestSnapshot(rows: SnapshotRow[]): Promise<{
     const cohortKey = `${r.source}::${r.sourceCategory}::${r.snapshotDate}`
     const cohort = cohorts.get(cohortKey)!
     const range = cohort.max - cohort.min
-    const normalised = range > 0 ? (r.rawScore - cohort.min) / range : 1.0
+    const linear = range > 0 ? (r.rawScore - cohort.min) / range : 1.0
+    const normalised = r.lowerIsBetter ? 1 - linear : linear
+    const signalType = r.signalType ?? 'task'
 
     const bearingSlug = aliasMap.get(`${r.source}::${r.sourceModelName}`) ?? null
     if (!bearingSlug) unmatched.add(`${r.source}::${r.sourceModelName}`)
@@ -130,10 +159,10 @@ export async function ingestSnapshot(rows: SnapshotRow[]): Promise<{
     await sql`
       INSERT INTO benchmark_snapshots (
         source, source_category, source_model_name, bearing_slug,
-        raw_score, normalised_score, vote_count, snapshot_date
+        raw_score, normalised_score, vote_count, snapshot_date, signal_type
       ) VALUES (
         ${r.source}, ${r.sourceCategory}, ${r.sourceModelName}, ${bearingSlug},
-        ${r.rawScore}, ${normalised}, ${r.voteCount}, ${r.snapshotDate}
+        ${r.rawScore}, ${normalised}, ${r.voteCount}, ${r.snapshotDate}, ${signalType}
       )
       ON CONFLICT (source, source_category, source_model_name, snapshot_date)
       DO UPDATE SET
@@ -141,6 +170,7 @@ export async function ingestSnapshot(rows: SnapshotRow[]): Promise<{
         normalised_score = EXCLUDED.normalised_score,
         vote_count = EXCLUDED.vote_count,
         bearing_slug = EXCLUDED.bearing_slug,
+        signal_type = EXCLUDED.signal_type,
         captured_at = now()
     `
     inserted++
@@ -189,6 +219,37 @@ export async function getLatestBenchmarkScores(): Promise<Map<string, number>> {
   for (const [key, scores] of buckets) {
     const mean = scores.reduce((a, b) => a + b, 0) / scores.length
     result.set(key, mean)
+  }
+  return result
+}
+
+/**
+ * Latest non-task signals (speed, latency) per bearing slug, normalised 0..1
+ * (higher = better, latency already inverted at ingest time).
+ *
+ * Returns a Map keyed by `${slug}::${signalType}`.
+ */
+export async function getLatestPerformanceSignals(): Promise<Map<string, number>> {
+  const rows = await getDb()`
+    SELECT DISTINCT ON (bearing_slug, source, signal_type)
+      bearing_slug, source, signal_type, normalised_score
+    FROM benchmark_snapshots
+    WHERE bearing_slug IS NOT NULL AND signal_type <> 'task'
+    ORDER BY bearing_slug, source, signal_type, snapshot_date DESC, captured_at DESC
+  `
+
+  // Bucket by (slug, signalType) and average across sources.
+  const buckets = new Map<string, number[]>()
+  for (const row of rows) {
+    const key = `${row.bearing_slug}::${row.signal_type}`
+    const list = buckets.get(key) ?? []
+    list.push(row.normalised_score as number)
+    buckets.set(key, list)
+  }
+
+  const result = new Map<string, number>()
+  for (const [key, scores] of buckets) {
+    result.set(key, scores.reduce((a, b) => a + b, 0) / scores.length)
   }
   return result
 }
