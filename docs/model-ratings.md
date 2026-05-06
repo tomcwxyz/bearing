@@ -2,7 +2,7 @@
 
 This page documents the research, sources, and decisions behind every model rating in the Bearing registry. We believe that a recommendation tool should be transparent about its own methodology — so here it all is.
 
-Last updated: 15 April 2026 (Registry v0.5.0)
+Last updated: 6 May 2026 (Registry v0.7.0)
 
 ---
 
@@ -19,6 +19,59 @@ Every model is scored from 0.0 to 1.0 across seven factors. When you rank your p
 | **Privacy** | How your data is handled | Based on data retention policies. 1.0 = no retention, no training on inputs |
 | **Sustainability** | Environmental footprint | Composite of inference energy, training footprint, and provider infrastructure |
 | **Transparency** | How open the model and provider are | Composite of open weights, training data, methodology, licence, and provider disclosure |
+
+---
+
+## Data sources and grounded scoring
+
+Wherever published benchmark data exists for a model, Bearing uses it directly rather than asking a language model to estimate. We currently ingest from three sources, all updated on a regular schedule, and combine them into per-task scores.
+
+### Benchmark sources
+
+| Source | What it provides | Categories used |
+|--------|-----------------|-----------------|
+| **[Artificial Analysis](https://artificialanalysis.ai)** | Per-model evaluation indices (intelligence, coding, math) plus standard benchmarks (MMLU-Pro, GPQA, HLE, LiveCodeBench, SciCode, IFBench, Tau2, TerminalBench-Hard, AIME-25, LCR), output throughput, and time-to-first-token | All evaluation keys, plus `aa_speed` and `aa_ttft` for performance signals |
+| **[LMArena](https://lmarena.ai)** | Bradley–Terry ratings from human preference voting | Overall, hard prompts, coding, math, creative writing, instruction following, longer query, multi-turn, web-dev, vision |
+| **[LiveBench](https://livebench.ai)** | Contamination-resistant per-task benchmarks | Reasoning, coding, mathematics, language, data analysis, instruction following |
+
+Each row is normalised linearly within its cohort (per source, per category, per snapshot date) so the highest-scoring model in the cohort lands at 1.0 and the lowest at 0.0. Latency rows are inverted at ingest so lower TTFT becomes a higher score.
+
+### Mapping source categories to bearing tasks
+
+The same source category can feed multiple bearing tasks where appropriate (LiveBench's `language` informs both `summarise` and `generate`, for example). The full mapping lives in `src/lib/benchmarks.ts` under `CATEGORY_TO_TASKS`. At recommendation time, the score for each `(model, bearing_task)` pair is the mean of every category that maps to it.
+
+### Many-to-one alias matching
+
+Frontier models often appear in several source-side variants — Anthropic's Claude 4.6 Sonnet has separate Artificial Analysis entries for low / high / max effort and reasoning / non-reasoning, for example. Bearing's matcher (`src/lib/import-grounding.ts`) suggests candidates per source using a token-bag fuzzy match, and the admin confirms which represent the registry slug. All confirmed variants count as evidence and their normalised scores are averaged.
+
+The matcher flags candidates that look like distinct sibling products — `mini`, `nano`, `flash-lite`, `vl`, `distill`, and similar size-disambiguator tokens — so the admin can decide rather than silently merging the wrong variant.
+
+### Provider profile lookup
+
+Some scoring fields don't have a published benchmark and depend mostly on the provider's policies, not the specific model. These are filled deterministically from a provider profile rather than by a language model:
+
+| Field | Drives |
+|-------|--------|
+| `privacy_score` | Data retention, training opt-out, jurisdictional considerations |
+| `transparency.open_weights` | Whether the provider publishes weights for this lineup |
+| `transparency.transparency_score` | Baseline FMTI-style aggregate (sub-fields refined by Haiku with the baseline as anchor) |
+
+Provider names with parenthetical suffixes (e.g. `Alibaba (via hosted providers)`) are normalised to their canonical form before lookup. Unknown providers fall back to a conservative default (privacy 0.6, open_weights 0, baseline transparency 0.4) and the admin can refine per model.
+
+### Provenance
+
+When you open the import modal or hit **Refresh from benchmarks** on an existing model, every score slider in the admin form carries a small coloured dot indicating where its value came from:
+
+- **Green (benchmark)** — averaged from one or more confirmed source variants. Hover shows the exact `(source, category)` pairs that contributed.
+- **Amber (derived)** — deterministic provider lookup or a rule (e.g. the `code` capability flag from grounded code fitness ≥ 0.5).
+- **Grey (haiku)** — estimated by Claude Haiku because no published signal was available. Used for `tier`, `sustainability`, transparency sub-fields, strengths, and weaknesses.
+- **Light grey (default)** — fallback because the provider isn't in the lookup table yet.
+
+The grounded estimator passes the full benchmark evidence into Haiku's prompt as context for the fields it does still fill (e.g. transparency notes can reference the actual numbers), but Haiku is explicitly forbidden from overriding any grounded value.
+
+### Speed score caveat
+
+Artificial Analysis's speed cohort spans every model they track — including small fast distilled models that pull throughput averages upward. As a result, raw cohort positioning would push frontier flagships near the bottom (Gemini 3 Pro lands at 0.09, for example). For new imports this is the correct cohort signal; for existing models the curated within-tier scores are preserved by default. Run `scripts/reground-registry.ts --include-speed` to override and reset to cohort positioning across the whole registry.
 
 ---
 
