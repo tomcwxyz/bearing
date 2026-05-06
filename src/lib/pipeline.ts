@@ -19,6 +19,7 @@ export interface PipelineStageInput {
 export interface PipelineStageResult {
   recommended: ScoredModel
   alternative: ScoredModel | null
+  capabilityMissing?: boolean
 }
 
 export interface PipelineResult {
@@ -28,6 +29,7 @@ export interface PipelineResult {
     taskType: string
     recommended: ScoredModel
     alternative: ScoredModel | null
+    capabilityMissing?: boolean
   }>
   totalEstimatedCost: number
 }
@@ -56,11 +58,13 @@ export function scorePipelineStage(input: PipelineStageInput): PipelineStageResu
     ? scored.filter(m => input.requiresCapabilities.every(cap => m.capabilities.includes(cap)))
     : scored
 
+  const capabilityMissing = input.requiresCapabilities.length > 0 && filtered.length === 0
   const models = filtered.length > 0 ? filtered : scored
 
   return {
     recommended: models[0],
     alternative: models.length > 1 ? models[1] : null,
+    capabilityMissing,
   }
 }
 

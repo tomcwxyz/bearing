@@ -20,6 +20,27 @@ describe('scorePipelineStage', () => {
     }
   })
 
+  it('flags capabilityMissing when no model satisfies requires_capabilities', () => {
+    const result = scorePipelineStage({
+      taskType: 'extract',
+      inputLength: 'short',
+      requiresCapabilities: ['nonexistent_capability'],
+      priorityOrder: defaultPriorities,
+    })
+    expect(result.capabilityMissing).toBe(true)
+    expect(result.recommended).toBeDefined()
+  })
+
+  it('does not flag capabilityMissing when capability is satisfiable', () => {
+    const result = scorePipelineStage({
+      taskType: 'extract',
+      inputLength: 'short',
+      requiresCapabilities: ['vision'],
+      priorityOrder: defaultPriorities,
+    })
+    expect(result.capabilityMissing).toBeFalsy()
+  })
+
   it('returns models without capability filter when empty', () => {
     const result = scorePipelineStage({
       taskType: 'summarise',
