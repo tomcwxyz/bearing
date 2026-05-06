@@ -3,6 +3,11 @@ import { getDefaultWeights } from './registry'
 
 const RANK_WEIGHTS = [0.30, 0.22, 0.16, 0.12, 0.09, 0.07, 0.04]
 const RANK_BLEND = 0.7
+// Damping factor for raw weights of factors the user ranked 5th or lower.
+// They explicitly de-prioritised these factors, so their weight should
+// barely affect the final score (otherwise systematic factor advantages —
+// e.g. open-weight transparency — drag frontier flagships down unfairly).
+const LOW_PRIORITY_DAMP = 0.4
 
 const COMPLEXITY_BOOST: Record<string, { quality: number; capability: number }> = {
   simple: { quality: 1.0, capability: 1.0 },
@@ -27,6 +32,13 @@ export function priorityToWeights(
   for (let i = 0; i < priorityOrder.length; i++) {
     const factor = priorityOrder[i]
     raw[factor] = RANK_BLEND * RANK_WEIGHTS[i] + (1 - RANK_BLEND) * defaults[factor]
+  }
+
+  // Factors the user ranked 5th or lower get their weight damped further —
+  // they're explicitly de-prioritised, so they should barely affect the result.
+  for (let i = 4; i < priorityOrder.length; i++) {
+    const factor = priorityOrder[i]
+    if (raw[factor] !== undefined) raw[factor] *= LOW_PRIORITY_DAMP
   }
 
   // Apply complexity boost to quality and capability

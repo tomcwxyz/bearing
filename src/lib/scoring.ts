@@ -8,6 +8,7 @@ export interface ScoringInput {
   needsVision: boolean
   needsTools: boolean
   needsCode: boolean
+  needsReasoning?: boolean
   priorityOrder: Factor[]
   excludedFactors?: string[]
   // Optional map keyed by `${bearing_slug}::${taskType}` → 0..1 normalised
@@ -50,7 +51,31 @@ function estimateCost(model: Model, inputLength: string): number {
 // cost is the user's lowest priority.
 const COST_SCORE_FLOOR = 0.05
 
-function costScore(model: Model, allModels: Model[], inputLength: string): number {
+// Tiers that are systematically demoted on the quality factor when the task
+// is complex AND the user did NOT prioritise transparency/sustainability.
+// These tiers are not built for hard work — even if their TF score is high
+// for a task, complex tasks should bias toward flagship-tier models.
+const COMPLEX_TASK_QUALITY_DEMOTION = 0.85
+const DEMOTED_TIERS_FOR_COMPLEX = new Set([
+  'budget',
+  'sustainable_balanced',
+  'enterprise_transparent',
+])
+
+// Phase 3.2: when the classifier flags a task as needing multi-step reasoning,
+// boost the quality factor of models with the `extended_thinking` capability
+// so reasoning-tuned models (Opus, Sonnet, DeepSeek R1, etc.) surface for
+// math, strategy, legal-risk, and proof prompts. Note this can push quality
+// above 1.0 — that's intentional. Quality is a score multiplied by a weight,
+// not a probability, so values >1 still produce sensible orderings.
+const REASONING_QUALITY_BOOST = 1.20
+
+export function costScore(
+  model: Model,
+  allModels: Model[],
+  inputLength: string,
+  costWeightHint = 0.18,
+): number {
   const costs = allModels.map(m => estimateCost(m, inputLength))
   const minCost = Math.min(...costs)
   const maxCost = Math.max(...costs)
@@ -59,7 +84,14 @@ function costScore(model: Model, allModels: Model[], inputLength: string): numbe
   const logMin = Math.log(minCost + 0.0001)
   const logMax = Math.log(maxCost + 0.0001)
   const logModel = Math.log(modelCost + 0.0001)
-  return Math.max(COST_SCORE_FLOOR, 1.0 - (logModel - logMin) / (logMax - logMin))
+  const baseScore = Math.max(COST_SCORE_FLOOR, 1.0 - (logModel - logMin) / (logMax - logMin))
+
+  // Compress towards 0.5 when cost is low priority. At costWeightHint >= 0.30
+  // no compression; at 0 max compression (0.85 strength — Phase 2.4 raised
+  // from 0.6 to better honour low cost priority and let flagship quality
+  // leads close the cost gap).
+  const compression = Math.max(0, 1 - costWeightHint / 0.30)
+  return baseScore + (0.5 - baseScore) * compression * 0.85
 }
 
 function getBenchmarkBlend(): number {
@@ -69,6 +101,14 @@ function getBenchmarkBlend(): number {
   if (!Number.isFinite(parsed)) return 0
   return Math.min(1, Math.max(0, parsed))
 }
+
+// When curated and benchmark disagree by more than this, skip the blend and
+// use curated only. Phase 1.4 inspection found 43/134 pairs (32%) with
+// |delta| > 0.10 — driven by specialist models the LMArena cohort doesn't
+// cover (devstral, mistral-ocr) and budget models that LMArena over-rates
+// versus our task-specific rubric. Blending these pairs imports noise; the
+// blend works well for the well-aligned majority below the threshold.
+export const BENCHMARK_DELTA_SKIP_THRESHOLD = 0.10
 
 function qualityScore(
   model: Model,
@@ -80,6 +120,7 @@ function qualityScore(
   if (blend <= 0 || !benchmarkScores) return curated
   const benchmark = benchmarkScores.get(`${model.slug}::${taskType}`)
   if (benchmark === undefined) return curated
+  if (Math.abs(curated - benchmark) > BENCHMARK_DELTA_SKIP_THRESHOLD) return curated
   return curated * (1 - blend) + benchmark * blend
 }
 
@@ -110,13 +151,34 @@ export function scoreModels(input: ScoringInput): ScoredModel[] {
     if (capScore === null) continue
 
     const factorScores: Record<Factor, number> = {
-      cost: costScore(model, models, input.inputLength),
+      cost: costScore(model, models, input.inputLength, weights.cost),
       speed: model.speed_score,
       quality: qualityScore(model, input.taskType, input.benchmarkScores, blend),
       privacy: model.privacy_score,
       sustainability: model.sustainability.sustainability_score,
       transparency: model.transparency.transparency_score,
       capability: capScore,
+    }
+
+    // Phase 3.1: demote quality on tiers that aren't built for hard work when
+    // the task is complex — unless the user explicitly elevated transparency
+    // or sustainability into their top 3 priorities (their editorial choice
+    // wins over the systematic demotion).
+    const userPrioritisesEthics =
+      input.priorityOrder.slice(0, 3).includes('transparency') ||
+      input.priorityOrder.slice(0, 3).includes('sustainability')
+
+    if (
+      input.complexity === 'complex' &&
+      DEMOTED_TIERS_FOR_COMPLEX.has(model.tier) &&
+      !userPrioritisesEthics
+    ) {
+      factorScores.quality *= COMPLEX_TASK_QUALITY_DEMOTION
+    }
+
+    // Phase 3.2: reasoning multiplier. May push quality > 1.0 (see constant).
+    if (input.needsReasoning && model.capabilities.includes('extended_thinking')) {
+      factorScores.quality *= REASONING_QUALITY_BOOST
     }
 
     const weightedScore = Object.entries(factorScores).reduce(

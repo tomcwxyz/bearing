@@ -1,11 +1,11 @@
 {
   "meta": {
     "name": "Bearing Model Registry",
-    "version": "0.6.0",
-    "updated": "2026-05-04",
+    "version": "0.6.3",
+    "updated": "2026-05-05",
     "maintainer": "The Good Ship · good-ship.co.uk",
     "license": "CC BY-NC 4.0",
-    "notes": "Generated from database. 29 active models. v0.6.0 introduces external benchmark ingestion (LMArena first) blended into the quality factor; blend defaults to 0 (curated only) until per-model alias coverage is verified."
+    "notes": "Generated from database. 29 active models. The v0.6 line introduces external benchmark ingestion (LMArena first) blended into the quality factor; blend defaults to 0 (curated only) until per-model alias coverage is verified. v0.6.1 widens the flagship task_fitness range per docs/scoring/task-fitness-rubric.md. v0.6.2 lowers balanced/budget task_fitness for symmetric range. v0.6.3 lowers Gemini 3 Flash code (0.82→0.78) and analyse (0.78→0.74) so its elite cost/speed advantage doesn't dominate flagships on quality-led prompts (Phase 2.4)."
   },
   "scoring_methodology": {
     "description": "Each model receives per-factor scores from 0.0 to 1.0 across seven dimensions. Combined using user-defined priority weights to produce a ranked recommendation list.",
@@ -149,12 +149,12 @@
         "Slower than Sonnet/Haiku"
       ],
       "task_fitness": {
-        "code": 0.92,
+        "code": 0.96,
         "vision": 0.85,
-        "analyse": 0.95,
+        "analyse": 0.97,
         "extract": 0.9,
-        "generate": 0.95,
-        "summarise": 0.9,
+        "generate": 0.96,
+        "summarise": 0.93,
         "translate": 0.85,
         "conversation": 0.9
       },
@@ -205,12 +205,12 @@
         "Not the cheapest for simple tasks"
       ],
       "task_fitness": {
-        "code": 0.9,
+        "code": 0.93,
         "vision": 0.82,
-        "analyse": 0.88,
+        "analyse": 0.91,
         "extract": 0.88,
-        "generate": 0.9,
-        "summarise": 0.88,
+        "generate": 0.92,
+        "summarise": 0.9,
         "translate": 0.82,
         "conversation": 0.88
       },
@@ -262,7 +262,7 @@
         "Not for general text tasks"
       ],
       "task_fitness": {
-        "code": 0.95,
+        "code": 0.92,
         "vision": 0,
         "analyse": 0.6,
         "extract": 0.6,
@@ -341,7 +341,7 @@
       "task_fitness": {
         "code": 0.85,
         "vision": 0,
-        "analyse": 0.88,
+        "analyse": 0.93,
         "extract": 0.75,
         "generate": 0.7,
         "summarise": 0.72,
@@ -765,9 +765,9 @@
         "Not quite Pro quality on hardest reasoning"
       ],
       "task_fitness": {
-        "code": 0.88,
+        "code": 0.78,
         "vision": 0.88,
-        "analyse": 0.82,
+        "analyse": 0.74,
         "extract": 0.85,
         "generate": 0.8,
         "summarise": 0.85,
@@ -824,12 +824,12 @@
         "Privacy varies by tier"
       ],
       "task_fitness": {
-        "code": 0.88,
+        "code": 0.91,
         "vision": 0.92,
-        "analyse": 0.93,
-        "extract": 0.88,
-        "generate": 0.85,
-        "summarise": 0.88,
+        "analyse": 0.95,
+        "extract": 0.9,
+        "generate": 0.88,
+        "summarise": 0.92,
         "translate": 0.88,
         "conversation": 0.82
       },
@@ -881,11 +881,11 @@
         "Premium pricing on output-heavy tasks"
       ],
       "task_fitness": {
-        "code": 0.93,
+        "code": 0.96,
         "vision": 0.88,
-        "analyse": 0.9,
-        "extract": 0.9,
-        "generate": 0.88,
+        "analyse": 0.93,
+        "extract": 0.88,
+        "generate": 0.91,
         "summarise": 0.88,
         "translate": 0.85,
         "conversation": 0.85
@@ -1050,9 +1050,9 @@
         "Training not on green infrastructure"
       ],
       "task_fitness": {
-        "code": 0.72,
+        "code": 0.66,
         "vision": 0.68,
-        "analyse": 0.65,
+        "analyse": 0.6,
         "extract": 0.75,
         "generate": 0.68,
         "summarise": 0.72,
@@ -1132,9 +1132,9 @@
         "Training not on green infrastructure"
       ],
       "task_fitness": {
-        "code": 0.78,
+        "code": 0.72,
         "vision": 0,
-        "analyse": 0.75,
+        "analyse": 0.7,
         "extract": 0.8,
         "generate": 0.75,
         "summarise": 0.78,
@@ -1221,11 +1221,11 @@
         "Newer API ecosystem"
       ],
       "task_fitness": {
-        "code": 0.9,
+        "code": 0.92,
         "vision": 0.82,
-        "analyse": 0.92,
-        "extract": 0.88,
-        "generate": 0.85,
+        "analyse": 0.94,
+        "extract": 0.83,
+        "generate": 0.87,
         "summarise": 0.85,
         "translate": 0.82,
         "conversation": 0.82
@@ -1280,9 +1280,9 @@
         "Smaller ecosystem"
       ],
       "task_fitness": {
-        "code": 0.78,
+        "code": 0.7,
         "vision": 0,
-        "analyse": 0.72,
+        "analyse": 0.65,
         "extract": 0.8,
         "generate": 0.68,
         "summarise": 0.72,
@@ -1510,9 +1510,9 @@
         "Meta licence has restrictions"
       ],
       "task_fitness": {
-        "code": 0.84,
+        "code": 0.81,
         "vision": 0.82,
-        "analyse": 0.78,
+        "analyse": 0.76,
         "extract": 0.8,
         "generate": 0.78,
         "summarise": 0.82,
@@ -2088,7 +2088,7 @@
       "task_fitness": {
         "code": 0.85,
         "vision": 0.73,
-        "analyse": 0.82,
+        "analyse": 0.85,
         "extract": 0.78,
         "generate": 0.75,
         "summarise": 0.78,

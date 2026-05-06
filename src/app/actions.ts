@@ -63,6 +63,7 @@ export async function submitTask(formData: FormData) {
       needsVision: classification.needs_vision,
       needsTools: classification.needs_tools,
       needsCode: classification.needs_code,
+      needsReasoning: classification.needs_reasoning,
       isRecurring: classification.is_recurring,
       classificationConfidence: classification.confidence,
       pipelineStages: classification.pipeline_stages ?? null,
@@ -108,6 +109,7 @@ export async function submitClarification(
         needs_vision = ${classification.needs_vision},
         needs_tools = ${classification.needs_tools},
         needs_code = ${classification.needs_code},
+        needs_reasoning = ${classification.needs_reasoning},
         is_recurring = ${classification.is_recurring},
         classification_confidence = ${classification.confidence},
         pipeline_stages = ${classification.pipeline_stages ? JSON.stringify(classification.pipeline_stages) : null}
@@ -173,6 +175,7 @@ export async function getResults(taskId: string) {
       needsVision: task.needs_vision,
       needsTools: task.needs_tools,
       needsCode: task.needs_code,
+      needsReasoning: task.needs_reasoning ?? false,
       priorityOrder,
       excludedFactors,
       benchmarkScores,
@@ -198,7 +201,7 @@ export async function getResults(taskId: string) {
       const stages = typeof task.pipeline_stages === 'string'
         ? JSON.parse(task.pipeline_stages)
         : task.pipeline_stages
-      const pipelineResult = scorePipeline(stages, task.input_length, priorityOrder)
+      const pipelineResult = scorePipeline(stages, task.input_length, priorityOrder, task.needs_reasoning ?? false)
       const pipelineReasoning = await generatePipelineReasoning(
         task.task_type,
         pipelineResult,
@@ -278,6 +281,7 @@ export async function submitValidation(formData: FormData) {
       needsVision: classification.needs_vision,
       needsTools: classification.needs_tools,
       needsCode: classification.needs_code,
+      needsReasoning: classification.needs_reasoning,
       isRecurring: classification.is_recurring,
       mode: 'validate',
       classificationConfidence: classification.confidence,
@@ -351,6 +355,7 @@ export async function getValidationResults(taskId: string, currentModelSlug: str
       needsVision: task.needs_vision,
       needsTools: task.needs_tools,
       needsCode: task.needs_code,
+      needsReasoning: task.needs_reasoning ?? false,
       priorityOrder,
       benchmarkScores,
     })

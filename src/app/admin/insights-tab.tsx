@@ -77,6 +77,7 @@ export default function InsightsTab({ initialData }: InsightsTabProps) {
     { capability: 'Vision', count: capabilities.vision },
     { capability: 'Tools', count: capabilities.tools },
     { capability: 'Code', count: capabilities.code },
+    { capability: 'Reasoning', count: capabilities.reasoning },
   ]
 
   return (
@@ -176,7 +177,7 @@ export default function InsightsTab({ initialData }: InsightsTabProps) {
       {/* Capability demand */}
       <div className="rounded-lg border border-cream-dark bg-white p-5">
         <h3 className="mb-4 font-display text-lg text-navy">Capability demand</h3>
-        {capabilities.vision === 0 && capabilities.tools === 0 && capabilities.code === 0 ? (
+        {capabilities.vision === 0 && capabilities.tools === 0 && capabilities.code === 0 && capabilities.reasoning === 0 ? (
           <p className="py-12 text-center text-sm text-navy/40">No capability data yet.</p>
         ) : (
           <ResponsiveContainer width="100%" height={300}>

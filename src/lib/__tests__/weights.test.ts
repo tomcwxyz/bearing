@@ -75,6 +75,19 @@ describe('priorityToWeights', () => {
     expect(excluded.quality).toBeGreaterThan(normal.quality)
   })
 
+  it('damps rank-5+ factors so de-prioritised factors barely move the score', () => {
+    const order: Factor[] = ['quality', 'capability', 'cost', 'speed', 'transparency', 'sustainability', 'privacy']
+    const weights = priorityToWeights(order)
+    // transparency is rank 5 (index 4) — should be heavily damped.
+    expect(weights.transparency).toBeLessThan(0.05)
+  })
+
+  it('rank-1 factor still gets meaningful weight even when low-priority damping applies', () => {
+    const order: Factor[] = ['transparency', 'sustainability', 'privacy', 'quality', 'capability', 'cost', 'speed']
+    const weights = priorityToWeights(order)
+    expect(weights.transparency).toBeGreaterThan(0.20)
+  })
+
   it('works with both complexity boost and exclusions', () => {
     const order: Factor[] = ['quality', 'capability', 'cost', 'transparency', 'privacy', 'sustainability', 'speed']
     const weights = priorityToWeights(order, {

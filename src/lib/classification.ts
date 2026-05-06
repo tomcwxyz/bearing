@@ -10,6 +10,7 @@ export interface Classification {
   needs_vision: boolean
   needs_tools: boolean
   needs_code: boolean
+  needs_reasoning: boolean
   is_recurring: boolean
   confidence: number
   clarification_needed: boolean

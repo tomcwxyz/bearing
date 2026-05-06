@@ -289,14 +289,15 @@ export async function getOutcomeBreakdown() {
 // Capability demand
 // ---------------------------------------------------------------------------
 
-/** Count of tasks requiring vision, tools, or code capabilities. */
+/** Count of tasks requiring vision, tools, code, or reasoning capabilities. */
 export async function getCapabilityDemand() {
   const sql = getDb()
   const rows = await sql`
     SELECT
-      count(*) FILTER (WHERE needs_vision = true) AS vision,
-      count(*) FILTER (WHERE needs_tools = true)  AS tools,
-      count(*) FILTER (WHERE needs_code = true)   AS code
+      count(*) FILTER (WHERE needs_vision = true)    AS vision,
+      count(*) FILTER (WHERE needs_tools = true)     AS tools,
+      count(*) FILTER (WHERE needs_code = true)      AS code,
+      count(*) FILTER (WHERE needs_reasoning = true) AS reasoning
     FROM tasks
   `
   const row = rows[0]
@@ -304,5 +305,6 @@ export async function getCapabilityDemand() {
     vision: Number(row.vision),
     tools: Number(row.tools),
     code: Number(row.code),
+    reasoning: Number(row.reasoning),
   }
 }
