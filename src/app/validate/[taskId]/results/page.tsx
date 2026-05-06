@@ -27,7 +27,7 @@ function FactorBars({ model }: { model: ScoredModel }) {
     <div className="space-y-2">
       {FACTORS.map((factor) => {
         const score = model.factorScores[factor] ?? 0
-        const pct = Math.round(score * 100)
+        const pct = Math.min(100, Math.round(score * 100))
         return (
           <div key={factor} className="flex items-center gap-3">
             <span className="w-28 shrink-0 text-grey-blue text-xs font-mono">
@@ -60,7 +60,7 @@ function ModelCard({
   isHighlighted?: boolean
   highlightLabel?: string
 }) {
-  const matchPercent = Math.round(model.weightedScore * 100)
+  const matchPercent = Math.min(100, Math.round(model.weightedScore * 100))
 
   return (
     <div
@@ -195,7 +195,7 @@ export default async function ValidateResultsPage({
                 <p className="font-mono text-sm text-navy">
                   Score:{' '}
                   <span className="font-bold">
-                    {Math.round(currentModel.weightedScore * 100)}%
+                    {Math.min(100, Math.round(currentModel.weightedScore * 100))}%
                   </span>
                 </p>
               </div>
@@ -241,7 +241,7 @@ export default async function ValidateResultsPage({
                   </div>
                   <div className="text-right">
                     <p className="font-mono text-lg font-bold text-navy">
-                      {Math.round(topModel.weightedScore * 100)}%
+                      {Math.min(100, Math.round(topModel.weightedScore * 100))}%
                     </p>
                     <p className="font-mono text-xs text-grey-blue">
                       ~${topModel.estimatedCost.toFixed(4)}/task
@@ -289,7 +289,7 @@ export default async function ValidateResultsPage({
                     <span className="text-xs text-grey-blue">{m.provider}</span>
                   </div>
                   <span className="font-mono text-sm font-bold text-navy">
-                    {Math.round(m.weightedScore * 100)}%
+                    {Math.min(100, Math.round(m.weightedScore * 100))}%
                   </span>
                 </div>
               ))}
