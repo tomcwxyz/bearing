@@ -156,7 +156,12 @@ Examples that are NOT pipelines (single model handles all):
 
 Rules:
 - Each stage gets its own task_type from the standard set
-- requires_capabilities lists capabilities needed for that stage (e.g. ["vision"] for PDF/image processing)
+- requires_capabilities lists capabilities needed for that stage. Use ONLY
+  these tokens: "vision", "tools", "code", "long_context", "extended_thinking",
+  "structured_output", "multilingual", "audio", "video", "computer_use".
+  Do NOT invent tokens like "ocr", "extraction", "text", "summarisation" —
+  the corresponding task_type already conveys those. Use [] if no special
+  capability beyond text-in/text-out is needed.
 - Each stage's input_length is the size of what enters THAT stage, not the
   whole task. Stage 2's input is whatever stage 1 produced.
 - Each stage's output_length is the size of what THAT stage emits. Earlier

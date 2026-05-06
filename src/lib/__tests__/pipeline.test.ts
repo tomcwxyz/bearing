@@ -20,15 +20,38 @@ describe('scorePipelineStage', () => {
     }
   })
 
-  it('flags capabilityMissing when no model satisfies requires_capabilities', () => {
+  it('flags capabilityMissing when no model satisfies a known-but-unmet capability combo', () => {
+    // No single model in the registry satisfies all of these together.
     const result = scorePipelineStage({
       taskType: 'extract',
       inputLength: 'short',
-      requiresCapabilities: ['nonexistent_capability'],
+      requiresCapabilities: ['vision', 'audio', 'video', 'computer_use'],
       priorityOrder: defaultPriorities,
     })
     expect(result.capabilityMissing).toBe(true)
     expect(result.recommended).toBeDefined()
+  })
+
+  it('ignores unknown capability tokens (e.g. "ocr") rather than flagging missing', () => {
+    const result = scorePipelineStage({
+      taskType: 'extract',
+      inputLength: 'short',
+      requiresCapabilities: ['vision', 'ocr', 'extraction'],
+      priorityOrder: defaultPriorities,
+    })
+    // 'vision' is real and satisfiable; 'ocr'/'extraction' should be ignored.
+    expect(result.capabilityMissing).toBeFalsy()
+    expect(result.recommended.capabilities).toContain('vision')
+  })
+
+  it('treats a list of only-unknown tokens as no requirement', () => {
+    const result = scorePipelineStage({
+      taskType: 'summarise',
+      inputLength: 'short',
+      requiresCapabilities: ['summarisation', 'text'],
+      priorityOrder: defaultPriorities,
+    })
+    expect(result.capabilityMissing).toBeFalsy()
   })
 
   it('does not flag capabilityMissing when capability is satisfiable', () => {

@@ -1,6 +1,15 @@
 import { type Factor } from './registry'
 import { scoreModels, type ScoredModel } from './scoring'
 
+// Canonical capability tokens. Anything outside this set is dropped before
+// filtering — the classifier sometimes emits free-form descriptors (e.g.
+// "ocr", "extraction") that no registry model advertises, which would
+// otherwise trigger a spurious capabilityMissing warning on every stage.
+const KNOWN_CAPABILITIES = new Set([
+  'vision', 'tools', 'code', 'long_context', 'extended_thinking',
+  'structured_output', 'multilingual', 'audio', 'video', 'computer_use',
+])
+
 export interface PipelineStageInput {
   taskType: string
   inputLength: string
@@ -53,12 +62,15 @@ export function scorePipelineStage(input: PipelineStageInput): PipelineStageResu
     outputLength: input.outputLength,
   })
 
-  // Further filter by additional required capabilities
-  const filtered = input.requiresCapabilities.length > 0
-    ? scored.filter(m => input.requiresCapabilities.every(cap => m.capabilities.includes(cap)))
+  // Further filter by additional required capabilities. Drop unknown tokens
+  // (see KNOWN_CAPABILITIES note above) so the classifier emitting "ocr" or
+  // similar doesn't cause every stage to flag capabilityMissing.
+  const knownCaps = input.requiresCapabilities.filter(cap => KNOWN_CAPABILITIES.has(cap))
+  const filtered = knownCaps.length > 0
+    ? scored.filter(m => knownCaps.every(cap => m.capabilities.includes(cap)))
     : scored
 
-  const capabilityMissing = input.requiresCapabilities.length > 0 && filtered.length === 0
+  const capabilityMissing = knownCaps.length > 0 && filtered.length === 0
   const models = filtered.length > 0 ? filtered : scored
 
   return {
