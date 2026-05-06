@@ -8,7 +8,7 @@ import { isUserAdmin, getAllModelsFromDb, getAllModelsForAdmin, getModelForAdmin
 import { fetchOpenRouterModels, convertPricing, inferCapabilities, extractProvider, type OpenRouterModel } from '@/lib/openrouter'
 import {
   getBenchmarkSummary, getUnmatchedSourceModels, listAliases, upsertAlias, deleteAlias,
-  getCandidateSourceModelNames,
+  getCandidateSourceModelNames, getAliasesForBearingSlug,
   type BenchmarkSource, type BenchmarkAlias,
 } from '@/lib/benchmarks'
 import {
@@ -344,6 +344,68 @@ export async function importModel(formData: FormData): Promise<{ success: boolea
 }
 
 export type SuggestionsBySource = Record<BenchmarkSource, (AliasSuggestion & { existingAlias: string | null })[]>
+
+/**
+ * Re-run grounded estimation against the existing aliases + provider profile
+ * for a model that's already in the registry. Returns ONLY grounded fields
+ * (no Haiku call). Edit-page action — admin can apply selectively.
+ */
+export async function regroundModel(slug: string): Promise<{
+  success: boolean
+  grounded?: {
+    task_fitness: Record<string, number>
+    speed_score: number | null
+    privacy_score: number
+    transparency: { open_weights: 0 | 1; transparency_score: number }
+    derived_capabilities: { code: boolean | null }
+  }
+  provenance?: Record<string, Provenance>
+  error?: string
+}> {
+  await requireAdmin()
+
+  try {
+    const model = await getModelForAdmin(slug)
+    if (!model) return { success: false, error: 'Model not found' }
+
+    const aliases = await getAliasesForBearingSlug(slug)
+    const grounded = await groundFromAliases(aliases, model.provider)
+
+    const taskFitness: Record<string, number> = {}
+    const provenance: Record<string, Provenance> = {}
+    for (const [task, gf] of Object.entries(grounded.taskFitness)) {
+      if (!gf) continue
+      taskFitness[task] = gf.value
+      provenance[`task_fitness.${task}`] = 'benchmark'
+    }
+    if (grounded.speedScore) provenance.speed_score = 'benchmark'
+    provenance.privacy_score = grounded.privacyScore.provenance
+    provenance['transparency.open_weights'] = grounded.openWeights.provenance
+    provenance['transparency.transparency_score'] = grounded.baselineTransparency.provenance
+
+    const groundedCode = grounded.taskFitness.code
+    const derivedCode = groundedCode != null
+      ? (groundedCode.value >= CODE_CAPABILITY_THRESHOLD)
+      : null
+
+    return {
+      success: true,
+      grounded: {
+        task_fitness: taskFitness,
+        speed_score: grounded.speedScore?.value ?? null,
+        privacy_score: grounded.privacyScore.value,
+        transparency: {
+          open_weights: grounded.openWeights.value,
+          transparency_score: grounded.baselineTransparency.value,
+        },
+        derived_capabilities: { code: derivedCode },
+      },
+      provenance,
+    }
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Reground failed' }
+  }
+}
 
 /**
  * Run the alias matcher across all benchmark sources for a model being

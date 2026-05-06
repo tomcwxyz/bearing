@@ -393,6 +393,19 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
           onToggle={toggleAlias}
         />
 
+        {/* Warn when a flagship-priced model has no benchmark coverage —
+            those are the cases where Haiku-only estimates do the most damage. */}
+        {!suggestionsLoading && suggestions
+          && model.pricing.output_per_1m >= 5
+          && Object.values(suggestions).every(list => list.length === 0)
+          && (
+          <div className="mb-6 rounded-md border border-coral/40 bg-coral/5 px-4 py-3 text-sm text-coral">
+            <strong>Warning:</strong> this model is priced as a flagship (${model.pricing.output_per_1m.toFixed(2)}/M output)
+            but has no benchmark coverage in any source. Imported scores will rely entirely on Haiku
+            estimates — consider waiting for LMArena / LiveBench / AA coverage before publishing.
+          </div>
+        )}
+
         {/* Generate Estimates */}
         {!hasEstimated && (
           <div className="mb-6 rounded-lg border border-cream-dark bg-cream/30 p-4 text-center">
@@ -508,8 +521,8 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
                 className="input-field"
               />
             </Field>
-            <ScoreSlider label="Speed Score" value={formData.speed_score} onChange={(v) => setFormData({ ...formData, speed_score: v })} />
-            <ScoreSlider label="Privacy Score" value={formData.privacy_score} onChange={(v) => setFormData({ ...formData, privacy_score: v })} />
+            <ScoreSlider label="Speed Score" value={formData.speed_score} onChange={(v) => setFormData({ ...formData, speed_score: v })} provenance={provenance.speed_score} />
+            <ScoreSlider label="Privacy Score" value={formData.privacy_score} onChange={(v) => setFormData({ ...formData, privacy_score: v })} provenance={provenance.privacy_score} />
           </ModalSection>
 
           {/* Capabilities */}
@@ -551,6 +564,7 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
                   onChange={(v) =>
                     setFormData({ ...formData, task_fitness: { ...formData.task_fitness, [task]: v } })
                   }
+                  provenance={provenance[`task_fitness.${task}`]}
                 />
               ))}
             </div>
@@ -567,6 +581,7 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
                   ...formData,
                   transparency: { ...formData.transparency, [key]: v },
                 })}
+                provenance={provenance[`transparency.${key}`]}
               />
             ))}
             <Field label="FMTI Company Score (optional)">
@@ -702,10 +717,20 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   )
 }
 
-function ScoreSlider({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+function ScoreSlider({
+  label, value, onChange, provenance,
+}: {
+  label: string
+  value: number
+  onChange: (v: number) => void
+  provenance?: string
+}) {
   return (
     <div className="flex items-center gap-3">
-      <label className="w-40 text-sm text-navy/80 shrink-0">{label}</label>
+      <label className="flex w-40 shrink-0 items-center gap-1.5 text-sm text-navy/80">
+        <ProvenanceDot provenance={provenance} />
+        {label}
+      </label>
       <input
         type="range"
         min="0"
@@ -717,6 +742,24 @@ function ScoreSlider({ label, value, onChange }: { label: string; value: number;
       />
       <span className="w-12 text-right font-mono text-xs text-navy/60">{value.toFixed(2)}</span>
     </div>
+  )
+}
+
+function ProvenanceDot({ provenance }: { provenance?: string }) {
+  if (!provenance) return <span className="inline-block w-2" aria-hidden />
+  const map: Record<string, { bg: string; title: string }> = {
+    benchmark: { bg: 'bg-teal', title: 'From benchmark snapshot (LMArena / LiveBench / AA)' },
+    derived:   { bg: 'bg-amber-400', title: 'Derived deterministically (provider table or rule)' },
+    haiku:     { bg: 'bg-navy/30', title: 'Estimated by Haiku' },
+    default:   { bg: 'bg-navy/20', title: 'Default — provider not in lookup table' },
+  }
+  const entry = map[provenance] ?? map.default
+  return (
+    <span
+      title={entry.title}
+      className={`inline-block h-2 w-2 shrink-0 rounded-full ${entry.bg}`}
+      aria-label={`provenance: ${provenance}`}
+    />
   )
 }
 

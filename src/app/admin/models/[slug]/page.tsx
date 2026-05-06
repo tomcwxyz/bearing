@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { getModelAdmin, saveModelAdmin } from '@/app/admin/actions'
+import { getModelAdmin, saveModelAdmin, regroundModel } from '@/app/admin/actions'
 
 const ALL_CAPABILITIES = [
   'vision', 'tools', 'code', 'long_context', 'extended_thinking',
@@ -63,6 +63,43 @@ export default function AdminModelEditPage() {
   const [loading, setLoading] = useState(!isNew)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [isRegrounding, startRegroundTransition] = useTransition()
+  const [provenance, setProvenance] = useState<Record<string, string>>({})
+
+  function handleReground() {
+    setFeedback(null)
+    startRegroundTransition(async () => {
+      const result = await regroundModel(slug)
+      if (!result.success || !result.grounded) {
+        setFeedback({ type: 'error', message: result.error ?? 'Reground failed.' })
+        return
+      }
+      const g = result.grounded
+      setProvenance(result.provenance ?? {})
+      setModel(prev => {
+        let nextCaps = prev.capabilities
+        if (g.derived_capabilities.code === true && !nextCaps.includes('code')) nextCaps = [...nextCaps, 'code']
+        if (g.derived_capabilities.code === false) nextCaps = nextCaps.filter(c => c !== 'code')
+        return {
+          ...prev,
+          capabilities: nextCaps,
+          task_fitness: { ...prev.task_fitness, ...g.task_fitness },
+          speed_score: g.speed_score ?? prev.speed_score,
+          privacy_score: g.privacy_score,
+          transparency: {
+            ...prev.transparency,
+            open_weights: g.transparency.open_weights,
+            transparency_score: g.transparency.transparency_score,
+          },
+        }
+      })
+      const groundedCount = Object.values(result.provenance ?? {}).filter(p => p === 'benchmark').length
+      setFeedback({
+        type: 'success',
+        message: `Refreshed from benchmarks: ${groundedCount} field(s) grounded. Save to persist.`,
+      })
+    })
+  }
 
   useEffect(() => {
     if (!isNew) {
@@ -134,9 +171,21 @@ export default function AdminModelEditPage() {
           <h1 className="font-display text-3xl text-navy">
             {isNew ? 'Add Model' : `Edit: ${model.name}`}
           </h1>
-          <button onClick={() => router.push('/admin')} className="text-sm text-teal hover:text-teal-light">
-            Back to list
-          </button>
+          <div className="flex items-center gap-3">
+            {!isNew && (
+              <button
+                onClick={handleReground}
+                disabled={isRegrounding}
+                className="text-sm text-teal hover:text-teal-light disabled:opacity-50"
+                title="Recompute grounded fields from benchmark snapshots and the provider profile"
+              >
+                {isRegrounding ? 'Refreshing...' : 'Refresh from benchmarks'}
+              </button>
+            )}
+            <button onClick={() => router.push('/admin')} className="text-sm text-teal hover:text-teal-light">
+              Back to list
+            </button>
+          </div>
         </div>
 
         {feedback && (
@@ -237,8 +286,8 @@ export default function AdminModelEditPage() {
               className="input-field"
             />
           </Field>
-          <ScoreSlider label="Speed Score" value={model.speed_score} onChange={(v) => setModel({ ...model, speed_score: v })} />
-          <ScoreSlider label="Privacy Score" value={model.privacy_score} onChange={(v) => setModel({ ...model, privacy_score: v })} />
+          <ScoreSlider label="Speed Score" value={model.speed_score} onChange={(v) => setModel({ ...model, speed_score: v })} provenance={provenance.speed_score} />
+          <ScoreSlider label="Privacy Score" value={model.privacy_score} onChange={(v) => setModel({ ...model, privacy_score: v })} provenance={provenance.privacy_score} />
         </Section>
 
         {/* Capabilities */}
@@ -280,6 +329,7 @@ export default function AdminModelEditPage() {
                 onChange={(v) =>
                   setModel({ ...model, task_fitness: { ...model.task_fitness, [task]: v } })
                 }
+                provenance={provenance[`task_fitness.${task}`]}
               />
             ))}
           </div>
@@ -296,6 +346,7 @@ export default function AdminModelEditPage() {
                 ...model,
                 transparency: { ...model.transparency, [key]: v },
               })}
+              provenance={provenance[`transparency.${key}`]}
             />
           ))}
           <Field label="FMTI Company Score (optional)">
@@ -430,10 +481,20 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   )
 }
 
-function ScoreSlider({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+function ScoreSlider({
+  label, value, onChange, provenance,
+}: {
+  label: string
+  value: number
+  onChange: (v: number) => void
+  provenance?: string
+}) {
   return (
     <div className="flex items-center gap-3">
-      <label className="w-40 text-sm text-navy/80 shrink-0">{label}</label>
+      <label className="flex w-40 shrink-0 items-center gap-1.5 text-sm text-navy/80">
+        <ProvenanceDot provenance={provenance} />
+        {label}
+      </label>
       <input
         type="range"
         min="0"
@@ -445,6 +506,24 @@ function ScoreSlider({ label, value, onChange }: { label: string; value: number;
       />
       <span className="w-12 text-right font-mono text-xs text-navy/60">{value.toFixed(2)}</span>
     </div>
+  )
+}
+
+function ProvenanceDot({ provenance }: { provenance?: string }) {
+  if (!provenance) return <span className="inline-block w-2" aria-hidden />
+  const map: Record<string, { bg: string; title: string }> = {
+    benchmark: { bg: 'bg-teal', title: 'From benchmark snapshot (LMArena / LiveBench / AA)' },
+    derived:   { bg: 'bg-amber-400', title: 'Derived deterministically (provider table or rule)' },
+    haiku:     { bg: 'bg-navy/30', title: 'Estimated by Haiku' },
+    default:   { bg: 'bg-navy/20', title: 'Default — provider not in lookup table' },
+  }
+  const entry = map[provenance] ?? map.default
+  return (
+    <span
+      title={entry.title}
+      className={`inline-block h-2 w-2 shrink-0 rounded-full ${entry.bg}`}
+      aria-label={`provenance: ${provenance}`}
+    />
   )
 }
 

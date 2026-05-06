@@ -311,6 +311,20 @@ export interface BenchmarkAlias {
   createdAt: string
 }
 
+/** All aliases pointing at a given bearing slug, across all sources. */
+export async function getAliasesForBearingSlug(bearingSlug: string): Promise<{
+  source: BenchmarkSource
+  sourceModelName: string
+}[]> {
+  const rows = await getDb()`
+    SELECT source, source_model_name FROM benchmark_aliases WHERE bearing_slug = ${bearingSlug}
+  `
+  return rows.map(r => ({
+    source: r.source as BenchmarkSource,
+    sourceModelName: r.source_model_name as string,
+  }))
+}
+
 /**
  * Distinct source_model_names ingested for a given source, with the
  * bearing_slug they're currently aliased to (if any). Used to populate the
