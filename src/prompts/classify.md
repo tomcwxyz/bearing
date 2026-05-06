@@ -35,7 +35,10 @@ Return JSON only, no other text.
       "stage": number,
       "task_type": "summarise" | "generate" | "extract" | "code" | "analyse" | "translate" | "conversation" | "vision" | "other",
       "description": string,
-      "requires_capabilities": string[]
+      "requires_capabilities": string[],
+      "input_length": "short" | "medium" | "long" | "very_long",
+      "output_length": "short" | "medium" | "long" | "very_long",
+      "needs_reasoning": boolean
     }
   ] | null
 }
@@ -154,6 +157,13 @@ Examples that are NOT pipelines (single model handles all):
 Rules:
 - Each stage gets its own task_type from the standard set
 - requires_capabilities lists capabilities needed for that stage (e.g. ["vision"] for PDF/image processing)
+- Each stage's input_length is the size of what enters THAT stage, not the
+  whole task. Stage 2's input is whatever stage 1 produced.
+- Each stage's output_length is the size of what THAT stage emits. Earlier
+  stages often emit "long" intermediate artefacts; the final stage's output
+  is what the user actually sees.
+- needs_reasoning is per stage. Most pipelines have at most one reasoning
+  stage; mechanical stages (OCR, translation, formatting) should be false.
 - If pipeline_recommended is false, set pipeline_stages to null
 - Maximum 4 stages
 
