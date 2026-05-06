@@ -69,7 +69,15 @@ export function scorePipelineStage(input: PipelineStageInput): PipelineStageResu
 // output_length) would have crossed into foot-gun territory at 11 args; the
 // options object scales cleanly and lets callers omit unused fields.
 export interface ScorePipelineOptions {
-  stages: Array<{ stage: number; task_type: string; description: string; requires_capabilities: string[] }>
+  stages: Array<{
+    stage: number
+    task_type: string
+    description: string
+    requires_capabilities: string[]
+    input_length?: string
+    output_length?: string
+    needs_reasoning?: boolean
+  }>
   inputLength: string
   priorityOrder: Factor[]
   needsReasoning?: boolean
@@ -87,17 +95,17 @@ export function scorePipeline(options: ScorePipelineOptions): PipelineResult {
   const results = stages.map(stage => {
     const stageResult = scorePipelineStage({
       taskType: stage.task_type,
-      inputLength,
+      inputLength: stage.input_length ?? inputLength,
+      outputLength: stage.output_length ?? options.outputLength,
       requiresCapabilities: stage.requires_capabilities,
       priorityOrder,
-      needsReasoning: options.needsReasoning ?? false,
+      needsReasoning: stage.needs_reasoning ?? options.needsReasoning ?? false,
       dataSensitivity: options.dataSensitivity,
       latencyTarget: options.latencyTarget,
       volume: options.volume,
       needsLongContext: options.needsLongContext,
       needsMultilingual: options.needsMultilingual,
       isAgentic: options.isAgentic,
-      outputLength: options.outputLength,
     })
     return {
       stage: stage.stage,
