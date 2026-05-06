@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildClassificationMessages, parseClassificationResponse, type Classification } from '../classification'
+import { buildClassificationMessages, parseClassificationResponse, CLASSIFY_TOOL, type Classification } from '../classification'
 
 describe('classification', () => {
   it('builds messages from a task description', () => {
@@ -115,5 +115,24 @@ describe('pipeline rule (Phase 6)', () => {
     const { system } = buildClassificationMessages('placeholder')
     expect(system).toMatch(/different task_type values/i)
     expect(system).toMatch(/Cannot share a single model efficiently/i)
+  })
+})
+
+// Phase 7.1: structured output via tool-use replaces raw JSON parsing.
+describe('CLASSIFY_TOOL schema (Phase 7.1)', () => {
+  it('exposes a classify_task tool with the full classification schema', () => {
+    expect(CLASSIFY_TOOL.name).toBe('classify_task')
+    const props = CLASSIFY_TOOL.input_schema.properties
+    expect(props).toHaveProperty('task_type')
+    expect(props).toHaveProperty('pipeline_recommended')
+    expect(props).toHaveProperty('data_sensitivity')
+    expect(props).toHaveProperty('output_length')
+  })
+
+  it('marks core fields as required', () => {
+    const required = CLASSIFY_TOOL.input_schema.required
+    for (const field of ['task_type', 'complexity', 'input_length', 'confidence', 'clarification_needed']) {
+      expect(required).toContain(field)
+    }
   })
 })
