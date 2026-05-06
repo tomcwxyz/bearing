@@ -22,6 +22,13 @@ export interface TaskParams {
   needsCode?: boolean
   needsReasoning?: boolean
   isRecurring?: boolean
+  dataSensitivity?: string
+  latencyTarget?: string
+  volume?: string
+  needsLongContext?: boolean
+  needsMultilingual?: boolean
+  isAgentic?: boolean
+  outputLength?: string
   mode?: string
   priorityOrder?: string[]
   classificationConfidence?: number | null
@@ -54,6 +61,13 @@ export async function createTask(params: TaskParams): Promise<string> {
       needs_code,
       needs_reasoning,
       is_recurring,
+      data_sensitivity,
+      latency_target,
+      volume,
+      needs_long_context,
+      needs_multilingual,
+      is_agentic,
+      output_length,
       mode,
       priority_order,
       classification_confidence,
@@ -69,6 +83,13 @@ export async function createTask(params: TaskParams): Promise<string> {
       ${params.needsCode ?? false},
       ${params.needsReasoning ?? false},
       ${params.isRecurring ?? false},
+      ${params.dataSensitivity ?? 'none'},
+      ${params.latencyTarget ?? 'interactive'},
+      ${params.volume ?? 'one_off'},
+      ${params.needsLongContext ?? false},
+      ${params.needsMultilingual ?? false},
+      ${params.isAgentic ?? false},
+      ${params.outputLength ?? 'medium'},
       ${params.mode ?? 'recommend'},
       ${params.priorityOrder ? JSON.stringify(params.priorityOrder) : null},
       ${params.classificationConfidence ?? null},

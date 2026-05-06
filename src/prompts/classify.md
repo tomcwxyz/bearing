@@ -14,6 +14,13 @@ Return JSON only, no other text.
   "needs_code": boolean,
   "needs_reasoning": boolean,
   "is_recurring": boolean,
+  "data_sensitivity": "none" | "pii" | "regulated_health" | "regulated_finance" | "on_prem_required",
+  "latency_target": "realtime" | "interactive" | "batch",
+  "volume": "one_off" | "hundreds_per_day" | "thousands_per_day" | "millions_per_day",
+  "needs_long_context": boolean,
+  "needs_multilingual": boolean,
+  "is_agentic": boolean,
+  "output_length": "short" | "medium" | "long" | "very_long",
   "confidence": number (0.0-1.0),
   "clarification_needed": boolean,
   "suggested_questions": [
@@ -60,20 +67,91 @@ Return JSON only, no other text.
   - "Summarise this email" → false
 - Estimate input_length from the task description.
 - is_recurring = true if the task sounds like something done regularly.
+- data_sensitivity classifies what kind of data the model will see:
+  - "Process patient medical records" → `regulated_health`
+  - "Analyse credit card transactions" → `regulated_finance`
+  - "Must run on-prem with zero data egress" → `on_prem_required`
+  - "Customer feedback survey responses" → `pii`
+  - "Classify product photos" → `none`
+  Default to `none` when no sensitive data is implied.
+- latency_target captures how fast a single response must be:
+  - "Voice assistant that responds under 200ms" → `realtime`
+  - "Translate 200 product descriptions daily" → `batch`
+  - "Customer-support chatbot" → `interactive` (default; chat is the baseline)
+  - "Generate a market-research report" → `batch`
+  Default to `interactive`.
+- volume estimates how often the task runs:
+  - "Classify a million tweets per day" → `millions_per_day`
+  - "Translate 200 product descriptions daily" → `hundreds_per_day`
+  - "Process invoices weekly" → `hundreds_per_day` (round up; 50/week ≈ low hundreds/day equivalent)
+  - "Refactor this codebase" → `one_off`
+  Default to `one_off`.
+- needs_long_context = true when the task requires the model to process a single
+  input that exceeds typical context windows (~roughly >100k tokens):
+  - "Summarise a 200-page board report" → true
+  - "Analyse a 50k-line codebase" → true
+  - "Process meeting transcripts of ~30k tokens each" → true
+  - "Write a tweet" / "Translate one sentence" → false
+  Default to false.
+- needs_multilingual = true when the task involves non-English content or
+  multiple locales beyond English. This is broader than `task_type='translate'`
+  — it covers any multilingual *requirement* on the model:
+  - "Build a chatbot that handles English, Arabic, Mandarin, Swahili" → true
+  - "Translate Japanese paper to English" → true (cross-language work)
+  - "Localise product copy into 12 EU languages" → true
+  - "Write a regex" / English-only tasks → false
+  Default to false.
+- is_agentic = true when the task expects the model to operate autonomously
+  with multiple tools or steps over time (browsing, code execution, external
+  API calls combined into a multi-step loop):
+  - "Build an agent that browses the web, runs code, calls our API to schedule meetings" → true
+  - "Customer-support chatbot that calls our refund API" → true (multi-tool, autonomous-ish)
+  - "Write me an email" → false
+  - "Refactor this codebase" → false (single task, not agentic)
+  Default to false.
+- output_length classifies how long the model's *output* should be — this is
+  independent of input_length and the two often differ:
+  - "Write a 1500-word short story" → output_length: long (input is short — the
+    story prompt is brief; the long thing is the output)
+  - "Summarise a 200-page report into a 2-page brief" → input_length: very_long,
+    output_length: medium
+  - "Reply yes/no to this question" → output_length: short
+  - "Generate a 20-page market-research report" → output_length: very_long
+  Default to `medium`.
 
 ## Pipeline detection
 
-Some tasks involve multiple distinct processing steps that benefit from different models. When this is the case, set pipeline_recommended to true and provide pipeline_stages.
+A pipeline recommends *different models for different stages* — only set
+pipeline_recommended=true when a single general-purpose model would genuinely
+do a worse job than splitting the work.
 
-Examples of pipeline tasks:
-- "Extract text from PDFs then summarise the key points" → stage 1: extract (needs vision), stage 2: summarise
-- "Translate this document then generate a report from it" → stage 1: translate, stage 2: generate
-- "OCR these invoices, pull out the amounts, and analyse spending trends" → stage 1: extract (needs vision), stage 2: extract, stage 3: analyse
-- "Read this codebase and write documentation" → stage 1: code, stage 2: generate
+A pipeline requires ≥2 operations that:
+  1. Have **different task_type values**, AND
+  2. **Cannot share a single model efficiently** — the operations differ in
+     modality (vision → text), language (translate → analyse), or specialty
+     (OCR → reasoning). One model running both stages would either lack a
+     required capability or be materially worse at one stage than a specialist.
+
+NEVER recommend a pipeline for:
+  - A single chat / conversation / chatbot use case (chatbots are not pipelines,
+    even if the bot answers many topics)
+  - Code that involves writing + testing + refactoring (one job, one model)
+  - A single document being summarised
+  - Anything where the same general-purpose model could do all stages well
+
+Examples of *real* pipelines (different modalities or specialties):
+- "Extract text from PDFs then summarise the key points" → vision-OCR → summarise
+- "Translate this Japanese document then generate an English report from it" → translate → generate
+- "OCR these invoices, pull out the amounts, and analyse spending trends" → vision-extract → extract → analyse
+- "Read this codebase and write user-facing documentation" → code → generate
+
+Examples that are NOT pipelines (single model handles all):
+- "Build a GCSE-tutor chatbot for maths and English" → one conversation model
+- "Customer-support chatbot that answers FAQs and escalates to humans" → one conversation model
+- "Refactor this React component, write tests, and add docstrings" → one code model
+- "Multilingual support chatbot for English, Spanish, French" → one multilingual conversation model
 
 Rules:
-- Only recommend pipelines for tasks with 2+ clearly distinct operations
-- Simple tasks (single question, single generation) should NOT get pipelines
 - Each stage gets its own task_type from the standard set
 - requires_capabilities lists capabilities needed for that stage (e.g. ["vision"] for PDF/image processing)
 - If pipeline_recommended is false, set pipeline_stages to null

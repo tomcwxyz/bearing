@@ -10,7 +10,7 @@ import { classifyTask, type ClarificationAnswer } from '@/lib/classification'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import Anthropic from '@anthropic-ai/sdk'
-import { scoreModels, type ScoredModel } from '@/lib/scoring'
+import { scoreModels, scoreModelsDetailed, type ScoredModel, type Exclusion } from '@/lib/scoring'
 import { getLatestBenchmarkScores } from '@/lib/benchmarks'
 import { generateReasoning } from '@/lib/reasoning'
 import { scorePipeline, type PipelineResult } from '@/lib/pipeline'
@@ -65,6 +65,13 @@ export async function submitTask(formData: FormData) {
       needsCode: classification.needs_code,
       needsReasoning: classification.needs_reasoning,
       isRecurring: classification.is_recurring,
+      dataSensitivity: classification.data_sensitivity,
+      latencyTarget: classification.latency_target,
+      volume: classification.volume,
+      needsLongContext: classification.needs_long_context,
+      needsMultilingual: classification.needs_multilingual,
+      isAgentic: classification.is_agentic,
+      outputLength: classification.output_length,
       classificationConfidence: classification.confidence,
       pipelineStages: classification.pipeline_stages ?? null,
     })
@@ -111,6 +118,13 @@ export async function submitClarification(
         needs_code = ${classification.needs_code},
         needs_reasoning = ${classification.needs_reasoning},
         is_recurring = ${classification.is_recurring},
+        data_sensitivity = ${classification.data_sensitivity},
+        latency_target = ${classification.latency_target},
+        volume = ${classification.volume},
+        needs_long_context = ${classification.needs_long_context},
+        needs_multilingual = ${classification.needs_multilingual},
+        is_agentic = ${classification.is_agentic},
+        output_length = ${classification.output_length},
         classification_confidence = ${classification.confidence},
         pipeline_stages = ${classification.pipeline_stages ? JSON.stringify(classification.pipeline_stages) : null}
       WHERE id = ${taskId}
@@ -168,7 +182,7 @@ export async function getResults(taskId: string) {
       : []
 
     const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
-    const models = scoreModels({
+    const { models, excluded } = scoreModelsDetailed({
       taskType: task.task_type,
       complexity: task.complexity,
       inputLength: task.input_length,
@@ -176,6 +190,13 @@ export async function getResults(taskId: string) {
       needsTools: task.needs_tools,
       needsCode: task.needs_code,
       needsReasoning: task.needs_reasoning ?? false,
+      dataSensitivity: task.data_sensitivity ?? 'none',
+      latencyTarget: task.latency_target ?? 'interactive',
+      volume: task.volume ?? 'one_off',
+      needsLongContext: task.needs_long_context ?? false,
+      needsMultilingual: task.needs_multilingual ?? false,
+      isAgentic: task.is_agentic ?? false,
+      outputLength: task.output_length ?? 'medium',
       priorityOrder,
       excludedFactors,
       benchmarkScores,
@@ -201,7 +222,19 @@ export async function getResults(taskId: string) {
       const stages = typeof task.pipeline_stages === 'string'
         ? JSON.parse(task.pipeline_stages)
         : task.pipeline_stages
-      const pipelineResult = scorePipeline(stages, task.input_length, priorityOrder, task.needs_reasoning ?? false)
+      const pipelineResult = scorePipeline({
+        stages,
+        inputLength: task.input_length,
+        priorityOrder,
+        needsReasoning: task.needs_reasoning ?? false,
+        dataSensitivity: task.data_sensitivity ?? 'none',
+        latencyTarget: task.latency_target ?? 'interactive',
+        volume: task.volume ?? 'one_off',
+        needsLongContext: task.needs_long_context ?? false,
+        needsMultilingual: task.needs_multilingual ?? false,
+        isAgentic: task.is_agentic ?? false,
+        outputLength: task.output_length ?? 'medium',
+      })
       const pipelineReasoning = await generatePipelineReasoning(
         task.task_type,
         pipelineResult,
@@ -215,7 +248,7 @@ export async function getResults(taskId: string) {
     const localResult = scoreLocalModels(models, allModelsRaw, task.task_type)
     const local = localResult.recommendations.length > 0 ? localResult : null
 
-    return { task, models, reasoning, pipeline, local }
+    return { task, models, reasoning, pipeline, local, excluded }
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Failed to get results.' }
   }
@@ -283,6 +316,13 @@ export async function submitValidation(formData: FormData) {
       needsCode: classification.needs_code,
       needsReasoning: classification.needs_reasoning,
       isRecurring: classification.is_recurring,
+      dataSensitivity: classification.data_sensitivity,
+      latencyTarget: classification.latency_target,
+      volume: classification.volume,
+      needsLongContext: classification.needs_long_context,
+      needsMultilingual: classification.needs_multilingual,
+      isAgentic: classification.is_agentic,
+      outputLength: classification.output_length,
       mode: 'validate',
       classificationConfidence: classification.confidence,
     })
@@ -356,6 +396,13 @@ export async function getValidationResults(taskId: string, currentModelSlug: str
       needsTools: task.needs_tools,
       needsCode: task.needs_code,
       needsReasoning: task.needs_reasoning ?? false,
+      dataSensitivity: task.data_sensitivity ?? 'none',
+      latencyTarget: task.latency_target ?? 'interactive',
+      volume: task.volume ?? 'one_off',
+      needsLongContext: task.needs_long_context ?? false,
+      needsMultilingual: task.needs_multilingual ?? false,
+      isAgentic: task.is_agentic ?? false,
+      outputLength: task.output_length ?? 'medium',
       priorityOrder,
       benchmarkScores,
     })

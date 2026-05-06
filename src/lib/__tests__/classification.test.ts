@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildClassificationMessages, parseClassificationResponse, type Classification } from '../classification'
+import { buildClassificationMessages, parseClassificationResponse, CLASSIFY_TOOL, type Classification } from '../classification'
 
 describe('classification', () => {
   it('builds messages from a task description', () => {
@@ -93,5 +93,46 @@ describe('parseClassificationResponse - pipeline', () => {
     const result = parseClassificationResponse(raw)
     expect(result.pipeline_recommended).toBe(false)
     expect(result.pipeline_stages).toBeNull()
+  })
+})
+
+// Phase 6.2: pin the tightened pipeline-detection rule into the system prompt.
+// We can't invoke Anthropic in tests, so we assert the prompt encodes the
+// negative-example list — a proxy that catches accidental regressions of the
+// rule wording (the most likely failure mode, not the model's interpretation).
+describe('pipeline rule (Phase 6)', () => {
+  it('system prompt forbids pipelines for chatbots', () => {
+    const { system } = buildClassificationMessages('placeholder')
+    expect(system).toMatch(/chatbots are not pipelines/i)
+  })
+
+  it('system prompt forbids pipelines for code + tests + refactor', () => {
+    const { system } = buildClassificationMessages('placeholder')
+    expect(system).toMatch(/one job, one model/i)
+  })
+
+  it('system prompt requires different task_type AND non-shareable models', () => {
+    const { system } = buildClassificationMessages('placeholder')
+    expect(system).toMatch(/different task_type values/i)
+    expect(system).toMatch(/Cannot share a single model efficiently/i)
+  })
+})
+
+// Phase 7.1: structured output via tool-use replaces raw JSON parsing.
+describe('CLASSIFY_TOOL schema (Phase 7.1)', () => {
+  it('exposes a classify_task tool with the full classification schema', () => {
+    expect(CLASSIFY_TOOL.name).toBe('classify_task')
+    const props = CLASSIFY_TOOL.input_schema.properties
+    expect(props).toHaveProperty('task_type')
+    expect(props).toHaveProperty('pipeline_recommended')
+    expect(props).toHaveProperty('data_sensitivity')
+    expect(props).toHaveProperty('output_length')
+  })
+
+  it('marks core fields as required', () => {
+    const required = CLASSIFY_TOOL.input_schema.required
+    for (const field of ['task_type', 'complexity', 'input_length', 'confidence', 'clarification_needed']) {
+      expect(required).toContain(field)
+    }
   })
 })

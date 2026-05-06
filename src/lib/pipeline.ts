@@ -7,6 +7,13 @@ export interface PipelineStageInput {
   requiresCapabilities: string[]
   priorityOrder: Factor[]
   needsReasoning?: boolean
+  dataSensitivity?: string
+  latencyTarget?: string
+  volume?: string
+  needsLongContext?: boolean
+  needsMultilingual?: boolean
+  isAgentic?: boolean
+  outputLength?: string
 }
 
 export interface PipelineStageResult {
@@ -35,6 +42,13 @@ export function scorePipelineStage(input: PipelineStageInput): PipelineStageResu
     needsCode: input.requiresCapabilities.includes('code'),
     priorityOrder: input.priorityOrder,
     needsReasoning: input.needsReasoning ?? false,
+    dataSensitivity: input.dataSensitivity,
+    latencyTarget: input.latencyTarget,
+    volume: input.volume,
+    needsLongContext: input.needsLongContext,
+    needsMultilingual: input.needsMultilingual,
+    isAgentic: input.isAgentic,
+    outputLength: input.outputLength,
   })
 
   // Further filter by additional required capabilities
@@ -50,19 +64,40 @@ export function scorePipelineStage(input: PipelineStageInput): PipelineStageResu
   }
 }
 
-export function scorePipeline(
-  stages: Array<{ stage: number; task_type: string; description: string; requires_capabilities: string[] }>,
-  inputLength: string,
-  priorityOrder: Factor[],
-  needsReasoning: boolean = false,
-): PipelineResult {
+// Phase 4 batch B: refactored from positional args (was up to 7) to an options
+// object. Adding more positional args (long-context, multilingual, agentic,
+// output_length) would have crossed into foot-gun territory at 11 args; the
+// options object scales cleanly and lets callers omit unused fields.
+export interface ScorePipelineOptions {
+  stages: Array<{ stage: number; task_type: string; description: string; requires_capabilities: string[] }>
+  inputLength: string
+  priorityOrder: Factor[]
+  needsReasoning?: boolean
+  dataSensitivity?: string
+  latencyTarget?: string
+  volume?: string
+  needsLongContext?: boolean
+  needsMultilingual?: boolean
+  isAgentic?: boolean
+  outputLength?: string
+}
+
+export function scorePipeline(options: ScorePipelineOptions): PipelineResult {
+  const { stages, inputLength, priorityOrder } = options
   const results = stages.map(stage => {
     const stageResult = scorePipelineStage({
       taskType: stage.task_type,
       inputLength,
       requiresCapabilities: stage.requires_capabilities,
       priorityOrder,
-      needsReasoning,
+      needsReasoning: options.needsReasoning ?? false,
+      dataSensitivity: options.dataSensitivity,
+      latencyTarget: options.latencyTarget,
+      volume: options.volume,
+      needsLongContext: options.needsLongContext,
+      needsMultilingual: options.needsMultilingual,
+      isAgentic: options.isAgentic,
+      outputLength: options.outputLength,
     })
     return {
       stage: stage.stage,

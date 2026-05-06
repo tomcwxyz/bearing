@@ -9,6 +9,17 @@ export interface ScoringInput {
   needsTools: boolean
   needsCode: boolean
   needsReasoning?: boolean
+  // Phase 4 batch A: classification dimensions that influence hard filters and
+  // factor-score multipliers (NOT weight multipliers — see notes on each).
+  dataSensitivity?: string
+  latencyTarget?: string
+  volume?: string
+  // Phase 4 batch B: long-context hard filter, multilingual + agentic quality
+  // multipliers, and a separate output-length axis for cost estimation.
+  needsLongContext?: boolean
+  needsMultilingual?: boolean
+  isAgentic?: boolean
+  outputLength?: string
   priorityOrder: Factor[]
   excludedFactors?: string[]
   // Optional map keyed by `${bearing_slug}::${taskType}` → 0..1 normalised
@@ -32,17 +43,29 @@ export interface ScoredModel {
   contextWindow: number
 }
 
-const TOKEN_ESTIMATES: Record<string, { input: number; output: number }> = {
-  short: { input: 500, output: 250 },
-  medium: { input: 2000, output: 1000 },
-  long: { input: 8000, output: 2000 },
-  very_long: { input: 32000, output: 4000 },
+// Phase 4.6: input and output token estimates are decoupled because the two
+// often differ (e.g. "summarise a 200-page report into a 2-page brief" — long
+// input, medium output; "write a 1500-word story" — short input, long output).
+// Callers that don't pass outputLength get medium output (1000 tokens), which
+// matches the previous default behaviour for backward compatibility.
+const INPUT_TOKEN_ESTIMATES: Record<string, number> = {
+  short: 500,
+  medium: 2000,
+  long: 8000,
+  very_long: 32000,
+}
+const OUTPUT_TOKEN_ESTIMATES: Record<string, number> = {
+  short: 100,
+  medium: 1000,
+  long: 4000,
+  very_long: 16000,
 }
 
-function estimateCost(model: Model, inputLength: string): number {
-  const tokens = TOKEN_ESTIMATES[inputLength] ?? TOKEN_ESTIMATES.medium
-  const inputCost = (tokens.input / 1_000_000) * model.pricing.input_per_1m
-  const outputCost = (tokens.output / 1_000_000) * model.pricing.output_per_1m
+export function estimateCost(model: Model, inputLength: string, outputLength: string = 'medium'): number {
+  const inputTokens = INPUT_TOKEN_ESTIMATES[inputLength] ?? INPUT_TOKEN_ESTIMATES.medium
+  const outputTokens = OUTPUT_TOKEN_ESTIMATES[outputLength] ?? OUTPUT_TOKEN_ESTIMATES.medium
+  const inputCost = (inputTokens / 1_000_000) * model.pricing.input_per_1m
+  const outputCost = (outputTokens / 1_000_000) * model.pricing.output_per_1m
   return inputCost + outputCost
 }
 
@@ -70,17 +93,63 @@ const DEMOTED_TIERS_FOR_COMPLEX = new Set([
 // not a probability, so values >1 still produce sensible orderings.
 const REASONING_QUALITY_BOOST = 1.20
 
+// Phase 4.1 (data_sensitivity): privacy factor-score multipliers. These
+// multiply the privacy *score*, not the weight — values >1.0 may push privacy
+// above 1.0, which is fine because scores combine multiplicatively with
+// weights and a higher score correctly raises a model's overall ranking.
+const PRIVACY_BOOST_REGULATED = 1.5  // regulated_health, regulated_finance
+const PRIVACY_BOOST_PII = 1.2
+
+// Phase 4.1: when on-prem is required, hard-filter to models with local_info.
+// Applied BEFORE factor scores are built so filtered models never appear.
+
+// Phase 4.2 (latency_target): realtime requires speed_score >= 0.85. Below
+// that threshold the model is hard-filtered out. Batch latency targets boost
+// the cost factor *score* by 1.3 (you'd expect a weight bump, but the priority
+// pipeline already determines weights — boosting the score is a cleaner
+// drop-in that achieves the same surfacing-cheap-models effect).
+const REALTIME_SPEED_THRESHOLD = 0.85
+const COST_BOOST_BATCH = 1.3
+
+// Phase 4.3 (volume): cost-factor-score amplification by volume tier. Same
+// score-multiplier (not weight) approach as latency batch above.
+const COST_BOOST_THOUSANDS = 1.3
+const COST_BOOST_MILLIONS = 1.6
+
+// Volume × latency interaction: when both apply, take max() rather than
+// multiplying. Volume is the dominant signal and stacking multiplicatively
+// would runaway-boost cheap models on batch + high-volume tasks; max() keeps
+// the boost capped at the strongest applicable signal.
+
+// Phase 4.4 (needs_long_context): hard-filter to models with a context window
+// >= 100k tokens. Inputs that genuinely don't fit will silently truncate on
+// smaller models, which is worse than excluding them.
+const LONG_CONTEXT_THRESHOLD = 100_000
+
+// Phase 4.5a (needs_multilingual): boost quality on models that explicitly
+// list the `multilingual` capability. Stacks intentionally with the reasoning
+// boost — the two signals are orthogonal (a multilingual reasoning task
+// genuinely wants both qualities).
+const MULTILINGUAL_QUALITY_BOOST = 1.10
+
+// Phase 4.5b (is_agentic): boost quality on models that have BOTH `tools` and
+// `extended_thinking`. Agentic workloads need to plan multi-step tool calls
+// (extended_thinking) and execute them (tools); a model with only one of the
+// two isn't a good agent host. Stacks with the other quality boosts.
+const AGENTIC_QUALITY_BOOST = 1.15
+
 export function costScore(
   model: Model,
   allModels: Model[],
   inputLength: string,
   costWeightHint = 0.18,
+  outputLength: string = 'medium',
 ): number {
-  const costs = allModels.map(m => estimateCost(m, inputLength))
+  const costs = allModels.map(m => estimateCost(m, inputLength, outputLength))
   const minCost = Math.min(...costs)
   const maxCost = Math.max(...costs)
   if (maxCost === minCost) return 1.0
-  const modelCost = estimateCost(model, inputLength)
+  const modelCost = estimateCost(model, inputLength, outputLength)
   const logMin = Math.log(minCost + 0.0001)
   const logMax = Math.log(maxCost + 0.0001)
   const logModel = Math.log(modelCost + 0.0001)
@@ -133,7 +202,61 @@ function capabilityScore(model: Model, needs: { vision: boolean; tools: boolean;
   return modelCaps.length / allCaps.length
 }
 
+// Phase 5.1: hard filters live in one place so they're testable in isolation
+// and exclusion reasons can be surfaced in the UI ("5 models excluded because
+// they require cloud hosting"). Order matches scoreModels' historical order:
+// long_context first, then on-prem, then realtime, then capability gates.
+export type HardFilterReason =
+  | 'long_context'
+  | 'on_prem_required'
+  | 'realtime'
+  | 'missing_vision'
+  | 'missing_tools'
+  | 'missing_code'
+
+export interface HardFilterResult {
+  ok: boolean
+  reason?: HardFilterReason
+}
+
+export function hardFilter(model: Model, input: ScoringInput): HardFilterResult {
+  if (input.needsLongContext && model.context_window < LONG_CONTEXT_THRESHOLD) {
+    return { ok: false, reason: 'long_context' }
+  }
+  if (input.dataSensitivity === 'on_prem_required' && !model.local_info) {
+    return { ok: false, reason: 'on_prem_required' }
+  }
+  if (input.latencyTarget === 'realtime' && model.speed_score < REALTIME_SPEED_THRESHOLD) {
+    return { ok: false, reason: 'realtime' }
+  }
+  if (input.needsVision && !model.capabilities.includes('vision')) {
+    return { ok: false, reason: 'missing_vision' }
+  }
+  if (input.needsTools && !model.capabilities.includes('tools')) {
+    return { ok: false, reason: 'missing_tools' }
+  }
+  if (input.needsCode && !model.capabilities.includes('code')) {
+    return { ok: false, reason: 'missing_code' }
+  }
+  return { ok: true }
+}
+
+export interface Exclusion {
+  slug: string
+  name: string
+  reason: HardFilterReason
+}
+
+export interface ScoringResult {
+  models: ScoredModel[]
+  excluded: Exclusion[]
+}
+
 export function scoreModels(input: ScoringInput): ScoredModel[] {
+  return scoreModelsDetailed(input).models
+}
+
+export function scoreModelsDetailed(input: ScoringInput): ScoringResult {
   const models = getAllModels()
   const weights = priorityToWeights(input.priorityOrder, {
     complexity: input.complexity,
@@ -141,17 +264,39 @@ export function scoreModels(input: ScoringInput): ScoredModel[] {
   })
   const blend = getBenchmarkBlend()
   const scored: ScoredModel[] = []
+  const excluded: Exclusion[] = []
+
+  // Stacking order for the per-model loop below (top to bottom):
+  //   1. Hard filters (long-context, on-prem, realtime, capability) — `continue` if any fail.
+  //   2. Build raw factorScores (cost, speed, quality, privacy, sustainability, transparency, capability).
+  //   3. Tier-floor demotion (Phase 3.1): quality × 0.85 for budget tiers on complex tasks.
+  //   4. Reasoning multiplier (Phase 3.2): quality × 1.20 if extended_thinking + needs_reasoning.
+  //   5. Multilingual multiplier (Phase 4.5a): quality × 1.10 if multilingual capability + flag.
+  //   6. Agentic multiplier (Phase 4.5b): quality × 1.15 if tools + extended_thinking + flag.
+  //   7. Privacy multiplier (Phase 4.1): privacy × 1.5 / 1.2 by data_sensitivity tier.
+  //   8. Cost multiplier (Phase 4.2/4.3): cost × max(latency_batch, volume_high_tier).
+  // Multipliers stack multiplicatively; max() guards only the cost-boost interaction.
+  const outputLength = input.outputLength ?? 'medium'
 
   for (const model of models) {
+    // Phase 5.1: all hard filters run through hardFilter() so the rejection
+    // reason is captured for UI surfacing.
+    const filter = hardFilter(model, input)
+    if (!filter.ok) {
+      excluded.push({ slug: model.slug, name: model.name, reason: filter.reason! })
+      continue
+    }
+
     const capScore = capabilityScore(model, {
       vision: input.needsVision,
       tools: input.needsTools,
       code: input.needsCode,
-    })
-    if (capScore === null) continue
+    })!
+    // capScore can no longer be null — hardFilter has already rejected the
+    // missing-capability cases above.
 
     const factorScores: Record<Factor, number> = {
-      cost: costScore(model, models, input.inputLength, weights.cost),
+      cost: costScore(model, models, input.inputLength, weights.cost, outputLength),
       speed: model.speed_score,
       quality: qualityScore(model, input.taskType, input.benchmarkScores, blend),
       privacy: model.privacy_score,
@@ -181,6 +326,40 @@ export function scoreModels(input: ScoringInput): ScoredModel[] {
       factorScores.quality *= REASONING_QUALITY_BOOST
     }
 
+    // Phase 4.5a: multilingual multiplier. Stacks with reasoning intentionally
+    // — multilingual reasoning is a real-world workload (e.g. translate then
+    // analyse) and we want to surface models that excel at both.
+    if (input.needsMultilingual && model.capabilities.includes('multilingual')) {
+      factorScores.quality *= MULTILINGUAL_QUALITY_BOOST
+    }
+
+    // Phase 4.5b: agentic multiplier. Requires BOTH tools AND extended_thinking
+    // — agents need planning + execution. Stacks with the other quality boosts.
+    if (
+      input.isAgentic &&
+      model.capabilities.includes('tools') &&
+      model.capabilities.includes('extended_thinking')
+    ) {
+      factorScores.quality *= AGENTIC_QUALITY_BOOST
+    }
+
+    // Phase 4.1: privacy boost for sensitive data. Score multiplier (not
+    // weight) — see note on PRIVACY_BOOST_REGULATED.
+    if (input.dataSensitivity === 'regulated_health' || input.dataSensitivity === 'regulated_finance') {
+      factorScores.privacy *= PRIVACY_BOOST_REGULATED
+    } else if (input.dataSensitivity === 'pii') {
+      factorScores.privacy *= PRIVACY_BOOST_PII
+    }
+
+    // Phase 4.2 + 4.3: cost-factor-score boost. Volume is the dominant signal,
+    // so we take max() of the two boosts rather than multiplying — see note
+    // on COST_BOOST_MILLIONS for the rationale.
+    let costBoost = 1.0
+    if (input.latencyTarget === 'batch') costBoost = Math.max(costBoost, COST_BOOST_BATCH)
+    if (input.volume === 'thousands_per_day') costBoost = Math.max(costBoost, COST_BOOST_THOUSANDS)
+    if (input.volume === 'millions_per_day') costBoost = Math.max(costBoost, COST_BOOST_MILLIONS)
+    if (costBoost !== 1.0) factorScores.cost *= costBoost
+
     const weightedScore = Object.entries(factorScores).reduce(
       (sum, [factor, score]) => sum + score * weights[factor as Factor], 0
     )
@@ -192,7 +371,7 @@ export function scoreModels(input: ScoringInput): ScoredModel[] {
       tier: model.tier,
       weightedScore,
       factorScores,
-      estimatedCost: estimateCost(model, input.inputLength),
+      estimatedCost: estimateCost(model, input.inputLength, outputLength),
       capabilities: model.capabilities,
       strengths: model.strengths,
       weaknesses: model.weaknesses,
@@ -200,5 +379,8 @@ export function scoreModels(input: ScoringInput): ScoredModel[] {
     })
   }
 
-  return scored.sort((a, b) => b.weightedScore - a.weightedScore)
+  return {
+    models: scored.sort((a, b) => b.weightedScore - a.weightedScore),
+    excluded,
+  }
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { scoreModels, costScore } from '../scoring'
+import { scoreModels, scoreModelsDetailed, hardFilter, costScore, estimateCost } from '../scoring'
 import { getAllModels, getModel, type Factor } from '../registry'
 
 const defaultPriority: Factor[] = ['quality', 'capability', 'cost', 'transparency', 'privacy', 'sustainability', 'speed']
@@ -232,6 +232,148 @@ describe('reasoning multiplier (Phase 3.2)', () => {
   })
 })
 
+describe('data_sensitivity (Phase 4.1)', () => {
+  const baseInput = {
+    taskType: 'analyse',
+    complexity: 'moderate',
+    inputLength: 'medium',
+    needsVision: false,
+    needsTools: false,
+    needsCode: false,
+    priorityOrder: defaultPriority,
+  }
+
+  it('hard-filters to only locally deployable models when on_prem_required', () => {
+    const results = scoreModels({ ...baseInput, dataSensitivity: 'on_prem_required' })
+    // Every surviving model must have local_info populated in the registry.
+    for (const m of results) {
+      const reg = getModel(m.slug)!
+      expect(reg.local_info).toBeDefined()
+    }
+    // Spot-check a known-hosted model is excluded.
+    const opus = results.find(m => m.slug === 'claude-opus-4.6')
+    expect(opus).toBeUndefined()
+    // Spot-check a known-local model survives.
+    const llama = results.find(m => m.slug === 'llama-4-maverick')
+    expect(llama).toBeDefined()
+  })
+
+  it('boosts privacy by 1.5× for regulated_health', () => {
+    const opus = getModel('claude-opus-4.6')!
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const boosted = scoreModels({ ...baseInput, dataSensitivity: 'regulated_health' })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(boosted.factorScores.privacy).toBeCloseTo(opus.privacy_score * 1.5, 6)
+    expect(boosted.factorScores.privacy).toBeGreaterThan(baseline.factorScores.privacy)
+  })
+
+  it('boosts privacy by 1.5× for regulated_finance', () => {
+    const opus = getModel('claude-opus-4.6')!
+    const boosted = scoreModels({ ...baseInput, dataSensitivity: 'regulated_finance' })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(boosted.factorScores.privacy).toBeCloseTo(opus.privacy_score * 1.5, 6)
+  })
+
+  it('boosts privacy by 1.2× for pii', () => {
+    const opus = getModel('claude-opus-4.6')!
+    const boosted = scoreModels({ ...baseInput, dataSensitivity: 'pii' })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(boosted.factorScores.privacy).toBeCloseTo(opus.privacy_score * 1.2, 6)
+  })
+
+  it('leaves privacy unchanged when dataSensitivity is none or omitted', () => {
+    const opus = getModel('claude-opus-4.6')!
+    const noneResult = scoreModels({ ...baseInput, dataSensitivity: 'none' })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    const omittedResult = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    expect(noneResult.factorScores.privacy).toBeCloseTo(opus.privacy_score, 6)
+    expect(omittedResult.factorScores.privacy).toBeCloseTo(opus.privacy_score, 6)
+  })
+})
+
+describe('latency_target (Phase 4.2)', () => {
+  const baseInput = {
+    taskType: 'conversation',
+    complexity: 'simple',
+    inputLength: 'short',
+    needsVision: false,
+    needsTools: false,
+    needsCode: false,
+    priorityOrder: defaultPriority,
+  }
+
+  it('hard-filters to models with speed_score >= 0.85 when realtime', () => {
+    const results = scoreModels({ ...baseInput, latencyTarget: 'realtime' })
+    for (const m of results) {
+      const reg = getModel(m.slug)!
+      expect(reg.speed_score).toBeGreaterThanOrEqual(0.85)
+    }
+    // Slow flagship excluded.
+    expect(results.find(m => m.slug === 'claude-opus-4.6')).toBeUndefined()
+    // Fast model survives.
+    expect(results.find(m => m.slug === 'gemini-2.5-flash-lite')).toBeDefined()
+  })
+
+  it('boosts cost factor by 1.3× when latency_target=batch', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const batched = scoreModels({ ...baseInput, latencyTarget: 'batch' })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(batched.factorScores.cost).toBeCloseTo(baseline.factorScores.cost * 1.3, 6)
+  })
+
+  it('leaves cost unchanged for interactive (default) latency', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const interactive = scoreModels({ ...baseInput, latencyTarget: 'interactive' })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(interactive.factorScores.cost).toBeCloseTo(baseline.factorScores.cost, 6)
+  })
+})
+
+describe('volume (Phase 4.3)', () => {
+  const baseInput = {
+    taskType: 'extract',
+    complexity: 'moderate',
+    inputLength: 'medium',
+    needsVision: false,
+    needsTools: false,
+    needsCode: false,
+    priorityOrder: defaultPriority,
+  }
+
+  it('boosts cost factor by 1.6× for millions_per_day', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const millions = scoreModels({ ...baseInput, volume: 'millions_per_day' })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(millions.factorScores.cost).toBeCloseTo(baseline.factorScores.cost * 1.6, 6)
+  })
+
+  it('boosts cost factor by 1.3× for thousands_per_day', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const thousands = scoreModels({ ...baseInput, volume: 'thousands_per_day' })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(thousands.factorScores.cost).toBeCloseTo(baseline.factorScores.cost * 1.3, 6)
+  })
+
+  it('leaves cost unchanged for one_off (default) volume', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const oneOff = scoreModels({ ...baseInput, volume: 'one_off' })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(oneOff.factorScores.cost).toBeCloseTo(baseline.factorScores.cost, 6)
+  })
+
+  it('uses max() not multiplication when batch latency stacks with millions volume', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const stacked = scoreModels({
+      ...baseInput,
+      latencyTarget: 'batch',
+      volume: 'millions_per_day',
+    }).find(m => m.slug === 'claude-opus-4.6')!
+    // Expected: max(1.3, 1.6) = 1.6 (NOT 1.3 * 1.6 = 2.08).
+    expect(stacked.factorScores.cost).toBeCloseTo(baseline.factorScores.cost * 1.6, 6)
+    expect(stacked.factorScores.cost).not.toBeCloseTo(baseline.factorScores.cost * 1.3 * 1.6, 4)
+  })
+})
+
 describe('benchmark blending', () => {
   const baseInput = {
     taskType: 'code',
@@ -315,5 +457,268 @@ describe('benchmark blending', () => {
     } finally {
       delete process.env.BENCHMARK_BLEND
     }
+  })
+})
+
+describe('needs_long_context (Phase 4.4)', () => {
+  const baseInput = {
+    taskType: 'summarise',
+    complexity: 'moderate',
+    inputLength: 'very_long',
+    needsVision: false,
+    needsTools: false,
+    needsCode: false,
+    priorityOrder: defaultPriority,
+  }
+
+  it('hard-filters models with context_window < 100k when needsLongContext=true', () => {
+    const results = scoreModels({ ...baseInput, needsLongContext: true })
+    expect(results.length).toBeGreaterThan(0)
+    for (const m of results) {
+      const reg = getModel(m.slug)!
+      expect(reg.context_window).toBeGreaterThanOrEqual(100_000)
+    }
+  })
+
+  it('keeps known long-context flagships when needsLongContext=true', () => {
+    const results = scoreModels({ ...baseInput, needsLongContext: true })
+    // Gemini 2.5 Pro and Sonnet 4.6 are flagship long-context models — they
+    // should still be present after the filter.
+    const sonnet = results.find(m => m.slug === 'claude-sonnet-4.6')
+    expect(sonnet).toBeDefined()
+  })
+
+  it('does not filter when needsLongContext is false (or omitted)', () => {
+    const filtered = scoreModels({ ...baseInput, needsLongContext: true })
+    const unfiltered = scoreModels({ ...baseInput, needsLongContext: false })
+    // Unfiltered should include at least as many models as filtered, and
+    // generally more (any model with context_window < 100k drops out).
+    expect(unfiltered.length).toBeGreaterThanOrEqual(filtered.length)
+  })
+})
+
+describe('needs_multilingual (Phase 4.5a)', () => {
+  const baseInput = {
+    taskType: 'translate',
+    complexity: 'moderate',
+    inputLength: 'medium',
+    needsVision: false,
+    needsTools: false,
+    needsCode: false,
+    priorityOrder: defaultPriority,
+  }
+
+  // Find a multilingual-capable model and a non-multilingual one for asymmetric checks.
+  const multilingualModel = getAllModels().find(m => m.capabilities.includes('multilingual'))!
+  const nonMultilingualModel = getAllModels().find(m => !m.capabilities.includes('multilingual'))!
+
+  it('boosts quality by 1.10× on a multilingual-capable model when needsMultilingual=true', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === multilingualModel.slug)!
+    const boosted = scoreModels({ ...baseInput, needsMultilingual: true })
+      .find(m => m.slug === multilingualModel.slug)!
+    expect(boosted.factorScores.quality).toBeCloseTo(baseline.factorScores.quality * 1.10, 6)
+  })
+
+  it('leaves quality unchanged on a non-multilingual model even when needsMultilingual=true', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === nonMultilingualModel.slug)!
+    const boosted = scoreModels({ ...baseInput, needsMultilingual: true })
+      .find(m => m.slug === nonMultilingualModel.slug)!
+    expect(boosted.factorScores.quality).toBeCloseTo(baseline.factorScores.quality, 6)
+  })
+
+  it('leaves quality unchanged when needsMultilingual is false regardless of capability', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === multilingualModel.slug)!
+    const noFlag = scoreModels({ ...baseInput, needsMultilingual: false })
+      .find(m => m.slug === multilingualModel.slug)!
+    expect(noFlag.factorScores.quality).toBeCloseTo(baseline.factorScores.quality, 6)
+  })
+})
+
+describe('is_agentic (Phase 4.5b)', () => {
+  const baseInput = {
+    taskType: 'analyse',
+    complexity: 'moderate',
+    inputLength: 'medium',
+    needsVision: false,
+    needsTools: false, // not a hard filter; just a capability hint to scoreModels
+    needsCode: false,
+    priorityOrder: defaultPriority,
+  }
+
+  // Opus has both tools and extended_thinking — the canonical agentic host.
+  const opus = getModel('claude-opus-4.6')!
+  const opusHasBoth = opus.capabilities.includes('tools') && opus.capabilities.includes('extended_thinking')
+
+  it('boosts quality by 1.15× when isAgentic=true and model has both tools + extended_thinking', () => {
+    expect(opusHasBoth).toBe(true)
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const boosted = scoreModels({ ...baseInput, isAgentic: true })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(boosted.factorScores.quality).toBeCloseTo(baseline.factorScores.quality * 1.15, 6)
+  })
+
+  it('leaves quality unchanged when model has tools but no extended_thinking', () => {
+    // Find a model with tools but NOT extended_thinking.
+    const toolsOnly = getAllModels().find(
+      m => m.capabilities.includes('tools') && !m.capabilities.includes('extended_thinking')
+    )
+    if (!toolsOnly) return // skip silently if registry doesn't have such a model
+    const baseline = scoreModels(baseInput).find(m => m.slug === toolsOnly.slug)!
+    const boosted = scoreModels({ ...baseInput, isAgentic: true })
+      .find(m => m.slug === toolsOnly.slug)!
+    expect(boosted.factorScores.quality).toBeCloseTo(baseline.factorScores.quality, 6)
+  })
+
+  it('leaves quality unchanged when model has extended_thinking but no tools', () => {
+    const thinkingOnly = getAllModels().find(
+      m => m.capabilities.includes('extended_thinking') && !m.capabilities.includes('tools')
+    )
+    if (!thinkingOnly) return
+    const baseline = scoreModels(baseInput).find(m => m.slug === thinkingOnly.slug)!
+    const boosted = scoreModels({ ...baseInput, isAgentic: true })
+      .find(m => m.slug === thinkingOnly.slug)!
+    expect(boosted.factorScores.quality).toBeCloseTo(baseline.factorScores.quality, 6)
+  })
+
+  it('leaves quality unchanged when isAgentic is false', () => {
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const noFlag = scoreModels({ ...baseInput, isAgentic: false })
+      .find(m => m.slug === 'claude-opus-4.6')!
+    expect(noFlag.factorScores.quality).toBeCloseTo(baseline.factorScores.quality, 6)
+  })
+})
+
+describe('output_length cost separation (Phase 4.6)', () => {
+  const opus = getModel('claude-opus-4.6')!
+
+  it('estimateCost reflects higher output tokens for longer outputs (same input)', () => {
+    const shortOut = estimateCost(opus, 'short', 'short')
+    const veryLongOut = estimateCost(opus, 'short', 'very_long')
+    // very_long output (16k tokens) costs much more than short output (100 tokens)
+    // for the same input — the output term dominates.
+    expect(veryLongOut).toBeGreaterThan(shortOut)
+  })
+
+  it('estimateCost defaults to medium output when outputLength is omitted', () => {
+    const defaulted = estimateCost(opus, 'medium')
+    const explicit = estimateCost(opus, 'medium', 'medium')
+    expect(defaulted).toBeCloseTo(explicit, 9)
+  })
+
+  it('cost factor reflects output_length difference between two scoreModels calls', () => {
+    const baseInput = {
+      taskType: 'generate',
+      complexity: 'moderate',
+      inputLength: 'short' as const,
+      needsVision: false,
+      needsTools: false,
+      needsCode: false,
+      priorityOrder: defaultPriority,
+    }
+    // Using Opus (expensive) should produce a lower cost score with very_long
+    // output than with short output, because relative to other models the
+    // output-token cost dominates.
+    const shortOut = scoreModels({ ...baseInput, outputLength: 'short' }).find(m => m.slug === 'claude-opus-4.6')!
+    const veryLongOut = scoreModels({ ...baseInput, outputLength: 'very_long' }).find(m => m.slug === 'claude-opus-4.6')!
+    // estimatedCost should differ noticeably.
+    expect(veryLongOut.estimatedCost).toBeGreaterThan(shortOut.estimatedCost)
+  })
+})
+
+describe('hardFilter (Phase 5.1)', () => {
+  const baseInput = {
+    taskType: 'analyse',
+    complexity: 'moderate',
+    inputLength: 'medium',
+    needsVision: false,
+    needsTools: false,
+    needsCode: false,
+    priorityOrder: defaultPriority,
+  }
+
+  it('rejects models below the long-context threshold when needsLongContext', () => {
+    // Synthetic stub — registry models all sit above 100k today, so we mint one.
+    const small = { ...getModel('claude-opus-4.6')!, context_window: 32_000 }
+    const result = hardFilter(small, { ...baseInput, needsLongContext: true })
+    expect(result).toEqual({ ok: false, reason: 'long_context' })
+  })
+
+  it('admits models above the threshold when needsLongContext', () => {
+    const big = getAllModels().find(m => m.context_window >= 100_000)!
+    const result = hardFilter(big, { ...baseInput, needsLongContext: true })
+    expect(result.ok).toBe(true)
+  })
+
+  it('rejects cloud-only models when on_prem_required', () => {
+    const cloudOnly = getAllModels().find(m => !m.local_info)!
+    const result = hardFilter(cloudOnly, { ...baseInput, dataSensitivity: 'on_prem_required' })
+    expect(result).toEqual({ ok: false, reason: 'on_prem_required' })
+  })
+
+  it('rejects slow models when latencyTarget=realtime', () => {
+    const slow = getAllModels().find(m => m.speed_score < 0.85)!
+    const result = hardFilter(slow, { ...baseInput, latencyTarget: 'realtime' })
+    expect(result).toEqual({ ok: false, reason: 'realtime' })
+  })
+
+  it('rejects models without vision when needsVision', () => {
+    const noVision = getAllModels().find(m => !m.capabilities.includes('vision'))!
+    const result = hardFilter(noVision, { ...baseInput, needsVision: true })
+    expect(result).toEqual({ ok: false, reason: 'missing_vision' })
+  })
+
+  it('rejects models without tools when needsTools', () => {
+    const opus = getModel('claude-opus-4.6')!
+    const noTools = { ...opus, capabilities: opus.capabilities.filter(c => c !== 'tools') }
+    const result = hardFilter(noTools, { ...baseInput, needsTools: true })
+    expect(result).toEqual({ ok: false, reason: 'missing_tools' })
+  })
+
+  it('rejects models without code when needsCode', () => {
+    const opus = getModel('claude-opus-4.6')!
+    const noCode = { ...opus, capabilities: opus.capabilities.filter(c => c !== 'code') }
+    const result = hardFilter(noCode, { ...baseInput, needsCode: true })
+    expect(result).toEqual({ ok: false, reason: 'missing_code' })
+  })
+
+  it('admits a fully-capable model with no constraints', () => {
+    const opus = getModel('claude-opus-4.6')!
+    expect(hardFilter(opus, baseInput)).toEqual({ ok: true })
+  })
+})
+
+describe('scoreModelsDetailed (Phase 5.1)', () => {
+  it('returns excluded models with reasons alongside the scored set', () => {
+    const result = scoreModelsDetailed({
+      taskType: 'analyse',
+      complexity: 'moderate',
+      inputLength: 'medium',
+      needsVision: false,
+      needsTools: false,
+      needsCode: false,
+      priorityOrder: defaultPriority,
+      dataSensitivity: 'on_prem_required',
+    })
+    expect(result.excluded.length).toBeGreaterThan(0)
+    expect(result.excluded.every(e => e.reason === 'on_prem_required')).toBe(true)
+    expect(result.models.every(m => {
+      const model = getModel(m.slug)!
+      return !!model.local_info
+    })).toBe(true)
+  })
+
+  it('produces the same ordered models as scoreModels()', () => {
+    const input = {
+      taskType: 'analyse',
+      complexity: 'moderate',
+      inputLength: 'medium',
+      needsVision: false,
+      needsTools: false,
+      needsCode: false,
+      priorityOrder: defaultPriority,
+    }
+    const flat = scoreModels(input).map(m => m.slug)
+    const detailed = scoreModelsDetailed(input).models.map(m => m.slug)
+    expect(detailed).toEqual(flat)
   })
 })
