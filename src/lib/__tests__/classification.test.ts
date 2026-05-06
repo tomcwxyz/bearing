@@ -135,4 +135,50 @@ describe('CLASSIFY_TOOL schema (Phase 7.1)', () => {
       expect(required).toContain(field)
     }
   })
+
+  it('accepts per-stage input_length, output_length, needs_reasoning in the schema', () => {
+    const c: Classification = {
+      task_type: 'extract',
+      task_subtype: null,
+      complexity: 'moderate',
+      input_length: 'long',
+      needs_vision: true,
+      needs_tools: false,
+      needs_code: false,
+      needs_reasoning: false,
+      is_recurring: false,
+      data_sensitivity: 'none',
+      latency_target: 'interactive',
+      volume: 'one_off',
+      needs_long_context: false,
+      needs_multilingual: false,
+      is_agentic: false,
+      output_length: 'medium',
+      confidence: 0.9,
+      clarification_needed: false,
+      suggested_questions: [],
+      pipeline_recommended: true,
+      pipeline_stages: [
+        {
+          stage: 1,
+          task_type: 'extract',
+          description: 'OCR pages',
+          requires_capabilities: ['vision'],
+          input_length: 'long',
+          output_length: 'long',
+          needs_reasoning: false,
+        },
+        {
+          stage: 2,
+          task_type: 'summarise',
+          description: 'Summarise extraction',
+          requires_capabilities: [],
+          input_length: 'long',
+          output_length: 'short',
+        },
+      ],
+    }
+    expect(c.pipeline_stages?.[0].input_length).toBe('long')
+    expect(c.pipeline_stages?.[1].output_length).toBe('short')
+  })
 })
