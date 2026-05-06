@@ -8,6 +8,7 @@ interface PipelineStage {
   taskType: string
   recommended: ScoredModel
   alternative: ScoredModel | null
+  capabilityMissing?: boolean
 }
 
 interface PipelineSectionProps {
@@ -57,6 +58,13 @@ export function PipelineSection({ pipeline, singleModelCost }: PipelineSectionPr
                   {stage.alternative && (
                     <p className="mt-0.5 text-navy/50 text-xs">
                       or {stage.alternative.name}
+                    </p>
+                  )}
+                  {stage.capabilityMissing && (
+                    <p className="mt-1 text-amber-700 text-xs">
+                      No model in the registry advertises every required capability for this
+                      stage. The recommendation above is a best-effort fallback — verify it
+                      handles {stage.taskType} inputs as needed.
                     </p>
                   )}
                 </div>
