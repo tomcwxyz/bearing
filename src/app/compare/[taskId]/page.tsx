@@ -194,7 +194,7 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
           {models.map((model, index) => {
             const rank = index + 1
             const isSelected = selected.includes(model.slug)
-            const matchPercent = Math.round(model.weightedScore * 100)
+            const matchPercent = Math.min(100, Math.round(model.weightedScore * 100))
 
             return (
               <button

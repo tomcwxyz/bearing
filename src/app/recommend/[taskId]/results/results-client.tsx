@@ -67,7 +67,10 @@ export function ResultsClient({ taskId, models, reasoning, pipeline, local }: Re
         const isTop = rank === 1
         const isSelected = selectedSlug === model.slug
         const isDisabled = selectedSlug !== null && !isSelected
-        const matchPercent = Math.round(model.weightedScore * 100)
+        // Quality factor can exceed 1.0 via reasoning/multilingual/agentic
+        // boosts (intentional for ordering); cap the displayed % at 100 so
+        // the bar never overflows its container.
+        const matchPercent = Math.min(100, Math.round(model.weightedScore * 100))
 
         return (
           <div
@@ -119,7 +122,7 @@ export function ResultsClient({ taskId, models, reasoning, pipeline, local }: Re
             <div className="mb-4 ml-9 space-y-2">
               {FACTORS.map((factor) => {
                 const score = model.factorScores[factor] ?? 0
-                const pct = Math.round(score * 100)
+                const pct = Math.min(100, Math.round(score * 100))
                 return (
                   <div key={factor} className="flex items-center gap-3">
                     <span className="w-28 shrink-0 text-navy/60 text-xs font-mono">

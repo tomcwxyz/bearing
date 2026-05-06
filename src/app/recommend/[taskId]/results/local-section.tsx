@@ -35,7 +35,7 @@ function TierGroup({
 
       <div className="space-y-3">
         {recommendations.map((rec) => {
-          const matchPct = Math.round(rec.effectiveQuality * 100)
+          const matchPct = Math.min(100, Math.round(rec.effectiveQuality * 100))
           return (
             <div key={rec.model.slug} className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
