@@ -16,7 +16,9 @@
 // "distill", "vl", "mini"). Admin confirms — false suggestions are cheap,
 // false rejections are expensive. Unflagged matches sort first.
 
-import type { BenchmarkSource } from './benchmarks'
+import { CATEGORY_TO_TASKS, type BenchmarkSource } from './benchmarks'
+import type { TaskType } from './registry'
+import { neon } from '@neondatabase/serverless'
 
 /** Bearing-slug prefixes with no plausible coverage in any external source. */
 const NO_AA_COVERAGE_PREFIXES = ['greenpt-', 'codestral-', 'devstral', 'mistral-ocr', 'ibm-granite-']
@@ -142,3 +144,163 @@ export function suggestBenchmarkAliases(
     return a.name.localeCompare(b.name)
   })
 }
+
+// ---------------------------------------------------------------------------
+// Grounded estimation
+// ---------------------------------------------------------------------------
+
+/**
+ * Provider-level privacy defaults. Driven by published policies (zero data
+ * retention, training opt-out, jurisdictional considerations). Admin can
+ * override per-model in the import form. Names match the values produced by
+ * extractProvider() in src/lib/openrouter.ts.
+ */
+const PROVIDER_PRIVACY: Record<string, number> = {
+  Anthropic: 0.85,
+  OpenAI: 0.75,
+  Google: 0.7,
+  Mistral: 0.85,
+  DeepSeek: 0.5,
+  xAI: 0.6,
+  Meta: 0.75,
+  Alibaba: 0.5,
+  MiniMax: 0.5,
+  Moonshot: 0.5,
+  IBM: 0.85,
+  GreenPT: 0.9,
+}
+
+export type Provenance = 'benchmark' | 'derived' | 'haiku' | 'default'
+
+export interface GroundedField<T> {
+  value: T
+  provenance: Provenance
+  /** When provenance is 'benchmark', the (source, category) pairs that contributed. */
+  evidence?: string[]
+}
+
+export interface GroundedFields {
+  taskFitness: Partial<Record<TaskType, GroundedField<number>>>
+  speedScore: GroundedField<number> | null
+  privacyScore: GroundedField<number>
+  /** Verbatim raw evidence to include in the Haiku prompt for downstream context. */
+  evidenceForPrompt: string[]
+}
+
+function getDb() {
+  const url = process.env.NEON_DATABASE_URL
+  if (!url) throw new Error('NEON_DATABASE_URL is not set')
+  return neon(url)
+}
+
+interface SelectedAlias {
+  source: BenchmarkSource
+  sourceModelName: string
+}
+
+/**
+ * Compute grounded fields from a list of selected benchmark aliases. Reads
+ * the latest snapshot per (source, source_category, source_model_name) for
+ * the selected names and buckets by bearing task type using CATEGORY_TO_TASKS.
+ *
+ * Speed comes from AA's `aa_speed` cohort-normalised score; if no AA alias
+ * is selected, returns null and Haiku will fill it.
+ *
+ * Privacy is a deterministic provider-table lookup, not Haiku.
+ */
+export async function groundFromAliases(
+  aliases: SelectedAlias[],
+  provider: string,
+): Promise<GroundedFields> {
+  const privacyDefault = PROVIDER_PRIVACY[provider] ?? 0.6
+  const privacyScore: GroundedField<number> = {
+    value: privacyDefault,
+    provenance: provider in PROVIDER_PRIVACY ? 'derived' : 'default',
+  }
+
+  if (aliases.length === 0) {
+    return { taskFitness: {}, speedScore: null, privacyScore, evidenceForPrompt: [] }
+  }
+
+  // Fetch latest snapshot per (source_category, source_model_name) for the
+  // selected aliases. Query per-source so we can use parameterised ANY()
+  // rather than building tuple lists with sql.unsafe.
+  const sql = getDb()
+  const bySource = new Map<BenchmarkSource, string[]>()
+  for (const a of aliases) {
+    const list = bySource.get(a.source) ?? []
+    list.push(a.sourceModelName)
+    bySource.set(a.source, list)
+  }
+  const allRows: Array<{ source: BenchmarkSource; source_category: string; source_model_name: string; normalised_score: number; raw_score: number; signal_type: string }> = []
+  for (const [source, names] of bySource) {
+    const rows = await sql`
+      SELECT DISTINCT ON (source_category, source_model_name)
+        source_category, source_model_name, normalised_score, raw_score, signal_type
+      FROM benchmark_snapshots
+      WHERE source = ${source} AND source_model_name = ANY(${names})
+      ORDER BY source_category, source_model_name, snapshot_date DESC, captured_at DESC
+    `
+    for (const r of rows) {
+      allRows.push({
+        source,
+        source_category: r.source_category as string,
+        source_model_name: r.source_model_name as string,
+        normalised_score: Number(r.normalised_score),
+        raw_score: Number(r.raw_score),
+        signal_type: r.signal_type as string,
+      })
+    }
+  }
+
+  // Bucket task scores by bearing task.
+  const taskBuckets = new Map<TaskType, { scores: number[]; evidence: Set<string> }>()
+  const speedScores: number[] = []
+  const evidenceForPrompt: string[] = []
+
+  for (const row of allRows) {
+    const source = row.source
+    const cat = row.source_category
+    const score = row.normalised_score
+    const raw = row.raw_score
+    const sig = row.signal_type
+
+    if (sig === 'speed') {
+      speedScores.push(score)
+      evidenceForPrompt.push(`${source}::${cat} = ${score.toFixed(2)} (raw ${raw.toFixed(0)} tok/s)`)
+      continue
+    }
+    if (sig === 'latency') continue // not consumed for v1
+
+    const tasks = CATEGORY_TO_TASKS[source]?.[cat]
+    if (!tasks) continue
+    for (const task of tasks) {
+      const bucket = taskBuckets.get(task) ?? { scores: [], evidence: new Set() }
+      bucket.scores.push(score)
+      bucket.evidence.add(`${source}::${cat}`)
+      taskBuckets.set(task, bucket)
+    }
+    evidenceForPrompt.push(`${source}::${cat} = ${score.toFixed(2)}`)
+  }
+
+  const taskFitness: Partial<Record<TaskType, GroundedField<number>>> = {}
+  for (const [task, b] of taskBuckets) {
+    const mean = b.scores.reduce((a, c) => a + c, 0) / b.scores.length
+    taskFitness[task] = {
+      value: Math.round(mean * 100) / 100,
+      provenance: 'benchmark',
+      evidence: [...b.evidence],
+    }
+  }
+
+  const speedScore = speedScores.length > 0
+    ? {
+        value: Math.round((speedScores.reduce((a, c) => a + c, 0) / speedScores.length) * 100) / 100,
+        provenance: 'benchmark' as const,
+        evidence: ['artificialanalysis::aa_speed'],
+      }
+    : null
+
+  return { taskFitness, speedScore, privacyScore, evidenceForPrompt }
+}
+

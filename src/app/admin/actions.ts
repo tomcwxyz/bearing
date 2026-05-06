@@ -11,7 +11,10 @@ import {
   getCandidateSourceModelNames,
   type BenchmarkSource, type BenchmarkAlias,
 } from '@/lib/benchmarks'
-import { suggestBenchmarkAliases, type AliasSuggestion } from '@/lib/import-grounding'
+import {
+  suggestBenchmarkAliases, groundFromAliases,
+  type AliasSuggestion, type Provenance,
+} from '@/lib/import-grounding'
 import {
   getUsageSummary, getActivityOverTime, getModeBreakdown, getSignupsOverTime,
   getInsightsSummary, getTaskTypeDistribution, getModelLeaderboard,
@@ -170,15 +173,30 @@ export async function fetchDiscoverData(): Promise<{
   return { newModels, matchedCount }
 }
 
-/** Use Haiku to estimate scores for a model based on its metadata. */
-export async function estimateModelScores(model: DiscoverModel): Promise<{
+/**
+ * Estimate scores for a model. Grounded fields (task_fitness with benchmark
+ * coverage, speed_score from AA, privacy_score from provider table) come
+ * from deterministic computation; Haiku fills the rest with the grounded
+ * evidence in its prompt for context.
+ *
+ * `selectedAliases` should be the same set of (source, source_model_name)
+ * pairs the admin checked in the import modal — they need not be persisted
+ * yet; we read directly from benchmark_snapshots.
+ */
+export async function estimateModelScores(
+  model: DiscoverModel,
+  selectedAliases: { source: BenchmarkSource; sourceModelName: string }[] = [],
+): Promise<{
   success: boolean
   estimates?: Record<string, unknown>
+  provenance?: Record<string, Provenance>
   error?: string
 }> {
   await requireAdmin()
 
   try {
+    const grounded = await groundFromAliases(selectedAliases, model.provider)
+
     const promptPath = join(process.cwd(), 'src', 'prompts', 'estimate-model.md')
     const systemPrompt = readFileSync(promptPath, 'utf-8')
 
@@ -193,18 +211,72 @@ export async function estimateModelScores(model: DiscoverModel): Promise<{
       `Description: ${model.description || 'No description available'}`,
     ].join('\n')
 
+    // Build a "GROUNDED FIELDS" block listing fields that are already
+    // deterministic so Haiku does not estimate them. Provided as context
+    // (so transparency notes etc. can reference benchmark numbers) but the
+    // returned values are merged from `grounded`, not Haiku's response.
+    const groundedLines: string[] = []
+    for (const [task, gf] of Object.entries(grounded.taskFitness)) {
+      if (!gf) continue
+      groundedLines.push(`- task_fitness.${task} = ${gf.value} (from ${gf.evidence?.join(', ')})`)
+    }
+    if (grounded.speedScore) {
+      groundedLines.push(`- speed_score = ${grounded.speedScore.value} (from ${grounded.speedScore.evidence?.join(', ')})`)
+    }
+    groundedLines.push(`- privacy_score = ${grounded.privacyScore.value} (provider-table lookup)`)
+
+    const groundedBlock = `\n\n## GROUNDED FIELDS — DO NOT OVERRIDE\nThe following fields are computed from benchmark data. Do not produce estimates for them in your output; they will be merged in deterministically.\n${groundedLines.join('\n')}\n${grounded.evidenceForPrompt.length ? `\nFull evidence:\n${grounded.evidenceForPrompt.map(l => `- ${l}`).join('\n')}` : ''}`
+
     const anthropic = new Anthropic()
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 2048,
-      system: systemPrompt,
+      system: systemPrompt + groundedBlock,
       messages: [{ role: 'user', content: metadata }],
     })
 
     const text = response.content[0].type === 'text' ? response.content[0].text : ''
     const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    const estimates = JSON.parse(cleaned)
-    return { success: true, estimates }
+    const haikuOutput = JSON.parse(cleaned) as Record<string, unknown>
+
+    // Merge grounded over Haiku output. Track provenance per top-level field.
+    const provenance: Record<string, Provenance> = {}
+    const taskFitness: Record<string, number> = {
+      ...(haikuOutput.task_fitness as Record<string, number> ?? {}),
+    }
+    for (const [task, gf] of Object.entries(grounded.taskFitness)) {
+      if (!gf) continue
+      taskFitness[task] = gf.value
+      provenance[`task_fitness.${task}`] = 'benchmark'
+    }
+    for (const task of Object.keys(taskFitness)) {
+      if (!provenance[`task_fitness.${task}`]) provenance[`task_fitness.${task}`] = 'haiku'
+    }
+
+    let speedScore = haikuOutput.speed_score as number | undefined
+    if (grounded.speedScore) {
+      speedScore = grounded.speedScore.value
+      provenance.speed_score = 'benchmark'
+    } else if (typeof speedScore === 'number') {
+      provenance.speed_score = 'haiku'
+    }
+
+    const privacyScore = grounded.privacyScore.value
+    provenance.privacy_score = grounded.privacyScore.provenance
+
+    const estimates: Record<string, unknown> = {
+      ...haikuOutput,
+      task_fitness: taskFitness,
+      speed_score: speedScore,
+      privacy_score: privacyScore,
+    }
+
+    // Remaining Haiku-only fields get 'haiku' provenance.
+    for (const k of ['tier', 'transparency', 'sustainability', 'strengths', 'weaknesses']) {
+      if (k in estimates) provenance[k] = 'haiku'
+    }
+
+    return { success: true, estimates, provenance }
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : 'Estimation failed' }
   }

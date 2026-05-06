@@ -233,6 +233,8 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
   const [suggestions, setSuggestions] = useState<SuggestionsBySource | null>(null)
   const [suggestionsLoading, setSuggestionsLoading] = useState(true)
   const [selectedAliases, setSelectedAliases] = useState<Set<string>>(new Set())  // key: `${source}::${name}`
+  // Per-field provenance from the most recent estimate run.
+  const [provenance, setProvenance] = useState<Record<string, string>>({})
 
   useEffect(() => {
     let cancelled = false
@@ -270,9 +272,14 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
 
   function handleEstimate() {
     setEstimateError(null)
+    const aliasesPayload = [...selectedAliases].map(key => {
+      const [source, ...rest] = key.split('::')
+      return { source: source as SourceKey, sourceModelName: rest.join('::') }
+    })
     startEstimateTransition(async () => {
-      const result = await estimateModelScores(model)
+      const result = await estimateModelScores(model, aliasesPayload)
       if (result.success && result.estimates) {
+        setProvenance(result.provenance ?? {})
         const est = result.estimates as Record<string, unknown>
         setFormData(prev => ({
           ...prev,
@@ -391,6 +398,15 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
                 {estimateError}
               </p>
             )}
+          </div>
+        )}
+
+        {hasEstimated && Object.keys(provenance).length > 0 && (
+          <div className="mb-4 rounded-md border border-teal/20 bg-teal/5 px-4 py-3 text-xs text-navy/70">
+            <span className="font-medium text-teal">Grounded:</span>{' '}
+            {Object.values(provenance).filter(p => p === 'benchmark').length} field(s) from benchmarks,{' '}
+            {Object.values(provenance).filter(p => p === 'derived').length} derived,{' '}
+            {Object.values(provenance).filter(p => p === 'haiku').length} from Haiku.
           </div>
         )}
 
