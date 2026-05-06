@@ -186,6 +186,22 @@ const PROVIDER_PROFILE: Record<string, ProviderProfile> = {
 
 const DEFAULT_PROFILE: ProviderProfile = { privacy: 0.6, openWeights: 0, baselineTransparency: 0.4 }
 
+/**
+ * Normalise a registry/OpenRouter provider string into a key matching
+ * PROVIDER_PROFILE. Strips parenthetical suffixes and case-insensitively
+ * matches against known providers.
+ *
+ * Without this, registry entries like "Alibaba (via hosted providers)" fall
+ * through to the default profile and incorrectly report Qwen as closed-weight.
+ */
+export function normaliseProvider(provider: string): string | null {
+  const trimmed = provider.replace(/\s*\([^)]*\)\s*$/, '').trim()
+  for (const key of Object.keys(PROVIDER_PROFILE)) {
+    if (key.toLowerCase() === trimmed.toLowerCase()) return key
+  }
+  return null
+}
+
 /** Threshold for the grounded `code` capability flag. */
 export const CODE_CAPABILITY_THRESHOLD = 0.5
 
@@ -219,73 +235,40 @@ interface SelectedAlias {
   sourceModelName: string
 }
 
+/** A snapshot row as already fetched from benchmark_snapshots. */
+export interface SnapshotRowForGrounding {
+  source: BenchmarkSource
+  sourceCategory: string
+  normalisedScore: number
+  rawScore: number
+  signalType: 'task' | 'speed' | 'latency'
+}
+
 /**
- * Compute grounded fields from a list of selected benchmark aliases. Reads
- * the latest snapshot per (source, source_category, source_model_name) for
- * the selected names and buckets by bearing task type using CATEGORY_TO_TASKS.
+ * Pure aggregation: bucket the snapshot rows into bearing TaskTypes via
+ * CATEGORY_TO_TASKS, average per task, and stamp provenance. Provider
+ * profile drives privacy/open_weights/baseline transparency.
  *
- * Speed comes from AA's `aa_speed` cohort-normalised score; if no AA alias
- * is selected, returns null and Haiku will fill it.
- *
- * Privacy is a deterministic provider-table lookup, not Haiku.
+ * Separated from groundFromAliases so tests can exercise the math without
+ * touching the database.
  */
-export async function groundFromAliases(
-  aliases: SelectedAlias[],
+export function aggregateGroundedFields(
+  rows: SnapshotRowForGrounding[],
   provider: string,
-): Promise<GroundedFields> {
-  const known = provider in PROVIDER_PROFILE
-  const profile = PROVIDER_PROFILE[provider] ?? DEFAULT_PROFILE
-  const provenance: Provenance = known ? 'derived' : 'default'
+): GroundedFields {
+  const normalised = normaliseProvider(provider)
+  const profile = normalised ? PROVIDER_PROFILE[normalised] : DEFAULT_PROFILE
+  const provenance: Provenance = normalised ? 'derived' : 'default'
   const privacyScore: GroundedField<number> = { value: profile.privacy, provenance }
   const openWeights: GroundedField<0 | 1> = { value: profile.openWeights, provenance }
   const baselineTransparency: GroundedField<number> = { value: profile.baselineTransparency, provenance }
 
-  if (aliases.length === 0) {
-    return { taskFitness: {}, speedScore: null, privacyScore, openWeights, baselineTransparency, evidenceForPrompt: [] }
-  }
-
-  // Fetch latest snapshot per (source_category, source_model_name) for the
-  // selected aliases. Query per-source so we can use parameterised ANY()
-  // rather than building tuple lists with sql.unsafe.
-  const sql = getDb()
-  const bySource = new Map<BenchmarkSource, string[]>()
-  for (const a of aliases) {
-    const list = bySource.get(a.source) ?? []
-    list.push(a.sourceModelName)
-    bySource.set(a.source, list)
-  }
-  const allRows: Array<{ source: BenchmarkSource; source_category: string; source_model_name: string; normalised_score: number; raw_score: number; signal_type: string }> = []
-  for (const [source, names] of bySource) {
-    const rows = await sql`
-      SELECT DISTINCT ON (source_category, source_model_name)
-        source_category, source_model_name, normalised_score, raw_score, signal_type
-      FROM benchmark_snapshots
-      WHERE source = ${source} AND source_model_name = ANY(${names})
-      ORDER BY source_category, source_model_name, snapshot_date DESC, captured_at DESC
-    `
-    for (const r of rows) {
-      allRows.push({
-        source,
-        source_category: r.source_category as string,
-        source_model_name: r.source_model_name as string,
-        normalised_score: Number(r.normalised_score),
-        raw_score: Number(r.raw_score),
-        signal_type: r.signal_type as string,
-      })
-    }
-  }
-
-  // Bucket task scores by bearing task.
   const taskBuckets = new Map<TaskType, { scores: number[]; evidence: Set<string> }>()
   const speedScores: number[] = []
   const evidenceForPrompt: string[] = []
 
-  for (const row of allRows) {
-    const source = row.source
-    const cat = row.source_category
-    const score = row.normalised_score
-    const raw = row.raw_score
-    const sig = row.signal_type
+  for (const row of rows) {
+    const { source, sourceCategory: cat, normalisedScore: score, rawScore: raw, signalType: sig } = row
 
     if (sig === 'speed') {
       speedScores.push(score)
@@ -311,7 +294,7 @@ export async function groundFromAliases(
     taskFitness[task] = {
       value: Math.round(mean * 100) / 100,
       provenance: 'benchmark',
-      evidence: [...b.evidence],
+      evidence: [...b.evidence].sort(),
     }
   }
 
@@ -324,5 +307,51 @@ export async function groundFromAliases(
     : null
 
   return { taskFitness, speedScore, privacyScore, openWeights, baselineTransparency, evidenceForPrompt }
+}
+
+/**
+ * Compute grounded fields from a list of selected benchmark aliases. Reads
+ * the latest snapshot per (source, source_category, source_model_name) for
+ * the selected names and delegates to aggregateGroundedFields() for the math.
+ */
+export async function groundFromAliases(
+  aliases: SelectedAlias[],
+  provider: string,
+): Promise<GroundedFields> {
+  if (aliases.length === 0) {
+    return aggregateGroundedFields([], provider)
+  }
+
+  // Fetch latest snapshot per (source_category, source_model_name) for the
+  // selected aliases. Query per-source so we can use parameterised ANY()
+  // rather than building tuple lists with sql.unsafe.
+  const sql = getDb()
+  const bySource = new Map<BenchmarkSource, string[]>()
+  for (const a of aliases) {
+    const list = bySource.get(a.source) ?? []
+    list.push(a.sourceModelName)
+    bySource.set(a.source, list)
+  }
+  const allRows: SnapshotRowForGrounding[] = []
+  for (const [source, names] of bySource) {
+    const rows = await sql`
+      SELECT DISTINCT ON (source_category, source_model_name)
+        source_category, normalised_score, raw_score, signal_type
+      FROM benchmark_snapshots
+      WHERE source = ${source} AND source_model_name = ANY(${names})
+      ORDER BY source_category, source_model_name, snapshot_date DESC, captured_at DESC
+    `
+    for (const r of rows) {
+      allRows.push({
+        source,
+        sourceCategory: r.source_category as string,
+        normalisedScore: Number(r.normalised_score),
+        rawScore: Number(r.raw_score),
+        signalType: r.signal_type as 'task' | 'speed' | 'latency',
+      })
+    }
+  }
+
+  return aggregateGroundedFields(allRows, provider)
 }
 

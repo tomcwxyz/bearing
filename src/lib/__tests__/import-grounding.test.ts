@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { normaliseModelName, tokenise, suggestBenchmarkAliases } from '../import-grounding'
+import {
+  normaliseModelName, tokenise, suggestBenchmarkAliases,
+  aggregateGroundedFields, CODE_CAPABILITY_THRESHOLD, normaliseProvider,
+  type SnapshotRowForGrounding,
+} from '../import-grounding'
 
 const AA_SAMPLE = [
   // Claude variants — multiple per family by reasoning/effort.
@@ -248,5 +252,158 @@ describe('suggestBenchmarkAliases', () => {
     for (let i = 1; i < out.length; i++) {
       expect(out[i - 1].score).toBeGreaterThanOrEqual(out[i].score)
     }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// aggregateGroundedFields
+// ---------------------------------------------------------------------------
+
+const taskRow = (source: 'lmarena' | 'livebench' | 'artificialanalysis', cat: string, n: number): SnapshotRowForGrounding => ({
+  source, sourceCategory: cat, normalisedScore: n, rawScore: n, signalType: 'task',
+})
+const speedRow = (n: number, raw = 200): SnapshotRowForGrounding => ({
+  source: 'artificialanalysis', sourceCategory: 'aa_speed', normalisedScore: n, rawScore: raw, signalType: 'speed',
+})
+const latencyRow = (n: number): SnapshotRowForGrounding => ({
+  source: 'artificialanalysis', sourceCategory: 'aa_ttft', normalisedScore: n, rawScore: 1, signalType: 'latency',
+})
+
+describe('normaliseProvider', () => {
+  it('returns canonical name when exact match', () => {
+    expect(normaliseProvider('Anthropic')).toBe('Anthropic')
+    expect(normaliseProvider('DeepSeek')).toBe('DeepSeek')
+  })
+
+  it('strips parenthetical suffixes', () => {
+    expect(normaliseProvider('Alibaba (via hosted providers)')).toBe('Alibaba')
+    expect(normaliseProvider('Mistral (open-weights)')).toBe('Mistral')
+  })
+
+  it('case-insensitive', () => {
+    expect(normaliseProvider('anthropic')).toBe('Anthropic')
+    expect(normaliseProvider('IBM')).toBe('IBM')
+  })
+
+  it('returns null for unknown providers', () => {
+    expect(normaliseProvider('Newco')).toBeNull()
+    expect(normaliseProvider('Random Inc.')).toBeNull()
+  })
+
+  it('grounding picks up the normalised provider profile', () => {
+    const g = aggregateGroundedFields([], 'Alibaba (via hosted providers)')
+    expect(g.openWeights.value).toBe(1)
+    expect(g.openWeights.provenance).toBe('derived')
+  })
+})
+
+describe('aggregateGroundedFields — provider profile', () => {
+  it('marks known-provider profile as "derived"', () => {
+    const g = aggregateGroundedFields([], 'DeepSeek')
+    expect(g.privacyScore.value).toBe(0.5)
+    expect(g.privacyScore.provenance).toBe('derived')
+    expect(g.openWeights.value).toBe(1)
+    expect(g.openWeights.provenance).toBe('derived')
+    expect(g.baselineTransparency.value).toBe(0.65)
+  })
+
+  it('falls back to "default" provenance for unknown providers', () => {
+    const g = aggregateGroundedFields([], 'Newco')
+    expect(g.privacyScore.provenance).toBe('default')
+    expect(g.openWeights.value).toBe(0)
+    expect(g.openWeights.provenance).toBe('default')
+  })
+
+  it('open-weight providers get openWeights=1, closed get 0', () => {
+    expect(aggregateGroundedFields([], 'Anthropic').openWeights.value).toBe(0)
+    expect(aggregateGroundedFields([], 'OpenAI').openWeights.value).toBe(0)
+    expect(aggregateGroundedFields([], 'Meta').openWeights.value).toBe(1)
+    expect(aggregateGroundedFields([], 'Alibaba').openWeights.value).toBe(1)
+    expect(aggregateGroundedFields([], 'Moonshot').openWeights.value).toBe(1)
+    expect(aggregateGroundedFields([], 'IBM').openWeights.value).toBe(1)
+  })
+})
+
+describe('aggregateGroundedFields — task bucketing', () => {
+  it('routes AA livecodebench and lmarena coding into task_fitness.code', () => {
+    const g = aggregateGroundedFields([
+      taskRow('artificialanalysis', 'livecodebench', 0.8),
+      taskRow('lmarena', 'coding', 0.6),
+    ], 'Anthropic')
+    expect(g.taskFitness.code?.value).toBe(0.7)
+    expect(g.taskFitness.code?.provenance).toBe('benchmark')
+    expect(g.taskFitness.code?.evidence).toEqual(['artificialanalysis::livecodebench', 'lmarena::coding'])
+  })
+
+  it('averages multiple categories that map to the same task', () => {
+    const g = aggregateGroundedFields([
+      taskRow('artificialanalysis', 'aa_intelligence', 1.0),
+      taskRow('artificialanalysis', 'aa_math', 0.6),
+      taskRow('artificialanalysis', 'mmlu_pro', 0.8),
+    ], 'Anthropic')
+    // All three map to 'analyse' → mean = 0.8
+    expect(g.taskFitness.analyse?.value).toBe(0.8)
+  })
+
+  it('routes a single category into multiple bearing tasks (livebench language)', () => {
+    const g = aggregateGroundedFields([
+      taskRow('livebench', 'language', 0.7),
+    ], 'Anthropic')
+    expect(g.taskFitness.summarise?.value).toBe(0.7)
+    expect(g.taskFitness.generate?.value).toBe(0.7)
+  })
+
+  it('ignores categories not in CATEGORY_TO_TASKS', () => {
+    const g = aggregateGroundedFields([
+      taskRow('artificialanalysis', 'unknown_metric', 0.99),
+      taskRow('lmarena', 'coding', 0.5),
+    ], 'Anthropic')
+    expect(g.taskFitness.code?.value).toBe(0.5)
+    expect(Object.keys(g.taskFitness)).toEqual(['code'])
+  })
+
+  it('returns empty taskFitness for empty input', () => {
+    const g = aggregateGroundedFields([], 'Anthropic')
+    expect(g.taskFitness).toEqual({})
+  })
+})
+
+describe('aggregateGroundedFields — speed and latency', () => {
+  it('averages aa_speed rows into speedScore', () => {
+    const g = aggregateGroundedFields([speedRow(0.4), speedRow(0.6)], 'Anthropic')
+    expect(g.speedScore?.value).toBe(0.5)
+    expect(g.speedScore?.provenance).toBe('benchmark')
+  })
+
+  it('returns null speedScore when no speed rows are present', () => {
+    const g = aggregateGroundedFields([taskRow('lmarena', 'coding', 0.5)], 'Anthropic')
+    expect(g.speedScore).toBeNull()
+  })
+
+  it('drops latency rows entirely (not consumed in v1)', () => {
+    const g = aggregateGroundedFields([latencyRow(0.9), speedRow(0.5)], 'Anthropic')
+    expect(g.speedScore?.value).toBe(0.5)
+    expect(Object.keys(g.taskFitness)).toEqual([])
+  })
+})
+
+describe('aggregateGroundedFields — code capability threshold', () => {
+  it('threshold sits at 0.5 (per CODE_CAPABILITY_THRESHOLD)', () => {
+    expect(CODE_CAPABILITY_THRESHOLD).toBe(0.5)
+    const high = aggregateGroundedFields([taskRow('lmarena', 'coding', 0.7)], 'Anthropic')
+    expect(high.taskFitness.code!.value).toBeGreaterThanOrEqual(CODE_CAPABILITY_THRESHOLD)
+    const low = aggregateGroundedFields([taskRow('lmarena', 'coding', 0.3)], 'Anthropic')
+    expect(low.taskFitness.code!.value).toBeLessThan(CODE_CAPABILITY_THRESHOLD)
+  })
+})
+
+describe('aggregateGroundedFields — evidence list for Haiku prompt', () => {
+  it('includes one line per task row plus speed rows with raw tok/s', () => {
+    const g = aggregateGroundedFields([
+      taskRow('lmarena', 'coding', 0.6),
+      speedRow(0.4, 180),
+    ], 'Anthropic')
+    expect(g.evidenceForPrompt).toContain('lmarena::coding = 0.60')
+    expect(g.evidenceForPrompt).toContain('artificialanalysis::aa_speed = 0.40 (raw 180 tok/s)')
   })
 })
