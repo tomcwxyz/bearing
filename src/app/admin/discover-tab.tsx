@@ -281,23 +281,33 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
       if (result.success && result.estimates) {
         setProvenance(result.provenance ?? {})
         const est = result.estimates as Record<string, unknown>
-        setFormData(prev => ({
-          ...prev,
-          speed_score: typeof est.speed_score === 'number' ? est.speed_score : prev.speed_score,
-          privacy_score: typeof est.privacy_score === 'number' ? est.privacy_score : prev.privacy_score,
-          tier: typeof est.tier === 'string' ? est.tier : prev.tier,
-          task_fitness: (est.task_fitness && typeof est.task_fitness === 'object')
-            ? { ...prev.task_fitness, ...(est.task_fitness as Record<string, number>) }
-            : prev.task_fitness,
-          strengths: Array.isArray(est.strengths) ? est.strengths as string[] : prev.strengths,
-          weaknesses: Array.isArray(est.weaknesses) ? est.weaknesses as string[] : prev.weaknesses,
-          transparency: (est.transparency && typeof est.transparency === 'object')
-            ? { ...prev.transparency, ...(est.transparency as Record<string, unknown>) } as ModelFormData['transparency']
-            : prev.transparency,
-          sustainability: (est.sustainability && typeof est.sustainability === 'object')
-            ? { ...prev.sustainability, ...(est.sustainability as Record<string, unknown>) } as ModelFormData['sustainability']
-            : prev.sustainability,
-        }))
+        const derived = est.derived_capabilities as { code?: boolean } | undefined
+        setFormData(prev => {
+          // Apply derived capability flags: add when true, remove when false.
+          let nextCaps = prev.capabilities
+          if (derived) {
+            if (derived.code === true && !nextCaps.includes('code')) nextCaps = [...nextCaps, 'code']
+            if (derived.code === false) nextCaps = nextCaps.filter(c => c !== 'code')
+          }
+          return {
+            ...prev,
+            capabilities: nextCaps,
+            speed_score: typeof est.speed_score === 'number' ? est.speed_score : prev.speed_score,
+            privacy_score: typeof est.privacy_score === 'number' ? est.privacy_score : prev.privacy_score,
+            tier: typeof est.tier === 'string' ? est.tier : prev.tier,
+            task_fitness: (est.task_fitness && typeof est.task_fitness === 'object')
+              ? { ...prev.task_fitness, ...(est.task_fitness as Record<string, number>) }
+              : prev.task_fitness,
+            strengths: Array.isArray(est.strengths) ? est.strengths as string[] : prev.strengths,
+            weaknesses: Array.isArray(est.weaknesses) ? est.weaknesses as string[] : prev.weaknesses,
+            transparency: (est.transparency && typeof est.transparency === 'object')
+              ? { ...prev.transparency, ...(est.transparency as Record<string, unknown>) } as ModelFormData['transparency']
+              : prev.transparency,
+            sustainability: (est.sustainability && typeof est.sustainability === 'object')
+              ? { ...prev.sustainability, ...(est.sustainability as Record<string, unknown>) } as ModelFormData['sustainability']
+              : prev.sustainability,
+          }
+        })
         setHasEstimated(true)
       } else {
         setEstimateError(result.error ?? 'Estimation failed')

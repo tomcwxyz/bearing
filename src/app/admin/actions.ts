@@ -12,7 +12,7 @@ import {
   type BenchmarkSource, type BenchmarkAlias,
 } from '@/lib/benchmarks'
 import {
-  suggestBenchmarkAliases, groundFromAliases,
+  suggestBenchmarkAliases, groundFromAliases, CODE_CAPABILITY_THRESHOLD,
   type AliasSuggestion, type Provenance,
 } from '@/lib/import-grounding'
 import {
@@ -160,6 +160,7 @@ export async function fetchDiscoverData(): Promise<{
         m.architecture?.input_modalities ?? ['text'],
         m.architecture?.output_modalities ?? ['text'],
         m.supported_parameters ?? [],
+        m.context_length,
       ),
       description: m.description,
       supportedParameters: m.supported_parameters ?? [],
@@ -224,6 +225,8 @@ export async function estimateModelScores(
       groundedLines.push(`- speed_score = ${grounded.speedScore.value} (from ${grounded.speedScore.evidence?.join(', ')})`)
     }
     groundedLines.push(`- privacy_score = ${grounded.privacyScore.value} (provider-table lookup)`)
+    groundedLines.push(`- transparency.open_weights = ${grounded.openWeights.value} (provider-table lookup)`)
+    groundedLines.push(`- transparency.transparency_score = ${grounded.baselineTransparency.value} (provider baseline; refine sub-fields but keep this anchor)`)
 
     const groundedBlock = `\n\n## GROUNDED FIELDS — DO NOT OVERRIDE\nThe following fields are computed from benchmark data. Do not produce estimates for them in your output; they will be merged in deterministically.\n${groundedLines.join('\n')}\n${grounded.evidenceForPrompt.length ? `\nFull evidence:\n${grounded.evidenceForPrompt.map(l => `- ${l}`).join('\n')}` : ''}`
 
@@ -264,15 +267,33 @@ export async function estimateModelScores(
     const privacyScore = grounded.privacyScore.value
     provenance.privacy_score = grounded.privacyScore.provenance
 
+    // Merge grounded transparency anchors. Keep Haiku's sub-fields and notes
+    // but force open_weights and transparency_score to the provider lookup.
+    const haikuTransparency = (haikuOutput.transparency as Record<string, unknown> | undefined) ?? {}
+    const transparency = {
+      ...haikuTransparency,
+      open_weights: grounded.openWeights.value,
+      transparency_score: grounded.baselineTransparency.value,
+    }
+    provenance['transparency.open_weights'] = grounded.openWeights.provenance
+    provenance['transparency.transparency_score'] = grounded.baselineTransparency.provenance
+
+    // Derived capability: `code` if grounded task_fitness.code clears the threshold.
+    const groundedCode = grounded.taskFitness.code
+    const derivedCodeCap = groundedCode != null && groundedCode.value >= CODE_CAPABILITY_THRESHOLD
+
     const estimates: Record<string, unknown> = {
       ...haikuOutput,
       task_fitness: taskFitness,
       speed_score: speedScore,
       privacy_score: privacyScore,
+      transparency,
+      // Surfaced for the UI to merge into formData.capabilities; not a registry field itself.
+      derived_capabilities: { code: derivedCodeCap },
     }
 
     // Remaining Haiku-only fields get 'haiku' provenance.
-    for (const k of ['tier', 'transparency', 'sustainability', 'strengths', 'weaknesses']) {
+    for (const k of ['tier', 'sustainability', 'strengths', 'weaknesses']) {
       if (k in estimates) provenance[k] = 'haiku'
     }
 

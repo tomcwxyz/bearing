@@ -150,25 +150,44 @@ export function suggestBenchmarkAliases(
 // ---------------------------------------------------------------------------
 
 /**
- * Provider-level privacy defaults. Driven by published policies (zero data
- * retention, training opt-out, jurisdictional considerations). Admin can
- * override per-model in the import form. Names match the values produced by
- * extractProvider() in src/lib/openrouter.ts.
+ * Provider-level profile defaults — privacy posture, open-weights status,
+ * and a baseline transparency_score. Admin can override per-model in the
+ * import form. Names match the values produced by extractProvider() in
+ * src/lib/openrouter.ts.
+ *
+ * `openWeights`: 1 when the provider publishes their model weights publicly
+ *   for the lineup represented by `provider`. Mistral is mixed (some open,
+ *   flagship closed) and intentionally defaults to 0 — admin overrides.
+ * `baselineTransparency`: rough FMTI-style aggregate. Closed providers cluster
+ *   at 0.35–0.45; open-weight providers at 0.6–0.7. Used as the starting
+ *   value for `transparency.transparency_score`; Haiku still writes the
+ *   sub-fields (open_methodology, licence_openness, …) and notes.
  */
-const PROVIDER_PRIVACY: Record<string, number> = {
-  Anthropic: 0.85,
-  OpenAI: 0.75,
-  Google: 0.7,
-  Mistral: 0.85,
-  DeepSeek: 0.5,
-  xAI: 0.6,
-  Meta: 0.75,
-  Alibaba: 0.5,
-  MiniMax: 0.5,
-  Moonshot: 0.5,
-  IBM: 0.85,
-  GreenPT: 0.9,
+interface ProviderProfile {
+  privacy: number
+  openWeights: 0 | 1
+  baselineTransparency: number
 }
+
+const PROVIDER_PROFILE: Record<string, ProviderProfile> = {
+  Anthropic: { privacy: 0.85, openWeights: 0, baselineTransparency: 0.4 },
+  OpenAI: { privacy: 0.75, openWeights: 0, baselineTransparency: 0.35 },
+  Google: { privacy: 0.7, openWeights: 0, baselineTransparency: 0.45 },
+  Mistral: { privacy: 0.85, openWeights: 0, baselineTransparency: 0.55 },
+  DeepSeek: { privacy: 0.5, openWeights: 1, baselineTransparency: 0.65 },
+  xAI: { privacy: 0.6, openWeights: 0, baselineTransparency: 0.35 },
+  Meta: { privacy: 0.75, openWeights: 1, baselineTransparency: 0.7 },
+  Alibaba: { privacy: 0.5, openWeights: 1, baselineTransparency: 0.65 },
+  MiniMax: { privacy: 0.5, openWeights: 0, baselineTransparency: 0.4 },
+  Moonshot: { privacy: 0.5, openWeights: 1, baselineTransparency: 0.6 },
+  IBM: { privacy: 0.85, openWeights: 1, baselineTransparency: 0.7 },
+  GreenPT: { privacy: 0.9, openWeights: 0, baselineTransparency: 0.6 },
+}
+
+const DEFAULT_PROFILE: ProviderProfile = { privacy: 0.6, openWeights: 0, baselineTransparency: 0.4 }
+
+/** Threshold for the grounded `code` capability flag. */
+export const CODE_CAPABILITY_THRESHOLD = 0.5
 
 export type Provenance = 'benchmark' | 'derived' | 'haiku' | 'default'
 
@@ -183,6 +202,8 @@ export interface GroundedFields {
   taskFitness: Partial<Record<TaskType, GroundedField<number>>>
   speedScore: GroundedField<number> | null
   privacyScore: GroundedField<number>
+  openWeights: GroundedField<0 | 1>
+  baselineTransparency: GroundedField<number>
   /** Verbatim raw evidence to include in the Haiku prompt for downstream context. */
   evidenceForPrompt: string[]
 }
@@ -212,14 +233,15 @@ export async function groundFromAliases(
   aliases: SelectedAlias[],
   provider: string,
 ): Promise<GroundedFields> {
-  const privacyDefault = PROVIDER_PRIVACY[provider] ?? 0.6
-  const privacyScore: GroundedField<number> = {
-    value: privacyDefault,
-    provenance: provider in PROVIDER_PRIVACY ? 'derived' : 'default',
-  }
+  const known = provider in PROVIDER_PROFILE
+  const profile = PROVIDER_PROFILE[provider] ?? DEFAULT_PROFILE
+  const provenance: Provenance = known ? 'derived' : 'default'
+  const privacyScore: GroundedField<number> = { value: profile.privacy, provenance }
+  const openWeights: GroundedField<0 | 1> = { value: profile.openWeights, provenance }
+  const baselineTransparency: GroundedField<number> = { value: profile.baselineTransparency, provenance }
 
   if (aliases.length === 0) {
-    return { taskFitness: {}, speedScore: null, privacyScore, evidenceForPrompt: [] }
+    return { taskFitness: {}, speedScore: null, privacyScore, openWeights, baselineTransparency, evidenceForPrompt: [] }
   }
 
   // Fetch latest snapshot per (source_category, source_model_name) for the
@@ -301,6 +323,6 @@ export async function groundFromAliases(
       }
     : null
 
-  return { taskFitness, speedScore, privacyScore, evidenceForPrompt }
+  return { taskFitness, speedScore, privacyScore, openWeights, baselineTransparency, evidenceForPrompt }
 }
 

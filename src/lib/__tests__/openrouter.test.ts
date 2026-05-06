@@ -21,6 +21,12 @@ describe('inferCapabilities', () => {
     const caps = inferCapabilities(['text'], ['text'], ['include_reasoning'])
     expect(caps).toContain('extended_thinking')
   })
+  it('infers long_context when context_length >= 128K', () => {
+    expect(inferCapabilities(['text'], ['text'], [], 128_000)).toContain('long_context')
+    expect(inferCapabilities(['text'], ['text'], [], 200_000)).toContain('long_context')
+    expect(inferCapabilities(['text'], ['text'], [], 64_000)).not.toContain('long_context')
+    expect(inferCapabilities(['text'], ['text'], [])).not.toContain('long_context')
+  })
 })
 
 describe('extractProvider', () => {
