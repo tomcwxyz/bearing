@@ -95,3 +95,25 @@ describe('parseClassificationResponse - pipeline', () => {
     expect(result.pipeline_stages).toBeNull()
   })
 })
+
+// Phase 6.2: pin the tightened pipeline-detection rule into the system prompt.
+// We can't invoke Anthropic in tests, so we assert the prompt encodes the
+// negative-example list — a proxy that catches accidental regressions of the
+// rule wording (the most likely failure mode, not the model's interpretation).
+describe('pipeline rule (Phase 6)', () => {
+  it('system prompt forbids pipelines for chatbots', () => {
+    const { system } = buildClassificationMessages('placeholder')
+    expect(system).toMatch(/chatbots are not pipelines/i)
+  })
+
+  it('system prompt forbids pipelines for code + tests + refactor', () => {
+    const { system } = buildClassificationMessages('placeholder')
+    expect(system).toMatch(/one job, one model/i)
+  })
+
+  it('system prompt requires different task_type AND non-shareable models', () => {
+    const { system } = buildClassificationMessages('placeholder')
+    expect(system).toMatch(/different task_type values/i)
+    expect(system).toMatch(/Cannot share a single model efficiently/i)
+  })
+})

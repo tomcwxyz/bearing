@@ -121,17 +121,37 @@ Return JSON only, no other text.
 
 ## Pipeline detection
 
-Some tasks involve multiple distinct processing steps that benefit from different models. When this is the case, set pipeline_recommended to true and provide pipeline_stages.
+A pipeline recommends *different models for different stages* — only set
+pipeline_recommended=true when a single general-purpose model would genuinely
+do a worse job than splitting the work.
 
-Examples of pipeline tasks:
-- "Extract text from PDFs then summarise the key points" → stage 1: extract (needs vision), stage 2: summarise
-- "Translate this document then generate a report from it" → stage 1: translate, stage 2: generate
-- "OCR these invoices, pull out the amounts, and analyse spending trends" → stage 1: extract (needs vision), stage 2: extract, stage 3: analyse
-- "Read this codebase and write documentation" → stage 1: code, stage 2: generate
+A pipeline requires ≥2 operations that:
+  1. Have **different task_type values**, AND
+  2. **Cannot share a single model efficiently** — the operations differ in
+     modality (vision → text), language (translate → analyse), or specialty
+     (OCR → reasoning). One model running both stages would either lack a
+     required capability or be materially worse at one stage than a specialist.
+
+NEVER recommend a pipeline for:
+  - A single chat / conversation / chatbot use case (chatbots are not pipelines,
+    even if the bot answers many topics)
+  - Code that involves writing + testing + refactoring (one job, one model)
+  - A single document being summarised
+  - Anything where the same general-purpose model could do all stages well
+
+Examples of *real* pipelines (different modalities or specialties):
+- "Extract text from PDFs then summarise the key points" → vision-OCR → summarise
+- "Translate this Japanese document then generate an English report from it" → translate → generate
+- "OCR these invoices, pull out the amounts, and analyse spending trends" → vision-extract → extract → analyse
+- "Read this codebase and write user-facing documentation" → code → generate
+
+Examples that are NOT pipelines (single model handles all):
+- "Build a GCSE-tutor chatbot for maths and English" → one conversation model
+- "Customer-support chatbot that answers FAQs and escalates to humans" → one conversation model
+- "Refactor this React component, write tests, and add docstrings" → one code model
+- "Multilingual support chatbot for English, Spanish, French" → one multilingual conversation model
 
 Rules:
-- Only recommend pipelines for tasks with 2+ clearly distinct operations
-- Simple tasks (single question, single generation) should NOT get pipelines
 - Each stage gets its own task_type from the standard set
 - requires_capabilities lists capabilities needed for that stage (e.g. ["vision"] for PDF/image processing)
 - If pipeline_recommended is false, set pipeline_stages to null
