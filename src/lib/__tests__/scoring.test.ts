@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { scoreModels, costScore, estimateCost } from '../scoring'
+import { scoreModels, scoreModelsDetailed, hardFilter, costScore, estimateCost } from '../scoring'
 import { getAllModels, getModel, type Factor } from '../registry'
 
 const defaultPriority: Factor[] = ['quality', 'capability', 'cost', 'transparency', 'privacy', 'sustainability', 'speed']
@@ -622,5 +622,103 @@ describe('output_length cost separation (Phase 4.6)', () => {
     const veryLongOut = scoreModels({ ...baseInput, outputLength: 'very_long' }).find(m => m.slug === 'claude-opus-4.6')!
     // estimatedCost should differ noticeably.
     expect(veryLongOut.estimatedCost).toBeGreaterThan(shortOut.estimatedCost)
+  })
+})
+
+describe('hardFilter (Phase 5.1)', () => {
+  const baseInput = {
+    taskType: 'analyse',
+    complexity: 'moderate',
+    inputLength: 'medium',
+    needsVision: false,
+    needsTools: false,
+    needsCode: false,
+    priorityOrder: defaultPriority,
+  }
+
+  it('rejects models below the long-context threshold when needsLongContext', () => {
+    // Synthetic stub — registry models all sit above 100k today, so we mint one.
+    const small = { ...getModel('claude-opus-4.6')!, context_window: 32_000 }
+    const result = hardFilter(small, { ...baseInput, needsLongContext: true })
+    expect(result).toEqual({ ok: false, reason: 'long_context' })
+  })
+
+  it('admits models above the threshold when needsLongContext', () => {
+    const big = getAllModels().find(m => m.context_window >= 100_000)!
+    const result = hardFilter(big, { ...baseInput, needsLongContext: true })
+    expect(result.ok).toBe(true)
+  })
+
+  it('rejects cloud-only models when on_prem_required', () => {
+    const cloudOnly = getAllModels().find(m => !m.local_info)!
+    const result = hardFilter(cloudOnly, { ...baseInput, dataSensitivity: 'on_prem_required' })
+    expect(result).toEqual({ ok: false, reason: 'on_prem_required' })
+  })
+
+  it('rejects slow models when latencyTarget=realtime', () => {
+    const slow = getAllModels().find(m => m.speed_score < 0.85)!
+    const result = hardFilter(slow, { ...baseInput, latencyTarget: 'realtime' })
+    expect(result).toEqual({ ok: false, reason: 'realtime' })
+  })
+
+  it('rejects models without vision when needsVision', () => {
+    const noVision = getAllModels().find(m => !m.capabilities.includes('vision'))!
+    const result = hardFilter(noVision, { ...baseInput, needsVision: true })
+    expect(result).toEqual({ ok: false, reason: 'missing_vision' })
+  })
+
+  it('rejects models without tools when needsTools', () => {
+    const opus = getModel('claude-opus-4.6')!
+    const noTools = { ...opus, capabilities: opus.capabilities.filter(c => c !== 'tools') }
+    const result = hardFilter(noTools, { ...baseInput, needsTools: true })
+    expect(result).toEqual({ ok: false, reason: 'missing_tools' })
+  })
+
+  it('rejects models without code when needsCode', () => {
+    const opus = getModel('claude-opus-4.6')!
+    const noCode = { ...opus, capabilities: opus.capabilities.filter(c => c !== 'code') }
+    const result = hardFilter(noCode, { ...baseInput, needsCode: true })
+    expect(result).toEqual({ ok: false, reason: 'missing_code' })
+  })
+
+  it('admits a fully-capable model with no constraints', () => {
+    const opus = getModel('claude-opus-4.6')!
+    expect(hardFilter(opus, baseInput)).toEqual({ ok: true })
+  })
+})
+
+describe('scoreModelsDetailed (Phase 5.1)', () => {
+  it('returns excluded models with reasons alongside the scored set', () => {
+    const result = scoreModelsDetailed({
+      taskType: 'analyse',
+      complexity: 'moderate',
+      inputLength: 'medium',
+      needsVision: false,
+      needsTools: false,
+      needsCode: false,
+      priorityOrder: defaultPriority,
+      dataSensitivity: 'on_prem_required',
+    })
+    expect(result.excluded.length).toBeGreaterThan(0)
+    expect(result.excluded.every(e => e.reason === 'on_prem_required')).toBe(true)
+    expect(result.models.every(m => {
+      const model = getModel(m.slug)!
+      return !!model.local_info
+    })).toBe(true)
+  })
+
+  it('produces the same ordered models as scoreModels()', () => {
+    const input = {
+      taskType: 'analyse',
+      complexity: 'moderate',
+      inputLength: 'medium',
+      needsVision: false,
+      needsTools: false,
+      needsCode: false,
+      priorityOrder: defaultPriority,
+    }
+    const flat = scoreModels(input).map(m => m.slug)
+    const detailed = scoreModelsDetailed(input).models.map(m => m.slug)
+    expect(detailed).toEqual(flat)
   })
 })

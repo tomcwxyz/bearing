@@ -10,7 +10,7 @@ import { classifyTask, type ClarificationAnswer } from '@/lib/classification'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import Anthropic from '@anthropic-ai/sdk'
-import { scoreModels, type ScoredModel } from '@/lib/scoring'
+import { scoreModels, scoreModelsDetailed, type ScoredModel, type Exclusion } from '@/lib/scoring'
 import { getLatestBenchmarkScores } from '@/lib/benchmarks'
 import { generateReasoning } from '@/lib/reasoning'
 import { scorePipeline, type PipelineResult } from '@/lib/pipeline'
@@ -182,7 +182,7 @@ export async function getResults(taskId: string) {
       : []
 
     const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
-    const models = scoreModels({
+    const { models, excluded } = scoreModelsDetailed({
       taskType: task.task_type,
       complexity: task.complexity,
       inputLength: task.input_length,
@@ -248,7 +248,7 @@ export async function getResults(taskId: string) {
     const localResult = scoreLocalModels(models, allModelsRaw, task.task_type)
     const local = localResult.recommendations.length > 0 ? localResult : null
 
-    return { task, models, reasoning, pipeline, local }
+    return { task, models, reasoning, pipeline, local, excluded }
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Failed to get results.' }
   }

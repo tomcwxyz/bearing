@@ -202,7 +202,61 @@ function capabilityScore(model: Model, needs: { vision: boolean; tools: boolean;
   return modelCaps.length / allCaps.length
 }
 
+// Phase 5.1: hard filters live in one place so they're testable in isolation
+// and exclusion reasons can be surfaced in the UI ("5 models excluded because
+// they require cloud hosting"). Order matches scoreModels' historical order:
+// long_context first, then on-prem, then realtime, then capability gates.
+export type HardFilterReason =
+  | 'long_context'
+  | 'on_prem_required'
+  | 'realtime'
+  | 'missing_vision'
+  | 'missing_tools'
+  | 'missing_code'
+
+export interface HardFilterResult {
+  ok: boolean
+  reason?: HardFilterReason
+}
+
+export function hardFilter(model: Model, input: ScoringInput): HardFilterResult {
+  if (input.needsLongContext && model.context_window < LONG_CONTEXT_THRESHOLD) {
+    return { ok: false, reason: 'long_context' }
+  }
+  if (input.dataSensitivity === 'on_prem_required' && !model.local_info) {
+    return { ok: false, reason: 'on_prem_required' }
+  }
+  if (input.latencyTarget === 'realtime' && model.speed_score < REALTIME_SPEED_THRESHOLD) {
+    return { ok: false, reason: 'realtime' }
+  }
+  if (input.needsVision && !model.capabilities.includes('vision')) {
+    return { ok: false, reason: 'missing_vision' }
+  }
+  if (input.needsTools && !model.capabilities.includes('tools')) {
+    return { ok: false, reason: 'missing_tools' }
+  }
+  if (input.needsCode && !model.capabilities.includes('code')) {
+    return { ok: false, reason: 'missing_code' }
+  }
+  return { ok: true }
+}
+
+export interface Exclusion {
+  slug: string
+  name: string
+  reason: HardFilterReason
+}
+
+export interface ScoringResult {
+  models: ScoredModel[]
+  excluded: Exclusion[]
+}
+
 export function scoreModels(input: ScoringInput): ScoredModel[] {
+  return scoreModelsDetailed(input).models
+}
+
+export function scoreModelsDetailed(input: ScoringInput): ScoringResult {
   const models = getAllModels()
   const weights = priorityToWeights(input.priorityOrder, {
     complexity: input.complexity,
@@ -210,6 +264,7 @@ export function scoreModels(input: ScoringInput): ScoredModel[] {
   })
   const blend = getBenchmarkBlend()
   const scored: ScoredModel[] = []
+  const excluded: Exclusion[] = []
 
   // Stacking order for the per-model loop below (top to bottom):
   //   1. Hard filters (long-context, on-prem, realtime, capability) — `continue` if any fail.
@@ -224,24 +279,21 @@ export function scoreModels(input: ScoringInput): ScoredModel[] {
   const outputLength = input.outputLength ?? 'medium'
 
   for (const model of models) {
-    // Phase 4.4: long-context hard filter — drop models that can't physically
-    // hold the input. Applied first so it composes cleanly with other filters.
-    if (input.needsLongContext && model.context_window < LONG_CONTEXT_THRESHOLD) continue
-
-    // Phase 4.1: on-prem hard filter — drop any model that isn't locally
-    // deployable when the task requires zero data egress.
-    if (input.dataSensitivity === 'on_prem_required' && !model.local_info) continue
-
-    // Phase 4.2: realtime hard filter — drop slow models when sub-200ms is
-    // expected. Threshold is the registry's normalised speed_score.
-    if (input.latencyTarget === 'realtime' && model.speed_score < REALTIME_SPEED_THRESHOLD) continue
+    // Phase 5.1: all hard filters run through hardFilter() so the rejection
+    // reason is captured for UI surfacing.
+    const filter = hardFilter(model, input)
+    if (!filter.ok) {
+      excluded.push({ slug: model.slug, name: model.name, reason: filter.reason! })
+      continue
+    }
 
     const capScore = capabilityScore(model, {
       vision: input.needsVision,
       tools: input.needsTools,
       code: input.needsCode,
-    })
-    if (capScore === null) continue
+    })!
+    // capScore can no longer be null — hardFilter has already rejected the
+    // missing-capability cases above.
 
     const factorScores: Record<Factor, number> = {
       cost: costScore(model, models, input.inputLength, weights.cost, outputLength),
@@ -327,5 +379,8 @@ export function scoreModels(input: ScoringInput): ScoredModel[] {
     })
   }
 
-  return scored.sort((a, b) => b.weightedScore - a.weightedScore)
+  return {
+    models: scored.sort((a, b) => b.weightedScore - a.weightedScore),
+    excluded,
+  }
 }
