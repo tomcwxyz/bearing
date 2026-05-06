@@ -1,12 +1,16 @@
 'use client'
 
-import { useState, useTransition, useMemo } from 'react'
+import { useState, useTransition, useMemo, useEffect } from 'react'
 import {
   syncPricing,
   estimateModelScores,
   importModel,
+  suggestAliasesForImport,
+  type SuggestionsBySource,
 } from './actions'
 import type { DiscoverModel } from './types'
+
+type SourceKey = keyof SuggestionsBySource
 
 const ALL_CAPABILITIES = [
   'vision', 'tools', 'code', 'long_context', 'extended_thinking',
@@ -225,29 +229,85 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
   const [hasEstimated, setHasEstimated] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
+  // Benchmark alias suggestions, fetched once on mount.
+  const [suggestions, setSuggestions] = useState<SuggestionsBySource | null>(null)
+  const [suggestionsLoading, setSuggestionsLoading] = useState(true)
+  const [selectedAliases, setSelectedAliases] = useState<Set<string>>(new Set())  // key: `${source}::${name}`
+  // Per-field provenance from the most recent estimate run.
+  const [provenance, setProvenance] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    let cancelled = false
+    suggestAliasesForImport({ slug: formData.slug, name: formData.name, provider: formData.provider })
+      .then(res => {
+        if (cancelled) return
+        setSuggestions(res)
+        // Auto-select unflagged matches that aren't already aliased to a different bearing.
+        const initial = new Set<string>()
+        for (const source of Object.keys(res) as SourceKey[]) {
+          for (const s of res[source]) {
+            if (s.flags.length === 0 && !s.existingAlias) initial.add(`${source}::${s.name}`)
+          }
+        }
+        setSelectedAliases(initial)
+      })
+      .catch(() => {
+        if (!cancelled) setSuggestions({ lmarena: [], livebench: [], artificialanalysis: [] })
+      })
+      .finally(() => { if (!cancelled) setSuggestionsLoading(false) })
+    return () => { cancelled = true }
+    // Re-fetch only when the model identity changes — not on every slug edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [model.id])
+
+  function toggleAlias(source: SourceKey, name: string) {
+    const key = `${source}::${name}`
+    setSelectedAliases(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
   function handleEstimate() {
     setEstimateError(null)
+    const aliasesPayload = [...selectedAliases].map(key => {
+      const [source, ...rest] = key.split('::')
+      return { source: source as SourceKey, sourceModelName: rest.join('::') }
+    })
     startEstimateTransition(async () => {
-      const result = await estimateModelScores(model)
+      const result = await estimateModelScores(model, aliasesPayload)
       if (result.success && result.estimates) {
+        setProvenance(result.provenance ?? {})
         const est = result.estimates as Record<string, unknown>
-        setFormData(prev => ({
-          ...prev,
-          speed_score: typeof est.speed_score === 'number' ? est.speed_score : prev.speed_score,
-          privacy_score: typeof est.privacy_score === 'number' ? est.privacy_score : prev.privacy_score,
-          tier: typeof est.tier === 'string' ? est.tier : prev.tier,
-          task_fitness: (est.task_fitness && typeof est.task_fitness === 'object')
-            ? { ...prev.task_fitness, ...(est.task_fitness as Record<string, number>) }
-            : prev.task_fitness,
-          strengths: Array.isArray(est.strengths) ? est.strengths as string[] : prev.strengths,
-          weaknesses: Array.isArray(est.weaknesses) ? est.weaknesses as string[] : prev.weaknesses,
-          transparency: (est.transparency && typeof est.transparency === 'object')
-            ? { ...prev.transparency, ...(est.transparency as Record<string, unknown>) } as ModelFormData['transparency']
-            : prev.transparency,
-          sustainability: (est.sustainability && typeof est.sustainability === 'object')
-            ? { ...prev.sustainability, ...(est.sustainability as Record<string, unknown>) } as ModelFormData['sustainability']
-            : prev.sustainability,
-        }))
+        const derived = est.derived_capabilities as { code?: boolean } | undefined
+        setFormData(prev => {
+          // Apply derived capability flags: add when true, remove when false.
+          let nextCaps = prev.capabilities
+          if (derived) {
+            if (derived.code === true && !nextCaps.includes('code')) nextCaps = [...nextCaps, 'code']
+            if (derived.code === false) nextCaps = nextCaps.filter(c => c !== 'code')
+          }
+          return {
+            ...prev,
+            capabilities: nextCaps,
+            speed_score: typeof est.speed_score === 'number' ? est.speed_score : prev.speed_score,
+            privacy_score: typeof est.privacy_score === 'number' ? est.privacy_score : prev.privacy_score,
+            tier: typeof est.tier === 'string' ? est.tier : prev.tier,
+            task_fitness: (est.task_fitness && typeof est.task_fitness === 'object')
+              ? { ...prev.task_fitness, ...(est.task_fitness as Record<string, number>) }
+              : prev.task_fitness,
+            strengths: Array.isArray(est.strengths) ? est.strengths as string[] : prev.strengths,
+            weaknesses: Array.isArray(est.weaknesses) ? est.weaknesses as string[] : prev.weaknesses,
+            transparency: (est.transparency && typeof est.transparency === 'object')
+              ? { ...prev.transparency, ...(est.transparency as Record<string, unknown>) } as ModelFormData['transparency']
+              : prev.transparency,
+            sustainability: (est.sustainability && typeof est.sustainability === 'object')
+              ? { ...prev.sustainability, ...(est.sustainability as Record<string, unknown>) } as ModelFormData['sustainability']
+              : prev.sustainability,
+          }
+        })
         setHasEstimated(true)
       } else {
         setEstimateError(result.error ?? 'Estimation failed')
@@ -273,6 +333,12 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
     fd.set('transparency', JSON.stringify(formData.transparency))
     fd.set('sustainability', JSON.stringify(formData.sustainability))
     fd.set('openrouter_id', model.id)
+
+    const aliasesPayload = [...selectedAliases].map(key => {
+      const [source, ...rest] = key.split('::')
+      return { source: source as SourceKey, sourceModelName: rest.join('::') }
+    })
+    fd.set('selected_aliases', JSON.stringify(aliasesPayload))
 
     startSaveTransition(async () => {
       const result = await importModel(fd)
@@ -319,6 +385,27 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
           )}
         </div>
 
+        {/* Benchmark alias matches */}
+        <BenchmarkAliasPanel
+          loading={suggestionsLoading}
+          suggestions={suggestions}
+          selected={selectedAliases}
+          onToggle={toggleAlias}
+        />
+
+        {/* Warn when a flagship-priced model has no benchmark coverage —
+            those are the cases where Haiku-only estimates do the most damage. */}
+        {!suggestionsLoading && suggestions
+          && model.pricing.output_per_1m >= 5
+          && Object.values(suggestions).every(list => list.length === 0)
+          && (
+          <div className="mb-6 rounded-md border border-coral/40 bg-coral/5 px-4 py-3 text-sm text-coral">
+            <strong>Warning:</strong> this model is priced as a flagship (${model.pricing.output_per_1m.toFixed(2)}/M output)
+            but has no benchmark coverage in any source. Imported scores will rely entirely on Haiku
+            estimates — consider waiting for LMArena / LiveBench / AA coverage before publishing.
+          </div>
+        )}
+
         {/* Generate Estimates */}
         {!hasEstimated && (
           <div className="mb-6 rounded-lg border border-cream-dark bg-cream/30 p-4 text-center">
@@ -334,6 +421,15 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
                 {estimateError}
               </p>
             )}
+          </div>
+        )}
+
+        {hasEstimated && Object.keys(provenance).length > 0 && (
+          <div className="mb-4 rounded-md border border-teal/20 bg-teal/5 px-4 py-3 text-xs text-navy/70">
+            <span className="font-medium text-teal">Grounded:</span>{' '}
+            {Object.values(provenance).filter(p => p === 'benchmark').length} field(s) from benchmarks,{' '}
+            {Object.values(provenance).filter(p => p === 'derived').length} derived,{' '}
+            {Object.values(provenance).filter(p => p === 'haiku').length} from Haiku.
           </div>
         )}
 
@@ -425,8 +521,8 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
                 className="input-field"
               />
             </Field>
-            <ScoreSlider label="Speed Score" value={formData.speed_score} onChange={(v) => setFormData({ ...formData, speed_score: v })} />
-            <ScoreSlider label="Privacy Score" value={formData.privacy_score} onChange={(v) => setFormData({ ...formData, privacy_score: v })} />
+            <ScoreSlider label="Speed Score" value={formData.speed_score} onChange={(v) => setFormData({ ...formData, speed_score: v })} provenance={provenance.speed_score} />
+            <ScoreSlider label="Privacy Score" value={formData.privacy_score} onChange={(v) => setFormData({ ...formData, privacy_score: v })} provenance={provenance.privacy_score} />
           </ModalSection>
 
           {/* Capabilities */}
@@ -468,6 +564,7 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
                   onChange={(v) =>
                     setFormData({ ...formData, task_fitness: { ...formData.task_fitness, [task]: v } })
                   }
+                  provenance={provenance[`task_fitness.${task}`]}
                 />
               ))}
             </div>
@@ -484,6 +581,7 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
                   ...formData,
                   transparency: { ...formData.transparency, [key]: v },
                 })}
+                provenance={provenance[`transparency.${key}`]}
               />
             ))}
             <Field label="FMTI Company Score (optional)">
@@ -619,10 +717,20 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   )
 }
 
-function ScoreSlider({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+function ScoreSlider({
+  label, value, onChange, provenance,
+}: {
+  label: string
+  value: number
+  onChange: (v: number) => void
+  provenance?: string
+}) {
   return (
     <div className="flex items-center gap-3">
-      <label className="w-40 text-sm text-navy/80 shrink-0">{label}</label>
+      <label className="flex w-40 shrink-0 items-center gap-1.5 text-sm text-navy/80">
+        <ProvenanceDot provenance={provenance} />
+        {label}
+      </label>
       <input
         type="range"
         min="0"
@@ -634,6 +742,24 @@ function ScoreSlider({ label, value, onChange }: { label: string; value: number;
       />
       <span className="w-12 text-right font-mono text-xs text-navy/60">{value.toFixed(2)}</span>
     </div>
+  )
+}
+
+function ProvenanceDot({ provenance }: { provenance?: string }) {
+  if (!provenance) return <span className="inline-block w-2" aria-hidden />
+  const map: Record<string, { bg: string; title: string }> = {
+    benchmark: { bg: 'bg-teal', title: 'From benchmark snapshot (LMArena / LiveBench / AA)' },
+    derived:   { bg: 'bg-amber-400', title: 'Derived deterministically (provider table or rule)' },
+    haiku:     { bg: 'bg-navy/30', title: 'Estimated by Haiku' },
+    default:   { bg: 'bg-navy/20', title: 'Default — provider not in lookup table' },
+  }
+  const entry = map[provenance] ?? map.default
+  return (
+    <span
+      title={entry.title}
+      className={`inline-block h-2 w-2 shrink-0 rounded-full ${entry.bg}`}
+      aria-label={`provenance: ${provenance}`}
+    />
   )
 }
 
@@ -677,5 +803,120 @@ function EditableList({ items, onChange }: { items: string[]; onChange: (items: 
         </button>
       </div>
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Benchmark alias suggestion panel
+// ---------------------------------------------------------------------------
+
+const SOURCE_LABELS: Record<SourceKey, string> = {
+  lmarena: 'LMArena',
+  livebench: 'LiveBench',
+  artificialanalysis: 'Artificial Analysis',
+}
+
+function BenchmarkAliasPanel({
+  loading,
+  suggestions,
+  selected,
+  onToggle,
+}: {
+  loading: boolean
+  suggestions: SuggestionsBySource | null
+  selected: Set<string>
+  onToggle: (source: SourceKey, name: string) => void
+}) {
+  if (loading) {
+    return (
+      <div className="mb-6 rounded-lg border border-cream-dark bg-cream/30 p-4 text-sm text-navy/60">
+        Looking up benchmark matches...
+      </div>
+    )
+  }
+  if (!suggestions) return null
+
+  const total = (Object.values(suggestions) as Array<unknown[]>).reduce((n, list) => n + list.length, 0)
+  const checkedCount = selected.size
+
+  return (
+    <section className="mb-6 rounded-lg border border-cream-dark bg-white p-5">
+      <div className="mb-3 flex items-baseline justify-between">
+        <div>
+          <h3 className="font-display text-lg text-navy">Benchmark matches</h3>
+          <p className="text-xs text-navy/60">
+            Confirm which external-source variants represent this model. Selected aliases are
+            written when you save the import. Flagged candidates (mini, distill, vl, …) need a
+            judgment call.
+          </p>
+        </div>
+        <div className="text-xs text-navy/50">
+          {checkedCount} selected / {total} candidate{total === 1 ? '' : 's'}
+        </div>
+      </div>
+
+      {total === 0 ? (
+        <div className="rounded border border-dashed border-cream-dark bg-cream/40 px-4 py-6 text-center text-sm text-navy/50">
+          No benchmark matches found for this model. It may not yet be covered by LMArena,
+          LiveBench, or Artificial Analysis. You can still save the model — Haiku will fill all
+          fields.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {(Object.keys(suggestions) as SourceKey[]).map(source => {
+            const list = suggestions[source]
+            if (list.length === 0) return null
+            return (
+              <div key={source}>
+                <div className="mb-2 text-xs font-medium uppercase tracking-wide text-navy/50">
+                  {SOURCE_LABELS[source]}
+                </div>
+                <ul className="space-y-1.5">
+                  {list.map(s => {
+                    const key = `${source}::${s.name}`
+                    const isChecked = selected.has(key)
+                    const conflict = !!s.existingAlias
+                    return (
+                      <li key={key} className="flex items-start gap-2">
+                        <input
+                          type="checkbox"
+                          id={key}
+                          checked={isChecked}
+                          onChange={() => onToggle(source, s.name)}
+                          className="mt-1 accent-teal"
+                        />
+                        <label htmlFor={key} className="flex-1 cursor-pointer text-sm">
+                          <span className="text-navy">{s.name}</span>
+                          <span className="ml-2 font-mono text-xs text-navy/50">
+                            {s.score.toFixed(2)}
+                          </span>
+                          {s.flags.length > 0 && (
+                            <span className="ml-2 inline-flex flex-wrap gap-1">
+                              {s.flags.map(f => (
+                                <span
+                                  key={f}
+                                  className="rounded-full border border-amber-400/40 bg-amber-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-700"
+                                >
+                                  {f}
+                                </span>
+                              ))}
+                            </span>
+                          )}
+                          {conflict && (
+                            <span className="ml-2 inline-block rounded-full border border-coral/30 bg-coral/5 px-2 py-0.5 text-[10px] font-medium text-coral">
+                              already aliased to {s.existingAlias}
+                            </span>
+                          )}
+                        </label>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </section>
   )
 }

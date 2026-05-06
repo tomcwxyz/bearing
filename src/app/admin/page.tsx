@@ -63,6 +63,7 @@ export default async function AdminPage() {
         m.architecture?.input_modalities ?? ['text'],
         m.architecture?.output_modalities ?? ['text'],
         m.supported_parameters ?? [],
+        m.context_length,
       ),
       description: m.description,
       supportedParameters: m.supported_parameters ?? [],

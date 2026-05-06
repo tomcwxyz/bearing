@@ -27,11 +27,15 @@ export function convertPricing(
   }
 }
 
-/** Infer model capabilities from OpenRouter modality and parameter metadata */
+/** Threshold for the `long_context` capability flag. Anything ≥ this is "long". */
+export const LONG_CONTEXT_THRESHOLD = 128_000
+
+/** Infer model capabilities from OpenRouter modality, parameter, and context-window metadata. */
 export function inferCapabilities(
   inputModalities: string[],
   outputModalities: string[],
   supportedParams: string[],
+  contextLength: number = 0,
 ): string[] {
   const caps: string[] = []
   if (inputModalities.includes('image')) caps.push('vision')
@@ -40,6 +44,7 @@ export function inferCapabilities(
   if (supportedParams.includes('tools') || supportedParams.includes('tool_choice')) caps.push('tools')
   if (supportedParams.includes('structured_outputs') || supportedParams.includes('response_format')) caps.push('structured_output')
   if (supportedParams.includes('include_reasoning') || supportedParams.includes('reasoning')) caps.push('extended_thinking')
+  if (contextLength >= LONG_CONTEXT_THRESHOLD) caps.push('long_context')
   return caps
 }
 
