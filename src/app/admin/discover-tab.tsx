@@ -1,12 +1,16 @@
 'use client'
 
-import { useState, useTransition, useMemo } from 'react'
+import { useState, useTransition, useMemo, useEffect } from 'react'
 import {
   syncPricing,
   estimateModelScores,
   importModel,
+  suggestAliasesForImport,
+  type SuggestionsBySource,
 } from './actions'
 import type { DiscoverModel } from './types'
+
+type SourceKey = keyof SuggestionsBySource
 
 const ALL_CAPABILITIES = [
   'vision', 'tools', 'code', 'long_context', 'extended_thinking',
@@ -225,6 +229,45 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
   const [hasEstimated, setHasEstimated] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
+  // Benchmark alias suggestions, fetched once on mount.
+  const [suggestions, setSuggestions] = useState<SuggestionsBySource | null>(null)
+  const [suggestionsLoading, setSuggestionsLoading] = useState(true)
+  const [selectedAliases, setSelectedAliases] = useState<Set<string>>(new Set())  // key: `${source}::${name}`
+
+  useEffect(() => {
+    let cancelled = false
+    suggestAliasesForImport({ slug: formData.slug, name: formData.name, provider: formData.provider })
+      .then(res => {
+        if (cancelled) return
+        setSuggestions(res)
+        // Auto-select unflagged matches that aren't already aliased to a different bearing.
+        const initial = new Set<string>()
+        for (const source of Object.keys(res) as SourceKey[]) {
+          for (const s of res[source]) {
+            if (s.flags.length === 0 && !s.existingAlias) initial.add(`${source}::${s.name}`)
+          }
+        }
+        setSelectedAliases(initial)
+      })
+      .catch(() => {
+        if (!cancelled) setSuggestions({ lmarena: [], livebench: [], artificialanalysis: [] })
+      })
+      .finally(() => { if (!cancelled) setSuggestionsLoading(false) })
+    return () => { cancelled = true }
+    // Re-fetch only when the model identity changes — not on every slug edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [model.id])
+
+  function toggleAlias(source: SourceKey, name: string) {
+    const key = `${source}::${name}`
+    setSelectedAliases(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
   function handleEstimate() {
     setEstimateError(null)
     startEstimateTransition(async () => {
@@ -274,6 +317,12 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
     fd.set('sustainability', JSON.stringify(formData.sustainability))
     fd.set('openrouter_id', model.id)
 
+    const aliasesPayload = [...selectedAliases].map(key => {
+      const [source, ...rest] = key.split('::')
+      return { source: source as SourceKey, sourceModelName: rest.join('::') }
+    })
+    fd.set('selected_aliases', JSON.stringify(aliasesPayload))
+
     startSaveTransition(async () => {
       const result = await importModel(fd)
       if (result.success) {
@@ -318,6 +367,14 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
             </div>
           )}
         </div>
+
+        {/* Benchmark alias matches */}
+        <BenchmarkAliasPanel
+          loading={suggestionsLoading}
+          suggestions={suggestions}
+          selected={selectedAliases}
+          onToggle={toggleAlias}
+        />
 
         {/* Generate Estimates */}
         {!hasEstimated && (
@@ -677,5 +734,120 @@ function EditableList({ items, onChange }: { items: string[]; onChange: (items: 
         </button>
       </div>
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Benchmark alias suggestion panel
+// ---------------------------------------------------------------------------
+
+const SOURCE_LABELS: Record<SourceKey, string> = {
+  lmarena: 'LMArena',
+  livebench: 'LiveBench',
+  artificialanalysis: 'Artificial Analysis',
+}
+
+function BenchmarkAliasPanel({
+  loading,
+  suggestions,
+  selected,
+  onToggle,
+}: {
+  loading: boolean
+  suggestions: SuggestionsBySource | null
+  selected: Set<string>
+  onToggle: (source: SourceKey, name: string) => void
+}) {
+  if (loading) {
+    return (
+      <div className="mb-6 rounded-lg border border-cream-dark bg-cream/30 p-4 text-sm text-navy/60">
+        Looking up benchmark matches...
+      </div>
+    )
+  }
+  if (!suggestions) return null
+
+  const total = (Object.values(suggestions) as Array<unknown[]>).reduce((n, list) => n + list.length, 0)
+  const checkedCount = selected.size
+
+  return (
+    <section className="mb-6 rounded-lg border border-cream-dark bg-white p-5">
+      <div className="mb-3 flex items-baseline justify-between">
+        <div>
+          <h3 className="font-display text-lg text-navy">Benchmark matches</h3>
+          <p className="text-xs text-navy/60">
+            Confirm which external-source variants represent this model. Selected aliases are
+            written when you save the import. Flagged candidates (mini, distill, vl, …) need a
+            judgment call.
+          </p>
+        </div>
+        <div className="text-xs text-navy/50">
+          {checkedCount} selected / {total} candidate{total === 1 ? '' : 's'}
+        </div>
+      </div>
+
+      {total === 0 ? (
+        <div className="rounded border border-dashed border-cream-dark bg-cream/40 px-4 py-6 text-center text-sm text-navy/50">
+          No benchmark matches found for this model. It may not yet be covered by LMArena,
+          LiveBench, or Artificial Analysis. You can still save the model — Haiku will fill all
+          fields.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {(Object.keys(suggestions) as SourceKey[]).map(source => {
+            const list = suggestions[source]
+            if (list.length === 0) return null
+            return (
+              <div key={source}>
+                <div className="mb-2 text-xs font-medium uppercase tracking-wide text-navy/50">
+                  {SOURCE_LABELS[source]}
+                </div>
+                <ul className="space-y-1.5">
+                  {list.map(s => {
+                    const key = `${source}::${s.name}`
+                    const isChecked = selected.has(key)
+                    const conflict = !!s.existingAlias
+                    return (
+                      <li key={key} className="flex items-start gap-2">
+                        <input
+                          type="checkbox"
+                          id={key}
+                          checked={isChecked}
+                          onChange={() => onToggle(source, s.name)}
+                          className="mt-1 accent-teal"
+                        />
+                        <label htmlFor={key} className="flex-1 cursor-pointer text-sm">
+                          <span className="text-navy">{s.name}</span>
+                          <span className="ml-2 font-mono text-xs text-navy/50">
+                            {s.score.toFixed(2)}
+                          </span>
+                          {s.flags.length > 0 && (
+                            <span className="ml-2 inline-flex flex-wrap gap-1">
+                              {s.flags.map(f => (
+                                <span
+                                  key={f}
+                                  className="rounded-full border border-amber-400/40 bg-amber-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-700"
+                                >
+                                  {f}
+                                </span>
+                              ))}
+                            </span>
+                          )}
+                          {conflict && (
+                            <span className="ml-2 inline-block rounded-full border border-coral/30 bg-coral/5 px-2 py-0.5 text-[10px] font-medium text-coral">
+                              already aliased to {s.existingAlias}
+                            </span>
+                          )}
+                        </label>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </section>
   )
 }

@@ -8,8 +8,10 @@ import { isUserAdmin, getAllModelsFromDb, getAllModelsForAdmin, getModelForAdmin
 import { fetchOpenRouterModels, convertPricing, inferCapabilities, extractProvider, type OpenRouterModel } from '@/lib/openrouter'
 import {
   getBenchmarkSummary, getUnmatchedSourceModels, listAliases, upsertAlias, deleteAlias,
+  getCandidateSourceModelNames,
   type BenchmarkSource, type BenchmarkAlias,
 } from '@/lib/benchmarks'
+import { suggestBenchmarkAliases, type AliasSuggestion } from '@/lib/import-grounding'
 import {
   getUsageSummary, getActivityOverTime, getModeBreakdown, getSignupsOverTime,
   getInsightsSummary, getTaskTypeDistribution, getModelLeaderboard,
@@ -208,7 +210,8 @@ export async function estimateModelScores(model: DiscoverModel): Promise<{
   }
 }
 
-/** Import a model as a draft (active=false). */
+/** Import a model as a draft (active=false). Optionally writes selected
+ *  benchmark aliases AFTER the model row is upserted (FK requires it). */
 export async function importModel(formData: FormData): Promise<{ success: boolean; error?: string }> {
   await requireAdmin()
 
@@ -232,10 +235,54 @@ export async function importModel(formData: FormData): Promise<{ success: boolea
       active: false,
     }
     await upsertModel(model)
+
+    const aliasesRaw = formData.get('selected_aliases') as string | null
+    if (aliasesRaw) {
+      const aliases = JSON.parse(aliasesRaw) as Array<{ source: BenchmarkSource; sourceModelName: string }>
+      for (const a of aliases) {
+        await upsertAlias(a.source, a.sourceModelName, model.slug, 'confirmed during import')
+      }
+    }
+
     return { success: true }
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : 'Import failed' }
   }
+}
+
+export type SuggestionsBySource = Record<BenchmarkSource, (AliasSuggestion & { existingAlias: string | null })[]>
+
+/**
+ * Run the alias matcher across all benchmark sources for a model being
+ * imported. Returns up to 10 candidates per source, ranked by the matcher
+ * (unflagged first, then by score). Existing aliases are surfaced so the
+ * admin can avoid accidentally rewriting them.
+ */
+export async function suggestAliasesForImport(input: {
+  slug: string
+  name: string
+  provider: string
+}): Promise<SuggestionsBySource> {
+  await requireAdmin()
+
+  const sources: BenchmarkSource[] = ['lmarena', 'livebench', 'artificialanalysis']
+  const result: SuggestionsBySource = { lmarena: [], livebench: [], artificialanalysis: [] }
+
+  for (const source of sources) {
+    const candidates = await getCandidateSourceModelNames(source)
+    const suggestions = suggestBenchmarkAliases(
+      { slug: input.slug, name: input.name, provider: input.provider },
+      source,
+      candidates.map(c => ({ name: c.sourceModelName })),
+    )
+    const aliasLookup = new Map(candidates.map(c => [c.sourceModelName, c.existingAlias]))
+    result[source] = suggestions.slice(0, 10).map(s => ({
+      ...s,
+      existingAlias: aliasLookup.get(s.name) ?? null,
+    }))
+  }
+
+  return result
 }
 
 // ---------------------------------------------------------------------------

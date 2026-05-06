@@ -311,6 +311,32 @@ export interface BenchmarkAlias {
   createdAt: string
 }
 
+/**
+ * Distinct source_model_names ingested for a given source, with the
+ * bearing_slug they're currently aliased to (if any). Used to populate the
+ * import-modal alias-suggestion panel.
+ */
+export async function getCandidateSourceModelNames(source: BenchmarkSource): Promise<{
+  sourceModelName: string
+  existingAlias: string | null
+}[]> {
+  const rows = await getDb()`
+    SELECT
+      s.source_model_name,
+      MAX(a.bearing_slug) AS existing_alias
+    FROM benchmark_snapshots s
+    LEFT JOIN benchmark_aliases a
+      ON a.source = s.source AND a.source_model_name = s.source_model_name
+    WHERE s.source = ${source}
+    GROUP BY s.source_model_name
+    ORDER BY s.source_model_name
+  `
+  return rows.map(r => ({
+    sourceModelName: r.source_model_name as string,
+    existingAlias: (r.existing_alias as string | null) ?? null,
+  }))
+}
+
 export async function listAliases(): Promise<BenchmarkAlias[]> {
   const rows = await getDb()`
     SELECT source, source_model_name, bearing_slug, notes, created_at
