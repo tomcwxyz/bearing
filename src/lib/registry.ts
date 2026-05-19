@@ -2,7 +2,42 @@ import registryData from '@/data/bearing-registry.json'
 
 export type Factor = 'cost' | 'speed' | 'quality' | 'privacy' | 'sustainability' | 'transparency' | 'capability'
 
-export type TaskType = 'summarise' | 'generate' | 'extract' | 'code' | 'analyse' | 'translate' | 'conversation' | 'vision' | 'other'
+// Canonical task types as of v0.8.0. The classifier picks one of these for the
+// top-level task and for each pipeline stage. `vision` was removed (it's
+// available as a capability, not a task) and `other` was removed (the
+// classifier now sets `clarification_needed: true` instead of escape-valving).
+export const ALL_TASK_TYPES = [
+  'summarise',
+  'extract',
+  'generate',
+  'comms',
+  'code',
+  'math',
+  'reasoning',
+  'analyse',
+  'research',
+  'qa',
+  'translate',
+  'conversation',
+] as const
+
+export type TaskType = typeof ALL_TASK_TYPES[number]
+
+// Human-readable labels for the UI. Keys must match ALL_TASK_TYPES exactly.
+export const TASK_TYPE_LABELS: Record<TaskType, string> = {
+  summarise: 'summarisation',
+  extract: 'extraction',
+  generate: 'long-form generation',
+  comms: 'business communication',
+  code: 'code',
+  math: 'mathematics',
+  reasoning: 'reasoning',
+  analyse: 'analysis',
+  research: 'research',
+  qa: 'question answering',
+  translate: 'translation',
+  conversation: 'conversation',
+}
 
 export type Capability = 'vision' | 'tools' | 'code' | 'long_context' | 'extended_thinking' | 'structured_output' | 'multilingual' | 'audio' | 'video' | 'computer_use'
 

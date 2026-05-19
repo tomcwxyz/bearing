@@ -9,6 +9,7 @@ import {
   type SuggestionsBySource,
 } from './actions'
 import type { DiscoverModel } from './types'
+import { ALL_TASK_TYPES } from '@/lib/registry'
 
 type SourceKey = keyof SuggestionsBySource
 
@@ -22,11 +23,6 @@ const ALL_TIERS = [
   'open_source_flagship', 'open_source_balanced',
   'sustainable_balanced', 'sustainable_flagship',
   'enterprise_transparent', 'specialist_vision', 'specialist_code',
-] as const
-
-const ALL_TASK_TYPES = [
-  'summarise', 'generate', 'extract', 'code', 'analyse',
-  'translate', 'conversation', 'vision',
 ] as const
 
 interface DiscoverTabProps {

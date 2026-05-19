@@ -3,15 +3,11 @@
 import { useState, useEffect, useTransition } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { getModelAdmin, saveModelAdmin, regroundModel } from '@/app/admin/actions'
+import { ALL_TASK_TYPES } from '@/lib/registry'
 
 const ALL_CAPABILITIES = [
   'vision', 'tools', 'code', 'long_context', 'extended_thinking',
   'structured_output', 'multilingual', 'audio', 'video', 'computer_use',
-] as const
-
-const ALL_TASK_TYPES = [
-  'summarise', 'generate', 'extract', 'code', 'analyse',
-  'translate', 'conversation', 'vision',
 ] as const
 
 const ALL_TIERS = [
