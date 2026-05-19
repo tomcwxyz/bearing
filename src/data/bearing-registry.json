@@ -1,11 +1,11 @@
 {
   "meta": {
     "name": "Bearing Model Registry",
-    "version": "0.6.3",
-    "updated": "2026-05-05",
+    "version": "0.7.0",
+    "updated": "2026-05-06",
     "maintainer": "The Good Ship · good-ship.co.uk",
     "license": "CC BY-NC 4.0",
-    "notes": "Generated from database. 29 active models. The v0.6 line introduces external benchmark ingestion (LMArena first) blended into the quality factor; blend defaults to 0 (curated only) until per-model alias coverage is verified. v0.6.1 widens the flagship task_fitness range per docs/scoring/task-fitness-rubric.md. v0.6.2 lowers balanced/budget task_fitness for symmetric range. v0.6.3 lowers Gemini 3 Flash code (0.82→0.78) and analyse (0.78→0.74) so its elite cost/speed advantage doesn't dominate flagships on quality-led prompts (Phase 2.4)."
+    "notes": "Generated from database. 29 active models. v0.7.0 adds Artificial Analysis as a third benchmark source (alongside LMArena and LiveBench) and grounds admin imports in real benchmark data: task fitness, speed score, privacy, and transparency open-weights/baseline now come from deterministic computation (benchmark snapshots + provider profile lookup) rather than Haiku estimation. Many-to-one alias matching lets reasoning/non-reasoning/effort variants from a single source feed one registry slug. Existing 29 models retain their curated values; the grounded pipeline applies to new imports and to any admin re-grounding action. The v0.6 line introduced external benchmark ingestion blended into the quality factor; v0.6.1 widened the flagship task_fitness range per docs/scoring/task-fitness-rubric.md; v0.6.2 lowered balanced/budget task_fitness for symmetric range; v0.6.3 lowered Gemini 3 Flash code (0.82→0.78) and analyse (0.78→0.74)."
   },
   "scoring_methodology": {
     "description": "Each model receives per-factor scores from 0.0 to 1.0 across seven dimensions. Combined using user-defined priority weights to produce a ranked recommendation list.",

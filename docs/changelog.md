@@ -4,6 +4,29 @@ All notable changes to Bearing will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.8.0] — 2026-05-06
+
+### Added
+
+- **Artificial Analysis as a third benchmark source** — Bearing now ingests per-model evaluations (intelligence, coding, math indices, plus MMLU-Pro, GPQA, HLE, LiveCodeBench, SciCode, IFBench, Tau2, TerminalBench, AIME, LCR), output throughput, and time-to-first-token from [Artificial Analysis](https://artificialanalysis.ai). 513 models covered; existing LMArena and LiveBench coverage continues unchanged.
+- **Benchmark matches panel in admin import** — when importing a model from OpenRouter, Bearing shows ranked candidate variants per source (LMArena, LiveBench, Artificial Analysis) and lets you confirm which represent the model. Reasoning / non-reasoning / effort variants can all map to a single registry slug; their scores are averaged at recommendation time.
+- **Refresh from benchmarks button** on every model's edit page — recomputes grounded fields from the latest benchmark snapshots and provider profile without rerunning Haiku.
+- **Provenance indicators on every score slider** — a small coloured dot tells you where each value came from: green for direct benchmark, amber for deterministic provider lookup, grey for Haiku estimate.
+- **Long-context capability** is now auto-set for any model with a context window of 128K tokens or more.
+- **Code capability is now derived from benchmark evidence** — added or removed automatically based on whether the grounded code task fitness clears 0.5.
+
+### Changed
+
+- **Imported model scores are now grounded in real benchmark data, not Haiku guesses.** Task fitness for any task with benchmark coverage is computed deterministically from the confirmed source variants. Speed score comes from Artificial Analysis throughput. Privacy score, transparency open weights, and a baseline transparency score now come from a per-provider lookup table rather than Haiku, eliminating cases where an open-weight model like DeepSeek was mistakenly marked as closed.
+- **Provider names with parenthetical suffixes are now normalised** (e.g. "Alibaba (via hosted providers)" → "Alibaba"), so Qwen models get the correct open-weights status.
+- **Flagship-no-coverage warning** — a coral banner appears in the import modal when a flagship-priced model has zero benchmark coverage in any source. These are the cases where Haiku-only estimates do the most damage.
+- **How We Rate Models** documentation expanded to cover benchmark data sources, alias matching, grounded scoring, and the provider profile lookup.
+
+### Fixed
+
+- The `code` capability is no longer guessed by Haiku for general-purpose models; it now reflects the grounded benchmark evidence.
+- DeepSeek, Qwen, Kimi, and Granite imports no longer default to closed-weight transparency settings.
+
 ## [0.7.0] — 2026-04-15
 
 ### Added

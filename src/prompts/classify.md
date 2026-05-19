@@ -35,7 +35,10 @@ Return JSON only, no other text.
       "stage": number,
       "task_type": "summarise" | "generate" | "extract" | "code" | "analyse" | "translate" | "conversation" | "vision" | "other",
       "description": string,
-      "requires_capabilities": string[]
+      "requires_capabilities": string[],
+      "input_length": "short" | "medium" | "long" | "very_long",
+      "output_length": "short" | "medium" | "long" | "very_long",
+      "needs_reasoning": boolean
     }
   ] | null
 }
@@ -50,6 +53,31 @@ Return JSON only, no other text.
 - **translate**: Converting text between languages.
 - **conversation**: Ongoing dialogue. Chatbots, tutoring, brainstorming.
 - **other**: Doesn't fit the above. Set clarification_needed to true.
+
+## Classify by intent, not by mechanism
+
+Pick the task_type based on **what the user wants to end up with**, not how
+the work gets done. The means (browser automation, OCR, tool calls, file
+parsing, screenshots) describe HOW; classify by the WHAT.
+
+Examples:
+- "Open a browser, screenshot the Grafana p99 chart, and write an incident
+  note" → **analyse** (the user wants an interpretation; the browser step
+  is just how the chart is acquired). NOT "other".
+- "Scan these invoices and pull supplier/total/date" → **extract** (the
+  user wants structured data; OCR is just how text is acquired).
+- "Read this PDF and tell me what's wrong with the contract" → **analyse**
+  (vision is the input modality, the goal is analysis).
+- "Transcribe this call recording" → **extract** (the goal is text out of
+  audio; audio is the input modality).
+- "Translate this PDF" → **translate**.
+
+Use **other** ONLY when the *output* itself genuinely doesn't fit any of
+the above categories — not because the *input* or *method* is unusual.
+When tempted to pick "other", first ask: what would I do with the model's
+final response? If the answer is "read a summary", "use extracted data",
+"run the generated code", or "send the generated message", the task_type
+should match that goal.
 
 ## Rules
 
@@ -153,7 +181,30 @@ Examples that are NOT pipelines (single model handles all):
 
 Rules:
 - Each stage gets its own task_type from the standard set
-- requires_capabilities lists capabilities needed for that stage (e.g. ["vision"] for PDF/image processing)
+- requires_capabilities lists capabilities needed for that stage. Use ONLY
+  these tokens: "vision", "tools", "code", "long_context", "extended_thinking",
+  "structured_output", "multilingual", "audio", "video", "computer_use".
+  Do NOT invent tokens like "ocr", "extraction", "text", "summarisation" —
+  the corresponding task_type already conveys those. Use [] if no special
+  capability beyond text-in/text-out is needed.
+- Browser automation, web scraping, calling APIs, running code, reading or
+  writing files, querying databases, and similar "agent" actions are
+  expressed as "tools" — assume the deployment harness provides standard
+  tool servers (Playwright/MCP for browsers, code-execution sandboxes, file
+  I/O, etc.). Add "vision" alongside "tools" if the agent needs to read
+  screenshots; otherwise it can work from page text/DOM.
+- Use "computer_use" ONLY for pixel-level control of arbitrary GUI
+  applications where no API, DOM, or tool harness is available — e.g.
+  driving a legacy desktop app or screen-scraping a non-web program.
+  "Open a browser and click around" is NOT computer_use; it is "tools"
+  (plus optionally "vision").
+- Each stage's input_length is the size of what enters THAT stage, not the
+  whole task. Stage 2's input is whatever stage 1 produced.
+- Each stage's output_length is the size of what THAT stage emits. Earlier
+  stages often emit "long" intermediate artefacts; the final stage's output
+  is what the user actually sees.
+- needs_reasoning is per stage. Most pipelines have at most one reasoning
+  stage; mechanical stages (OCR, translation, formatting) should be false.
 - If pipeline_recommended is false, set pipeline_stages to null
 - Maximum 4 stages
 

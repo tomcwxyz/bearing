@@ -28,6 +28,9 @@ export interface Classification {
     task_type: string
     description: string
     requires_capabilities: string[]
+    input_length?: 'short' | 'medium' | 'long' | 'very_long'
+    output_length?: 'short' | 'medium' | 'long' | 'very_long'
+    needs_reasoning?: boolean
   }[] | null
 }
 
@@ -118,7 +121,16 @@ export const CLASSIFY_TOOL = {
             stage: { type: 'number' },
             task_type: { type: 'string' },
             description: { type: 'string' },
-            requires_capabilities: { type: 'array', items: { type: 'string' } },
+            requires_capabilities: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['vision', 'tools', 'code', 'long_context', 'extended_thinking', 'structured_output', 'multilingual', 'audio', 'video', 'computer_use'],
+              },
+            },
+            input_length: { type: 'string', enum: ['short', 'medium', 'long', 'very_long'] },
+            output_length: { type: 'string', enum: ['short', 'medium', 'long', 'very_long'] },
+            needs_reasoning: { type: 'boolean' },
           },
           required: ['stage', 'task_type', 'description', 'requires_capabilities'],
         },

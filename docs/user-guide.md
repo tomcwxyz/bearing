@@ -199,13 +199,22 @@ Use the toggle in the top-right to switch between daily, weekly, and monthly vie
 
 The **Discover** tab shows AI models available on OpenRouter that aren't yet in the Bearing registry. You can search by name or provider, then import individual models.
 
-When you import a model:
-1. Click **Import** — a form opens with the model's specs from OpenRouter (name, pricing, context window, capabilities)
-2. Click **Generate Estimates** — Claude Haiku suggests initial scores for task fitness, transparency, sustainability, and other factors based on the model's metadata
-3. Review and adjust the estimates — all fields are editable
-4. Click **Save as Draft** — the model is added to the registry but not yet visible to users
+When you import a model, scores are grounded in real benchmark data wherever possible. Haiku is only used for fields that have no published signal.
 
-To make a draft model live, go to the Models tab, find the model, and edit it to set it as active.
+1. **Click Import** — a form opens with the model's specs from OpenRouter (name, pricing, context window, capabilities). The `long_context` capability is auto-checked when the model's context window is 128K or larger.
+2. **Confirm benchmark matches** — at the top of the form, Bearing shows ranked candidate variants from each source it tracks: LMArena, LiveBench, and Artificial Analysis. A frontier model often appears in several variants (Reasoning vs Non-reasoning, different effort levels) — confirm the ones that represent this model. Bearing pre-checks the obvious matches; flagged candidates (`mini`, `nano`, `vl`, `distill`, etc.) are surfaced for you to decide.
+3. **Click Generate Estimates** — Bearing computes task fitness from the confirmed benchmark variants, pulls speed score from Artificial Analysis throughput, and looks up privacy and transparency anchors from a per-provider table. A summary line tells you how many fields came from each source.
+4. **Review the form** — every score slider has a small dot showing where its value came from:
+    - **Green** — pulled directly from a benchmark snapshot
+    - **Amber** — derived from the provider profile (privacy, open weights, baseline transparency)
+    - **Grey** — estimated by Haiku because no published signal was available
+5. **Click Save as Draft** — the model and confirmed aliases are saved together. The model is hidden from recommendations until you mark it active in the edit form.
+
+If you import a flagship-priced model with no benchmark coverage in any source, Bearing shows a warning banner — those are the cases where the recommendation engine is most likely to misroute users.
+
+### Refreshing scores from benchmarks
+
+Open any model's edit page and click **Refresh from benchmarks** in the top right. Bearing re-runs the grounding step against the model's confirmed benchmark aliases and the latest snapshots, then updates the relevant sliders in place. The provenance dots show which fields changed. Speed score is preserved (it's calibrated within tier rather than across the entire 513-model AA cohort) — everything else updates automatically. Click **Save Model** to persist.
 
 ### Syncing pricing
 
