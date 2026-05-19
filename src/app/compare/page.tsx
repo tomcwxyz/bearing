@@ -85,14 +85,14 @@ export default function DirectComparePage() {
         setModels(modelsResult.models)
       }
 
-      // Restore state from sessionStorage (after auth redirect)
-      const saved = sessionStorage.getItem(STORAGE_KEY)
+      // Restore state from localStorage (after auth redirect — may be a new tab)
+      const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
         try {
           const state = JSON.parse(saved)
           if (state.selected) setSelected(state.selected)
           if (state.prompt) setPrompt(state.prompt)
-          sessionStorage.removeItem(STORAGE_KEY)
+          localStorage.removeItem(STORAGE_KEY)
         } catch { /* ignore corrupt data */ }
       }
     })
@@ -127,8 +127,8 @@ export default function DirectComparePage() {
   function handleSignIn(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
-    // Save state before auth redirect
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ selected, prompt }))
+    // Save state before auth redirect — localStorage so it survives if magic link opens in a new tab
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ selected, prompt }))
     startTransition(async () => {
       const result = await requestMagicLink(email.trim(), '/compare')
       if (result.error) {
