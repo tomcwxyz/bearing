@@ -30,45 +30,63 @@ export type SignalType = 'task' | 'speed' | 'latency'
 export const CATEGORY_TO_TASKS: Record<BenchmarkSource, Record<string, TaskType[]>> = {
   lmarena: {
     // From the `text` subset (rows carry a per-category column).
-    overall: ['conversation'],
-    hard_prompts: ['analyse'],
+    // `overall` is preference-on-open-prompts — split between conversation
+    // and qa (single-turn factual queries dominate the prompt mix).
+    overall: ['conversation', 'qa'],
+    // `hard_prompts` is the hardest-rated subset of `overall`: long
+    // multi-step prompts where preference correlates strongly with reasoning.
+    hard_prompts: ['reasoning', 'analyse'],
     coding: ['code'],
-    math: ['analyse'],
+    // LMArena's `math` is preference on maths prompts — strong math signal.
+    math: ['math'],
     creative_writing: ['generate'],
-    instruction_following: ['extract'],
-    longer_query: ['analyse'],
+    // Instruction-following is the cleanest signal for `extract` (structured
+    // output) and `comms` (responding correctly to short formatted requests).
+    instruction_following: ['extract', 'comms'],
+    // Longer queries reward both analysis and research (the model often has
+    // to bring in domain knowledge or cite plausibly).
+    longer_query: ['analyse', 'research'],
     multi_turn: ['conversation'],
-    // From the `webdev` subset — single 'overall' category.
     webdev_overall: ['code'],
-    // From the `vision` subset — single 'overall' category.
-    vision_overall: ['vision'],
+    // Vision-arena measures multimodal interpretation. `vision` is no longer
+    // a task type (it's a capability); the signal feeds analysis-of-images
+    // and extraction-from-images equally.
+    vision_overall: ['analyse', 'extract'],
   },
   livebench: {
-    // LiveBench's six task categories.
-    reasoning: ['analyse'],
+    // LiveBench reasoning subset: pure reasoning category.
+    reasoning: ['reasoning'],
     coding: ['code'],
-    mathematics: ['analyse'],
+    // LiveBench mathematics: now feeds `math` directly.
+    mathematics: ['math'],
+    // Language category: summary + generation skill.
     language: ['summarise', 'generate'],
+    // Data analysis: a mix of extraction and analytical interpretation.
     data_analysis: ['analyse', 'extract'],
     instruction_following: ['extract'],
   },
   artificialanalysis: {
     // AA top-line indices.
-    aa_intelligence: ['analyse'],
+    // aa_intelligence is a composite of MMLU/GPQA/HLE/AIME — primarily a
+    // reasoning + analysis signal. Also a reasonable proxy for qa breadth.
+    aa_intelligence: ['reasoning', 'analyse', 'qa'],
     aa_coding: ['code'],
-    aa_math: ['analyse'],
-    // Specific evaluations.
-    mmlu_pro: ['analyse'],
-    gpqa: ['analyse'],
-    hle: ['analyse'],
+    aa_math: ['math'],
+    // Knowledge-style multi-choice benchmarks → qa + analyse.
+    mmlu_pro: ['qa', 'analyse'],
+    // GPQA and HLE are graduate-level reasoning under tight constraints.
+    gpqa: ['reasoning', 'analyse'],
+    hle: ['reasoning', 'analyse'],
     livecodebench: ['code'],
     scicode: ['code'],
-    aime_25: ['analyse'],
-    math_500: ['analyse'],
+    // Maths-specific tests now map directly to `math`.
+    aime_25: ['math'],
+    math_500: ['math'],
     ifbench: ['extract'],
-    // Agentic-coding benchmarks — closest task fit is `code`.
-    tau2: ['code'],
-    terminalbench_hard: ['code'],
+    // Agentic-coding benchmarks — primary signal is code, but also a
+    // weaker proxy for `reasoning` (planning multi-step actions).
+    tau2: ['code', 'reasoning'],
+    terminalbench_hard: ['code', 'reasoning'],
     lcr: ['code'],
   },
 }

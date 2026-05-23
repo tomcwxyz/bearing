@@ -1,11 +1,11 @@
 {
   "meta": {
     "name": "Bearing Model Registry",
-    "version": "0.7.0",
-    "updated": "2026-05-06",
+    "version": "0.8.0",
+    "updated": "2026-05-23",
     "maintainer": "The Good Ship · good-ship.co.uk",
     "license": "CC BY-NC 4.0",
-    "notes": "Generated from database. 29 active models. v0.7.0 adds Artificial Analysis as a third benchmark source (alongside LMArena and LiveBench) and grounds admin imports in real benchmark data: task fitness, speed score, privacy, and transparency open-weights/baseline now come from deterministic computation (benchmark snapshots + provider profile lookup) rather than Haiku estimation. Many-to-one alias matching lets reasoning/non-reasoning/effort variants from a single source feed one registry slug. Existing 29 models retain their curated values; the grounded pipeline applies to new imports and to any admin re-grounding action. The v0.6 line introduced external benchmark ingestion blended into the quality factor; v0.6.1 widened the flagship task_fitness range per docs/scoring/task-fitness-rubric.md; v0.6.2 lowered balanced/budget task_fitness for symmetric range; v0.6.3 lowered Gemini 3 Flash code (0.82→0.78) and analyse (0.78→0.74)."
+    "notes": "Generated from database. 31 active models. v0.8.0 expands the canonical TaskType enum to twelve values: removed `vision` (now a capability only) and `other` (replaced by the clarification flow); added `comms`, `math`, `reasoning`, `research`, `qa`. Existing models' task_fitness was migrated by scripts/migrate-task-fitness-v0.8.ts — `math`, `reasoning`, `comms`, `research`, `qa` were derived from existing keys (no benchmark grounding yet; admin Reground will refine math/reasoning where snapshot coverage exists). Public dataset rows are now tagged with classification_schema_version so v0.7 and v0.8 task_type values can be distinguished. v0.7.0 added Artificial Analysis as a third benchmark source and grounded admin imports in real benchmark data."
   },
   "scoring_methodology": {
     "description": "Each model receives per-factor scores from 0.0 to 1.0 across seven dimensions. Combined using user-defined priority weights to produce a ranked recommendation list.",
@@ -24,7 +24,11 @@
         "lmarena": {
           "url": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",
           "license": "CC-BY-4.0",
-          "subsets": ["text", "webdev", "vision"],
+          "subsets": [
+            "text",
+            "webdev",
+            "vision"
+          ],
           "metric": "Bradley-Terry rating, normalised linearly within each (category, snapshot_date) cohort."
         },
         "livebench": {
@@ -92,11 +96,15 @@
         "Weaker on complex reasoning"
       ],
       "task_fitness": {
+        "qa": 0.74,
         "code": 0.8,
-        "vision": 0.75,
+        "math": 0.76,
+        "comms": 0.64,
         "analyse": 0.72,
         "extract": 0.82,
         "generate": 0.75,
+        "research": 0.5,
+        "reasoning": 0.72,
         "summarise": 0.78,
         "translate": 0.75,
         "conversation": 0.78
@@ -149,12 +157,16 @@
         "Slower than Sonnet/Haiku"
       ],
       "task_fitness": {
-        "code": 0.96,
-        "vision": 0.85,
-        "analyse": 0.97,
+        "qa": 0.93,
+        "code": 0.92,
+        "math": 0.94,
+        "comms": 0.81,
+        "analyse": 0.95,
         "extract": 0.9,
-        "generate": 0.96,
-        "summarise": 0.93,
+        "generate": 0.95,
+        "research": 0.66,
+        "reasoning": 0.95,
+        "summarise": 0.9,
         "translate": 0.85,
         "conversation": 0.9
       },
@@ -176,6 +188,73 @@
         "training_footprint": null,
         "sustainability_score": 0.4,
         "provider_infrastructure": 0.4
+      }
+    },
+    "claude-opus-4.7": {
+      "name": "Claude Opus 4.7",
+      "provider": "Anthropic",
+      "tier": "flagship",
+      "pricing": {
+        "input_per_1m": 5,
+        "output_per_1m": 25
+      },
+      "context_window": 1000000,
+      "capabilities": [
+        "vision",
+        "tools",
+        "structured_output",
+        "extended_thinking",
+        "code",
+        "long_context",
+        "multilingual",
+        "computer_use",
+        "video",
+        "audio"
+      ],
+      "strengths": [
+        "Excellent long-document summarisation (1M context window)",
+        "Strong vision and multimodal understanding",
+        "Superior agentic and tool-use capabilities",
+        "Structured output and extended thinking support"
+      ],
+      "weaknesses": [
+        "High output pricing ($25/M tokens) increases per-task cost",
+        "Slower inference due to large model size",
+        "Closed-source limits transparency and self-hosting",
+        "Extended thinking adds latency for reasoning tasks"
+      ],
+      "task_fitness": {
+        "qa": 0.9,
+        "code": 0.9,
+        "math": 0.91,
+        "comms": 0.75,
+        "analyse": 0.91,
+        "extract": 0.94,
+        "generate": 0.88,
+        "research": 0.64,
+        "reasoning": 0.91,
+        "summarise": 0.92,
+        "translate": 0.87,
+        "conversation": 0.89
+      },
+      "speed_score": 0.45,
+      "privacy_score": 0.62,
+      "transparency": {
+        "notes": "Closed-source model with limited public disclosure on training data and methodology. Anthropic publishes some research on Constitutional AI and alignment but does not open-source weights or full training details.",
+        "open_weights": 0,
+        "licence_openness": 0.2,
+        "open_methodology": 0.35,
+        "fmti_company_score": null,
+        "open_training_data": 0,
+        "transparency_score": 0.35,
+        "provider_disclosure": 0.45
+      },
+      "sustainability": {
+        "notes": "Large flagship model with high computational cost per inference. Anthropic's sustainability commitments are not prominently published; infrastructure details unavailable. Assume moderate environmental footprint typical of large closed-source providers.",
+        "inference_energy": null,
+        "training_footprint": null,
+        "sustainability_score": 0.5,
+        "provider_infrastructure": 0.55
       }
     },
     "claude-sonnet-4.6": {
@@ -205,12 +284,16 @@
         "Not the cheapest for simple tasks"
       ],
       "task_fitness": {
-        "code": 0.93,
-        "vision": 0.82,
-        "analyse": 0.91,
+        "qa": 0.88,
+        "code": 0.9,
+        "math": 0.89,
+        "comms": 0.77,
+        "analyse": 0.88,
         "extract": 0.88,
-        "generate": 0.92,
-        "summarise": 0.9,
+        "generate": 0.9,
+        "research": 0.62,
+        "reasoning": 0.88,
+        "summarise": 0.88,
         "translate": 0.82,
         "conversation": 0.88
       },
@@ -262,11 +345,15 @@
         "Not for general text tasks"
       ],
       "task_fitness": {
-        "code": 0.92,
-        "vision": 0,
+        "qa": 0.52,
+        "code": 0.95,
+        "math": 0.77,
+        "comms": 0.38,
         "analyse": 0.6,
         "extract": 0.6,
         "generate": 0.45,
+        "research": 0.42,
+        "reasoning": 0.6,
         "summarise": 0.5,
         "translate": 0.55,
         "conversation": 0.4
@@ -291,8 +378,6 @@
         "provider_infrastructure": 0.55
       },
       "local_info": {
-        "total_params_b": 35,
-        "active_params_b": null,
         "is_moe": false,
         "quant_options": [
           {
@@ -310,7 +395,9 @@
             "vram_gb": 37,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 35,
+        "active_params_b": null
       }
     },
     "deepseek-r1": {
@@ -318,8 +405,8 @@
       "provider": "DeepSeek",
       "tier": "reasoning",
       "pricing": {
-        "input_per_1m": 0.55,
-        "output_per_1m": 2.19
+        "input_per_1m": 0.7,
+        "output_per_1m": 2.5
       },
       "context_window": 128000,
       "capabilities": [
@@ -339,11 +426,15 @@
         "Data jurisdiction"
       ],
       "task_fitness": {
+        "qa": 0.79,
         "code": 0.85,
-        "vision": 0,
-        "analyse": 0.93,
+        "math": 0.87,
+        "comms": 0.6,
+        "analyse": 0.88,
         "extract": 0.75,
         "generate": 0.7,
+        "research": 0.62,
+        "reasoning": 0.88,
         "summarise": 0.72,
         "translate": 0.65,
         "conversation": 0.65
@@ -368,8 +459,6 @@
         "provider_infrastructure": 0.2
       },
       "local_info": {
-        "total_params_b": 671,
-        "active_params_b": 37,
         "is_moe": true,
         "quant_options": [
           {
@@ -382,7 +471,9 @@
             "vram_gb": 700,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 671,
+        "active_params_b": 37
       }
     },
     "deepseek-r1-0528": {
@@ -390,8 +481,8 @@
       "provider": "DeepSeek",
       "tier": "reasoning",
       "pricing": {
-        "input_per_1m": 0.55,
-        "output_per_1m": 2.19
+        "input_per_1m": 0.5,
+        "output_per_1m": 2.1500000000000004
       },
       "context_window": 128000,
       "capabilities": [
@@ -412,11 +503,15 @@
         "Data jurisdiction"
       ],
       "task_fitness": {
+        "qa": 0.82,
         "code": 0.9,
-        "vision": 0,
+        "math": 0.91,
+        "comms": 0.61,
         "analyse": 0.92,
         "extract": 0.78,
         "generate": 0.72,
+        "research": 0.64,
+        "reasoning": 0.92,
         "summarise": 0.75,
         "translate": 0.68,
         "conversation": 0.68
@@ -441,8 +536,6 @@
         "provider_infrastructure": 0.2
       },
       "local_info": {
-        "total_params_b": 671,
-        "active_params_b": 37,
         "is_moe": true,
         "quant_options": [
           {
@@ -455,7 +548,9 @@
             "vram_gb": 700,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 671,
+        "active_params_b": 37
       }
     },
     "deepseek-v3.1": {
@@ -463,8 +558,8 @@
       "provider": "DeepSeek",
       "tier": "balanced",
       "pricing": {
-        "input_per_1m": 0.27,
-        "output_per_1m": 1.1
+        "input_per_1m": 0.15,
+        "output_per_1m": 0.75
       },
       "context_window": 128000,
       "capabilities": [
@@ -485,11 +580,15 @@
         "China-based data jurisdiction"
       ],
       "task_fitness": {
+        "qa": 0.79,
         "code": 0.9,
-        "vision": 0,
+        "math": 0.86,
+        "comms": 0.66,
         "analyse": 0.82,
         "extract": 0.85,
         "generate": 0.78,
+        "research": 0.57,
+        "reasoning": 0.82,
         "summarise": 0.82,
         "translate": 0.82,
         "conversation": 0.75
@@ -514,8 +613,6 @@
         "provider_infrastructure": 0.2
       },
       "local_info": {
-        "total_params_b": 671,
-        "active_params_b": 37,
         "is_moe": true,
         "quant_options": [
           {
@@ -528,7 +625,9 @@
             "vram_gb": 700,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 671,
+        "active_params_b": 37
       }
     },
     "deepseek-v3.2": {
@@ -536,8 +635,8 @@
       "provider": "DeepSeek",
       "tier": "flagship",
       "pricing": {
-        "input_per_1m": 0.27,
-        "output_per_1m": 1.1
+        "input_per_1m": 0.25899999999999995,
+        "output_per_1m": 0.42
       },
       "context_window": 128000,
       "capabilities": [
@@ -559,11 +658,15 @@
         "API can be slow at peak"
       ],
       "task_fitness": {
+        "qa": 0.77,
         "code": 0.83,
-        "vision": 0,
+        "math": 0.82,
+        "comms": 0.63,
         "analyse": 0.81,
         "extract": 0.8,
         "generate": 0.74,
+        "research": 0.57,
+        "reasoning": 0.81,
         "summarise": 0.77,
         "translate": 0.77,
         "conversation": 0.71
@@ -588,8 +691,6 @@
         "provider_infrastructure": 0.2
       },
       "local_info": {
-        "total_params_b": 671,
-        "active_params_b": 37,
         "is_moe": true,
         "quant_options": [
           {
@@ -602,7 +703,71 @@
             "vram_gb": 700,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 671,
+        "active_params_b": 37
+      }
+    },
+    "deepseek-v4-pro": {
+      "name": "DeepSeek: DeepSeek V4 Pro",
+      "provider": "DeepSeek",
+      "tier": "open_source_flagship",
+      "pricing": {
+        "input_per_1m": 0.435,
+        "output_per_1m": 0.87
+      },
+      "context_window": 1048576,
+      "capabilities": [
+        "tools",
+        "structured_output",
+        "extended_thinking",
+        "long_context",
+        "code"
+      ],
+      "strengths": [
+        "Exceptional 1M-token context window for long documents",
+        "Open weights enable full data privacy and self-hosting",
+        "Strong multi-turn conversation and reasoning capabilities",
+        "Efficient MoE architecture balancing quality and speed"
+      ],
+      "weaknesses": [
+        "Extremely slow inference speed (34 tok/s) limits real-time applications",
+        "No vision/multimodal capabilities",
+        "Limited transparency on training data composition",
+        "Reasoning features add latency overhead"
+      ],
+      "task_fitness": {
+        "qa": 0.88,
+        "code": 0.82,
+        "math": 0.84,
+        "comms": 0.78,
+        "analyse": 0.85,
+        "extract": 0.85,
+        "generate": 0.92,
+        "research": 0.6,
+        "reasoning": 0.85,
+        "summarise": 0.88,
+        "translate": 0.84,
+        "conversation": 0.93
+      },
+      "speed_score": 0.04,
+      "privacy_score": 0.5,
+      "transparency": {
+        "notes": "Open-weight model enabling self-hosting and full data control. DeepSeek publishes model weights and some technical details, but training data sources not fully disclosed. MoE architecture and reasoning capabilities documented in research papers.",
+        "open_weights": 1,
+        "licence_openness": 0.9,
+        "open_methodology": 0.6,
+        "fmti_company_score": null,
+        "open_training_data": 0,
+        "transparency_score": 0.65,
+        "provider_disclosure": 0.65
+      },
+      "sustainability": {
+        "notes": "DeepSeek operates in China with limited public disclosure of energy infrastructure. Open-weight design allows efficient self-hosted deployment. No official sustainability commitments published. MoE architecture with 49B activated parameters suggests moderate inference efficiency compared to dense alternatives.",
+        "inference_energy": null,
+        "training_footprint": null,
+        "sustainability_score": 0.5,
+        "provider_infrastructure": 0.5
       }
     },
     "devstral": {
@@ -610,8 +775,8 @@
       "provider": "Mistral",
       "tier": "specialist_code",
       "pricing": {
-        "input_per_1m": 0.2,
-        "output_per_1m": 0.6
+        "input_per_1m": 0.09999999999999999,
+        "output_per_1m": 0.3
       },
       "context_window": 128000,
       "capabilities": [
@@ -632,11 +797,15 @@
         "Narrow focus"
       ],
       "task_fitness": {
+        "qa": 0.44,
         "code": 0.88,
-        "vision": 0,
+        "math": 0.69,
+        "comms": 0.34,
         "analyse": 0.5,
         "extract": 0.55,
         "generate": 0.4,
+        "research": 0.35,
+        "reasoning": 0.5,
         "summarise": 0.4,
         "translate": 0.4,
         "conversation": 0.35
@@ -661,8 +830,6 @@
         "provider_infrastructure": 0.55
       },
       "local_info": {
-        "total_params_b": 24,
-        "active_params_b": null,
         "is_moe": false,
         "quant_options": [
           {
@@ -680,7 +847,9 @@
             "vram_gb": 25,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 24,
+        "active_params_b": null
       }
     },
     "gemini-2.5-flash-lite": {
@@ -707,11 +876,15 @@
         "Not for complex tasks"
       ],
       "task_fitness": {
+        "qa": 0.49,
         "code": 0.5,
-        "vision": 0.6,
+        "math": 0.48,
+        "comms": 0.43,
         "analyse": 0.45,
         "extract": 0.72,
         "generate": 0.5,
+        "research": 0.32,
+        "reasoning": 0.45,
         "summarise": 0.65,
         "translate": 0.6,
         "conversation": 0.55
@@ -765,17 +938,21 @@
         "Not quite Pro quality on hardest reasoning"
       ],
       "task_fitness": {
-        "code": 0.78,
-        "vision": 0.88,
-        "analyse": 0.74,
+        "qa": 0.81,
+        "code": 0.88,
+        "math": 0.85,
+        "comms": 0.68,
+        "analyse": 0.82,
         "extract": 0.85,
         "generate": 0.8,
+        "research": 0.57,
+        "reasoning": 0.82,
         "summarise": 0.85,
         "translate": 0.85,
         "conversation": 0.8
       },
       "speed_score": 0.88,
-      "privacy_score": 0.55,
+      "privacy_score": 0.46,
       "transparency": {
         "notes": "Google FMTI 36. Dropped 6 points from 2024. Model cards but limited training data disclosure.",
         "open_weights": 0,
@@ -787,10 +964,10 @@
         "provider_disclosure": 0.4
       },
       "sustainability": {
-        "notes": "Flash models designed for efficiency. TPU infrastructure. Google 100% renewable match since 2017. Published per-query energy: 0.24 Wh median text prompt. Targeting 24/7 carbon-free by 2030.",
+        "notes": "Flash models designed for efficiency. TPU infrastructure. Google 100% renewable match since 2017. Published per-query energy: 0.24 Wh median text prompt. Targeting 24/7 carbon-free by 2030 (this has been downgraded on new information about Google using gas powered stations for data centres and moving off 2030 target)",
         "inference_energy": 0.8,
         "training_footprint": 0.4,
-        "sustainability_score": 0.67,
+        "sustainability_score": 0.55,
         "provider_infrastructure": 0.8
       }
     },
@@ -824,12 +1001,16 @@
         "Privacy varies by tier"
       ],
       "task_fitness": {
-        "code": 0.91,
-        "vision": 0.92,
-        "analyse": 0.95,
-        "extract": 0.9,
-        "generate": 0.88,
-        "summarise": 0.92,
+        "qa": 0.89,
+        "code": 0.88,
+        "math": 0.91,
+        "comms": 0.72,
+        "analyse": 0.93,
+        "extract": 0.88,
+        "generate": 0.85,
+        "research": 0.65,
+        "reasoning": 0.93,
+        "summarise": 0.88,
         "translate": 0.88,
         "conversation": 0.82
       },
@@ -881,11 +1062,15 @@
         "Premium pricing on output-heavy tasks"
       ],
       "task_fitness": {
-        "code": 0.96,
-        "vision": 0.88,
-        "analyse": 0.93,
-        "extract": 0.88,
-        "generate": 0.91,
+        "qa": 0.88,
+        "code": 0.93,
+        "math": 0.92,
+        "comms": 0.75,
+        "analyse": 0.9,
+        "extract": 0.9,
+        "generate": 0.88,
+        "research": 0.63,
+        "reasoning": 0.9,
         "summarise": 0.88,
         "translate": 0.85,
         "conversation": 0.85
@@ -936,11 +1121,15 @@
         "Not as strong on complex reasoning as full 5.4"
       ],
       "task_fitness": {
+        "qa": 0.79,
         "code": 0.88,
-        "vision": 0.82,
+        "math": 0.83,
+        "comms": 0.68,
         "analyse": 0.78,
         "extract": 0.85,
         "generate": 0.8,
+        "research": 0.55,
+        "reasoning": 0.78,
         "summarise": 0.82,
         "translate": 0.8,
         "conversation": 0.8
@@ -989,11 +1178,15 @@
         "Not for complex or creative tasks"
       ],
       "task_fitness": {
+        "qa": 0.57,
         "code": 0.6,
-        "vision": 0.7,
+        "math": 0.57,
+        "comms": 0.47,
         "analyse": 0.55,
         "extract": 0.78,
         "generate": 0.55,
+        "research": 0.39,
+        "reasoning": 0.55,
         "summarise": 0.7,
         "translate": 0.65,
         "conversation": 0.6
@@ -1050,11 +1243,15 @@
         "Training not on green infrastructure"
       ],
       "task_fitness": {
-        "code": 0.66,
-        "vision": 0.68,
-        "analyse": 0.6,
+        "qa": 0.67,
+        "code": 0.72,
+        "math": 0.69,
+        "comms": 0.58,
+        "analyse": 0.65,
         "extract": 0.75,
         "generate": 0.68,
+        "research": 0.45,
+        "reasoning": 0.65,
         "summarise": 0.72,
         "translate": 0.75,
         "conversation": 0.7
@@ -1079,8 +1276,6 @@
         "provider_infrastructure": 1
       },
       "local_info": {
-        "total_params_b": 24,
-        "active_params_b": null,
         "is_moe": false,
         "quant_options": [
           {
@@ -1098,7 +1293,9 @@
             "vram_gb": 25,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 24,
+        "active_params_b": null
       }
     },
     "greenpt-greenr": {
@@ -1132,11 +1329,15 @@
         "Training not on green infrastructure"
       ],
       "task_fitness": {
-        "code": 0.72,
-        "vision": 0,
-        "analyse": 0.7,
+        "qa": 0.75,
+        "code": 0.78,
+        "math": 0.77,
+        "comms": 0.64,
+        "analyse": 0.75,
         "extract": 0.8,
         "generate": 0.75,
+        "research": 0.52,
+        "reasoning": 0.75,
         "summarise": 0.78,
         "translate": 0.78,
         "conversation": 0.75
@@ -1161,8 +1362,6 @@
         "provider_infrastructure": 1
       },
       "local_info": {
-        "total_params_b": 120,
-        "active_params_b": null,
         "is_moe": false,
         "quant_options": [
           {
@@ -1190,7 +1389,9 @@
             "vram_gb": 124,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 120,
+        "active_params_b": null
       }
     },
     "grok-4": {
@@ -1221,11 +1422,15 @@
         "Newer API ecosystem"
       ],
       "task_fitness": {
-        "code": 0.92,
-        "vision": 0.82,
-        "analyse": 0.94,
-        "extract": 0.83,
-        "generate": 0.87,
+        "qa": 0.88,
+        "code": 0.9,
+        "math": 0.91,
+        "comms": 0.72,
+        "analyse": 0.92,
+        "extract": 0.88,
+        "generate": 0.85,
+        "research": 0.64,
+        "reasoning": 0.92,
         "summarise": 0.85,
         "translate": 0.82,
         "conversation": 0.82
@@ -1255,10 +1460,10 @@
       "provider": "IBM",
       "tier": "enterprise_transparent",
       "pricing": {
-        "input_per_1m": 0.2,
-        "output_per_1m": 0.8
+        "input_per_1m": 0.017,
+        "output_per_1m": 0.11
       },
-      "context_window": 128000,
+      "context_window": 131000,
       "capabilities": [
         "tools",
         "code",
@@ -1280,11 +1485,15 @@
         "Smaller ecosystem"
       ],
       "task_fitness": {
-        "code": 0.7,
-        "vision": 0,
-        "analyse": 0.65,
+        "qa": 0.7,
+        "code": 0.78,
+        "math": 0.75,
+        "comms": 0.58,
+        "analyse": 0.72,
         "extract": 0.8,
         "generate": 0.68,
+        "research": 0.5,
+        "reasoning": 0.72,
         "summarise": 0.72,
         "translate": 0.7,
         "conversation": 0.68
@@ -1309,8 +1518,6 @@
         "provider_infrastructure": 0.55
       },
       "local_info": {
-        "total_params_b": 8,
-        "active_params_b": null,
         "is_moe": false,
         "quant_options": [
           {
@@ -1328,7 +1535,9 @@
             "vram_gb": 9,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 8,
+        "active_params_b": null
       }
     },
     "kimi-k2": {
@@ -1336,8 +1545,8 @@
       "provider": "Moonshot AI",
       "tier": "flagship",
       "pricing": {
-        "input_per_1m": 0.6,
-        "output_per_1m": 2
+        "input_per_1m": 0.5700000000000001,
+        "output_per_1m": 2.3
       },
       "context_window": 128000,
       "capabilities": [
@@ -1359,11 +1568,15 @@
         "China-based data jurisdiction"
       ],
       "task_fitness": {
+        "qa": 0.75,
         "code": 0.82,
-        "vision": 0.71,
+        "math": 0.8,
+        "comms": 0.62,
         "analyse": 0.78,
         "extract": 0.78,
         "generate": 0.73,
+        "research": 0.55,
+        "reasoning": 0.78,
         "summarise": 0.75,
         "translate": 0.75,
         "conversation": 0.71
@@ -1388,8 +1601,6 @@
         "provider_infrastructure": 0.2
       },
       "local_info": {
-        "total_params_b": 1000,
-        "active_params_b": 32,
         "is_moe": true,
         "quant_options": [
           {
@@ -1402,7 +1613,9 @@
             "vram_gb": 1050,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 1000,
+        "active_params_b": 32
       }
     },
     "kimi-k2.5": {
@@ -1410,8 +1623,8 @@
       "provider": "Moonshot AI",
       "tier": "flagship",
       "pricing": {
-        "input_per_1m": 0.8,
-        "output_per_1m": 2.5
+        "input_per_1m": 0.3827,
+        "output_per_1m": 1.72
       },
       "context_window": 128000,
       "capabilities": [
@@ -1435,11 +1648,15 @@
         "Smaller ecosystem"
       ],
       "task_fitness": {
+        "qa": 0.8,
         "code": 0.86,
-        "vision": 0.82,
+        "math": 0.85,
+        "comms": 0.64,
         "analyse": 0.83,
         "extract": 0.81,
         "generate": 0.75,
+        "research": 0.58,
+        "reasoning": 0.83,
         "summarise": 0.78,
         "translate": 0.78,
         "conversation": 0.75
@@ -1464,8 +1681,6 @@
         "provider_infrastructure": 0.2
       },
       "local_info": {
-        "total_params_b": 1000,
-        "active_params_b": 32,
         "is_moe": true,
         "quant_options": [
           {
@@ -1478,7 +1693,9 @@
             "vram_gb": 1050,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 1000,
+        "active_params_b": 32
       }
     },
     "llama-4-maverick": {
@@ -1486,8 +1703,8 @@
       "provider": "Meta (via hosted providers)",
       "tier": "open_source_flagship",
       "pricing": {
-        "input_per_1m": 0.27,
-        "output_per_1m": 0.85
+        "input_per_1m": 0.15,
+        "output_per_1m": 0.6
       },
       "context_window": 1000000,
       "capabilities": [
@@ -1510,11 +1727,15 @@
         "Meta licence has restrictions"
       ],
       "task_fitness": {
-        "code": 0.81,
-        "vision": 0.82,
-        "analyse": 0.76,
+        "qa": 0.78,
+        "code": 0.84,
+        "math": 0.81,
+        "comms": 0.66,
+        "analyse": 0.78,
         "extract": 0.8,
         "generate": 0.78,
+        "research": 0.55,
+        "reasoning": 0.78,
         "summarise": 0.82,
         "translate": 0.85,
         "conversation": 0.78
@@ -1539,8 +1760,6 @@
         "provider_infrastructure": 0.8
       },
       "local_info": {
-        "total_params_b": 400,
-        "active_params_b": 17,
         "is_moe": true,
         "quant_options": [
           {
@@ -1563,7 +1782,9 @@
             "vram_gb": 420,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 400,
+        "active_params_b": 17
       }
     },
     "minimax-m2.5": {
@@ -1571,8 +1792,8 @@
       "provider": "MiniMax",
       "tier": "balanced",
       "pricing": {
-        "input_per_1m": 0.5,
-        "output_per_1m": 1.5
+        "input_per_1m": 0.118,
+        "output_per_1m": 0.9900000000000001
       },
       "context_window": 1000000,
       "capabilities": [
@@ -1596,11 +1817,15 @@
         "China-based"
       ],
       "task_fitness": {
+        "qa": 0.72,
         "code": 0.8,
-        "vision": 0.68,
+        "math": 0.77,
+        "comms": 0.61,
         "analyse": 0.74,
         "extract": 0.74,
         "generate": 0.72,
+        "research": 0.52,
+        "reasoning": 0.74,
         "summarise": 0.74,
         "translate": 0.7,
         "conversation": 0.7
@@ -1625,8 +1850,6 @@
         "provider_infrastructure": 0.2
       },
       "local_info": {
-        "total_params_b": 456,
-        "active_params_b": 46,
         "is_moe": true,
         "quant_options": [
           {
@@ -1639,7 +1862,9 @@
             "vram_gb": 480,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 456,
+        "active_params_b": 46
       }
     },
     "minimax-m2.7": {
@@ -1673,11 +1898,15 @@
         "China-based"
       ],
       "task_fitness": {
+        "qa": 0.79,
         "code": 0.86,
-        "vision": 0.69,
+        "math": 0.84,
+        "comms": 0.64,
         "analyse": 0.82,
         "extract": 0.75,
         "generate": 0.75,
+        "research": 0.57,
+        "reasoning": 0.82,
         "summarise": 0.75,
         "translate": 0.7,
         "conversation": 0.75
@@ -1702,8 +1931,6 @@
         "provider_infrastructure": 0.2
       },
       "local_info": {
-        "total_params_b": 456,
-        "active_params_b": 46,
         "is_moe": true,
         "quant_options": [
           {
@@ -1716,7 +1943,9 @@
             "vram_gb": 480,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 456,
+        "active_params_b": 46
       }
     },
     "mistral-medium-3": {
@@ -1746,11 +1975,15 @@
         "Smaller ecosystem"
       ],
       "task_fitness": {
+        "qa": 0.75,
         "code": 0.82,
-        "vision": 0,
+        "math": 0.78,
+        "comms": 0.64,
         "analyse": 0.75,
         "extract": 0.8,
         "generate": 0.75,
+        "research": 0.52,
+        "reasoning": 0.75,
         "summarise": 0.78,
         "translate": 0.82,
         "conversation": 0.75
@@ -1775,8 +2008,6 @@
         "provider_infrastructure": 0.55
       },
       "local_info": {
-        "total_params_b": 70,
-        "active_params_b": null,
         "is_moe": false,
         "quant_options": [
           {
@@ -1799,7 +2030,9 @@
             "vram_gb": 73,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 70,
+        "active_params_b": null
       }
     },
     "mistral-ocr": {
@@ -1828,11 +2061,15 @@
         "Higher cost than general models for non-vision tasks"
       ],
       "task_fitness": {
+        "qa": 0.65,
         "code": 0.5,
-        "vision": 0.95,
+        "math": 0.63,
+        "comms": 0.51,
         "analyse": 0.75,
         "extract": 0.95,
         "generate": 0.6,
+        "research": 0.52,
+        "reasoning": 0.75,
         "summarise": 0.7,
         "translate": 0.7,
         "conversation": 0.5
@@ -1857,8 +2094,6 @@
         "provider_infrastructure": 0.55
       },
       "local_info": {
-        "total_params_b": 124,
-        "active_params_b": null,
         "is_moe": false,
         "quant_options": [
           {
@@ -1886,7 +2121,9 @@
             "vram_gb": 128,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 124,
+        "active_params_b": null
       }
     },
     "qwen-2.5-72b": {
@@ -1894,8 +2131,8 @@
       "provider": "Alibaba (via hosted providers)",
       "tier": "open_source_balanced",
       "pricing": {
-        "input_per_1m": 0.3,
-        "output_per_1m": 0.8
+        "input_per_1m": 0.12,
+        "output_per_1m": 0.39
       },
       "context_window": 128000,
       "capabilities": [
@@ -1915,11 +2152,15 @@
         "Commercial licence restrictions"
       ],
       "task_fitness": {
+        "qa": 0.75,
         "code": 0.78,
-        "vision": 0,
+        "math": 0.77,
+        "comms": 0.64,
         "analyse": 0.75,
         "extract": 0.78,
         "generate": 0.75,
+        "research": 0.52,
+        "reasoning": 0.75,
         "summarise": 0.78,
         "translate": 0.9,
         "conversation": 0.75
@@ -1944,8 +2185,6 @@
         "provider_infrastructure": null
       },
       "local_info": {
-        "total_params_b": 72,
-        "active_params_b": null,
         "is_moe": false,
         "quant_options": [
           {
@@ -1968,7 +2207,9 @@
             "vram_gb": 75,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 72,
+        "active_params_b": null
       }
     },
     "qwen3-235b-a22b": {
@@ -1976,8 +2217,8 @@
       "provider": "Alibaba (via hosted providers)",
       "tier": "open_source_balanced",
       "pricing": {
-        "input_per_1m": 0.4,
-        "output_per_1m": 1.2
+        "input_per_1m": 0.45499999999999996,
+        "output_per_1m": 1.8199999999999998
       },
       "context_window": 128000,
       "capabilities": [
@@ -2000,11 +2241,15 @@
         "Self-hosting needs significant GPU"
       ],
       "task_fitness": {
+        "qa": 0.71,
         "code": 0.73,
-        "vision": 0,
+        "math": 0.73,
+        "comms": 0.58,
         "analyse": 0.73,
         "extract": 0.7,
         "generate": 0.68,
+        "research": 0.51,
+        "reasoning": 0.73,
         "summarise": 0.7,
         "translate": 0.76,
         "conversation": 0.68
@@ -2029,8 +2274,6 @@
         "provider_infrastructure": null
       },
       "local_info": {
-        "total_params_b": 235,
-        "active_params_b": 22,
         "is_moe": true,
         "quant_options": [
           {
@@ -2053,7 +2296,9 @@
             "vram_gb": 245,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 235,
+        "active_params_b": 22
       }
     },
     "qwen3.5-397b": {
@@ -2061,8 +2306,8 @@
       "provider": "Alibaba",
       "tier": "flagship",
       "pricing": {
-        "input_per_1m": 0.8,
-        "output_per_1m": 2
+        "input_per_1m": 0.39,
+        "output_per_1m": 2.34
       },
       "context_window": 262000,
       "capabilities": [
@@ -2086,11 +2331,15 @@
         "Self-hosting impractical for most"
       ],
       "task_fitness": {
+        "qa": 0.79,
         "code": 0.85,
-        "vision": 0.73,
-        "analyse": 0.85,
+        "math": 0.84,
+        "comms": 0.64,
+        "analyse": 0.82,
         "extract": 0.78,
         "generate": 0.75,
+        "research": 0.57,
+        "reasoning": 0.82,
         "summarise": 0.78,
         "translate": 0.84,
         "conversation": 0.75
@@ -2115,8 +2364,6 @@
         "provider_infrastructure": null
       },
       "local_info": {
-        "total_params_b": 397,
-        "active_params_b": 17,
         "is_moe": true,
         "quant_options": [
           {
@@ -2139,7 +2386,9 @@
             "vram_gb": 410,
             "quality_penalty": 0
           }
-        ]
+        ],
+        "total_params_b": 397,
+        "active_params_b": 17
       }
     }
   }

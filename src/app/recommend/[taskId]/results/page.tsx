@@ -1,6 +1,7 @@
 import { getResults } from '@/app/actions'
 import { ResultsClient } from './results-client'
 import { StepProgress } from '@/components/step-progress'
+import { TASK_TYPE_LABELS } from '@/lib/registry'
 import type { ScoredModel, Exclusion, HardFilterReason } from '@/lib/scoring'
 import type { PipelineResult } from '@/lib/pipeline'
 import type { LocalInferenceResult } from '@/lib/local-inference'
@@ -36,7 +37,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
 
         <h2 className="text-2xl font-bold mb-2 font-display text-navy">Your results</h2>
         <p className="text-grey-blue mb-8">
-          Ranked for <strong>{task.task_type}</strong> tasks based on your priorities
+          Ranked for <strong>{(TASK_TYPE_LABELS as Record<string, string>)[task.task_type] ?? task.task_type}</strong> tasks based on your priorities
         </p>
         {excluded && excluded.length > 0 && <ExclusionSummary excluded={excluded} />}
         <ResultsClient

@@ -337,12 +337,12 @@ describe('aggregateGroundedFields — task bucketing', () => {
 
   it('averages multiple categories that map to the same task', () => {
     const g = aggregateGroundedFields([
-      taskRow('artificialanalysis', 'aa_intelligence', 1.0),
-      taskRow('artificialanalysis', 'aa_math', 0.6),
-      taskRow('artificialanalysis', 'mmlu_pro', 0.8),
+      taskRow('artificialanalysis', 'aa_math', 1.0),
+      taskRow('artificialanalysis', 'math_500', 0.6),
+      taskRow('artificialanalysis', 'aime_25', 0.8),
     ], 'Anthropic')
-    // All three map to 'analyse' → mean = 0.8
-    expect(g.taskFitness.analyse?.value).toBe(0.8)
+    // All three map to 'math' under v0.8 mapping → mean = 0.8
+    expect(g.taskFitness.math?.value).toBe(0.8)
   })
 
   it('routes a single category into multiple bearing tasks (livebench language)', () => {

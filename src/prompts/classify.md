@@ -5,7 +5,7 @@ Return JSON only, no other text.
 ## Output schema
 
 {
-  "task_type": "summarise" | "generate" | "extract" | "code" | "analyse" | "translate" | "conversation" | "other",
+  "task_type": "summarise" | "extract" | "generate" | "comms" | "code" | "math" | "reasoning" | "analyse" | "research" | "qa" | "translate" | "conversation",
   "task_subtype": string | null,
   "complexity": "simple" | "moderate" | "complex",
   "input_length": "short" | "medium" | "long" | "very_long",
@@ -33,7 +33,7 @@ Return JSON only, no other text.
   "pipeline_stages": [
     {
       "stage": number,
-      "task_type": "summarise" | "generate" | "extract" | "code" | "analyse" | "translate" | "conversation" | "vision" | "other",
+      "task_type": "summarise" | "extract" | "generate" | "comms" | "code" | "math" | "reasoning" | "analyse" | "research" | "qa" | "translate" | "conversation",
       "description": string,
       "requires_capabilities": string[],
       "input_length": "short" | "medium" | "long" | "very_long",
@@ -43,16 +43,27 @@ Return JSON only, no other text.
   ] | null
 }
 
-## Task type definitions
+## Task type definitions (v0.8)
 
-- **summarise**: Condensing longer text into shorter text.
-- **generate**: Creating new text. Emails, proposals, reports, creative writing.
-- **extract**: Pulling specific information from text.
-- **code**: Writing, reviewing, debugging, or explaining code.
-- **analyse**: Understanding, reasoning about, or evaluating information.
-- **translate**: Converting text between languages.
-- **conversation**: Ongoing dialogue. Chatbots, tutoring, brainstorming.
-- **other**: Doesn't fit the above. Set clarification_needed to true.
+Twelve canonical types, organised by what the user *wants out*.
+
+- **summarise**: Condense longer input into shorter output.
+- **extract**: Pull structured data out of unstructured input (includes OCR, transcription, table extraction).
+- **generate**: Create new long-form prose — reports, articles, proposals, creative writing.
+- **comms**: Short business communication — emails, Slack replies, customer responses, meeting recaps. Audience-addressed and short.
+- **code**: Write, review, debug, or explain code.
+- **math**: Numerical computation, calculation, proofs, formal problem-solving.
+- **reasoning**: Multi-step logic, planning under constraints, structured decisions where the *process* matters more than the *facts*.
+- **analyse**: Interpret and explain qualitative information; produce judgements backed by evidence.
+- **research**: Investigative Q&A that benefits from tool use, retrieval, or citing sources.
+- **qa**: Short factual question-answer — definitions, lookups, factual recall, one-shot.
+- **translate**: Convert text between human languages.
+- **conversation**: Ongoing multi-turn dialogue — chatbots, tutoring, brainstorming.
+
+Note: `vision` and `other` are NOT task types. Vision is a capability
+(`needs_vision: true`); see "Classify by intent" below. When no type fits,
+set `clarification_needed: true` and `confidence < 0.5` instead of
+escape-valving.
 
 ## Classify by intent, not by mechanism
 
@@ -63,21 +74,47 @@ parsing, screenshots) describe HOW; classify by the WHAT.
 Examples:
 - "Open a browser, screenshot the Grafana p99 chart, and write an incident
   note" → **analyse** (the user wants an interpretation; the browser step
-  is just how the chart is acquired). NOT "other".
+  is just how the chart is acquired).
 - "Scan these invoices and pull supplier/total/date" → **extract** (the
   user wants structured data; OCR is just how text is acquired).
 - "Read this PDF and tell me what's wrong with the contract" → **analyse**
   (vision is the input modality, the goal is analysis).
-- "Transcribe this call recording" → **extract** (the goal is text out of
-  audio; audio is the input modality).
+- "Transcribe this call recording" → **extract**.
 - "Translate this PDF" → **translate**.
 
-Use **other** ONLY when the *output* itself genuinely doesn't fit any of
-the above categories — not because the *input* or *method* is unusual.
-When tempted to pick "other", first ask: what would I do with the model's
-final response? If the answer is "read a summary", "use extracted data",
-"run the generated code", or "send the generated message", the task_type
-should match that goal.
+Ask: what would I do with the model's final response? If the answer is
+"read a summary", "use extracted data", "run the generated code", "send
+the generated message", "follow the plan", "check the answer" — the
+task_type should match that goal.
+
+## Distinguishing rubrics (hardest cases)
+
+These boundaries are easy to get wrong — apply them deliberately.
+
+- **reasoning vs analyse** — `reasoning` is process-led (user wants the
+  *steps*, *logic*, *plan*); `analyse` is interpretation-led (user wants
+  the *meaning*, *judgement*, *assessment*).
+  - "Plan the optimal order to visit 6 cities given these constraints" → reasoning
+  - "Why is our churn rate trending up?" → analyse
+
+- **math vs reasoning** — `math` is numeric/formal; `reasoning` is
+  symbolic/strategic.
+  - "Solve this integral" → math
+  - "Which is the cheapest hardware plan that meets all constraints?" → reasoning
+
+- **qa vs research** — `qa` is short and self-contained; `research`
+  benefits from tools or citations.
+  - "What's the capital of Bulgaria?" → qa
+  - "What's the current state of FDA approval for GLP-1 drugs?" → research
+
+- **qa vs conversation** — `qa` is one-shot, `conversation` is multi-turn.
+  - A single factual question → qa
+  - A back-and-forth chatbot → conversation
+
+- **comms vs generate** — `comms` is short and addressed to a specific
+  audience; `generate` is long-form.
+  - "Reply to this customer email apologetically" → comms
+  - "Write a 5-page proposal for the board" → generate
 
 ## Rules
 

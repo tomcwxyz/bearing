@@ -88,8 +88,8 @@ describe('scoreModels', () => {
       priorityOrder,
       excludedFactors: ['sustainability', 'transparency', 'privacy'],
     })
-    const normalOpus = normal.findIndex(m => m.slug === 'claude-opus-4.6')
-    const focusedOpus = focused.findIndex(m => m.slug === 'claude-opus-4.6')
+    const normalOpus = normal.findIndex(m => m.slug === 'claude-opus-4.7')
+    const focusedOpus = focused.findIndex(m => m.slug === 'claude-opus-4.7')
     // Phase 2.2 damps rank-5+ factors (×0.4 before normalisation). Under the
     // default priority order used here, transparency/sustainability/privacy
     // sit at ranks 5/6/7 and are damped — so excluding them on top of the
@@ -118,7 +118,7 @@ describe('scoreModels', () => {
 
 describe('costScore priority-aware compression', () => {
   const allModels = getAllModels()
-  const opus = getModel('claude-opus-4.6')!
+  const opus = getModel('claude-opus-4.7')!
 
   it('preserves full spread when costWeightHint is 0.30 (no compression)', () => {
     // Expensive flagship at long inputs should still score low — full spread.
@@ -186,10 +186,10 @@ describe('complex-task tier-floor demotion (Phase 3.1)', () => {
   })
 
   it('does not demote a flagship-tier model on complex tasks', () => {
-    const opus = getModel('claude-opus-4.6')!
+    const opus = getModel('claude-opus-4.7')!
     const opusCurated = opus.task_fitness['code'] ?? 0.5
     const results = scoreModels({ ...baseInput, complexity: 'complex' })
-    const opusResult = results.find(m => m.slug === 'claude-opus-4.6')!
+    const opusResult = results.find(m => m.slug === 'claude-opus-4.7')!
     expect(opusResult.factorScores.quality).toBeCloseTo(opusCurated, 6)
   })
 })
@@ -207,18 +207,18 @@ describe('reasoning multiplier (Phase 3.2)', () => {
     priorityOrder: defaultPriority,
   }
 
-  const opus = getModel('claude-opus-4.6')!
+  const opus = getModel('claude-opus-4.7')!
   const opusCurated = opus.task_fitness['analyse'] ?? 0.5
 
   it('boosts quality by 1.20 on a reasoning-capable flagship when needsReasoning=true', () => {
     const results = scoreModels({ ...baseInput, needsReasoning: true })
-    const opusResult = results.find(m => m.slug === 'claude-opus-4.6')!
+    const opusResult = results.find(m => m.slug === 'claude-opus-4.7')!
     expect(opusResult.factorScores.quality).toBeCloseTo(opusCurated * 1.20, 6)
   })
 
   it('leaves quality unchanged when needsReasoning is false (or omitted)', () => {
     const results = scoreModels({ ...baseInput, needsReasoning: false })
-    const opusResult = results.find(m => m.slug === 'claude-opus-4.6')!
+    const opusResult = results.find(m => m.slug === 'claude-opus-4.7')!
     expect(opusResult.factorScores.quality).toBeCloseTo(opusCurated, 6)
   })
 
@@ -251,7 +251,7 @@ describe('data_sensitivity (Phase 4.1)', () => {
       expect(reg.local_info).toBeDefined()
     }
     // Spot-check a known-hosted model is excluded.
-    const opus = results.find(m => m.slug === 'claude-opus-4.6')
+    const opus = results.find(m => m.slug === 'claude-opus-4.7')
     expect(opus).toBeUndefined()
     // Spot-check a known-local model survives.
     const llama = results.find(m => m.slug === 'llama-4-maverick')
@@ -259,33 +259,33 @@ describe('data_sensitivity (Phase 4.1)', () => {
   })
 
   it('boosts privacy by 1.5× for regulated_health', () => {
-    const opus = getModel('claude-opus-4.6')!
-    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const opus = getModel('claude-opus-4.7')!
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.7')!
     const boosted = scoreModels({ ...baseInput, dataSensitivity: 'regulated_health' })
-      .find(m => m.slug === 'claude-opus-4.6')!
+      .find(m => m.slug === 'claude-opus-4.7')!
     expect(boosted.factorScores.privacy).toBeCloseTo(opus.privacy_score * 1.5, 6)
     expect(boosted.factorScores.privacy).toBeGreaterThan(baseline.factorScores.privacy)
   })
 
   it('boosts privacy by 1.5× for regulated_finance', () => {
-    const opus = getModel('claude-opus-4.6')!
+    const opus = getModel('claude-opus-4.7')!
     const boosted = scoreModels({ ...baseInput, dataSensitivity: 'regulated_finance' })
-      .find(m => m.slug === 'claude-opus-4.6')!
+      .find(m => m.slug === 'claude-opus-4.7')!
     expect(boosted.factorScores.privacy).toBeCloseTo(opus.privacy_score * 1.5, 6)
   })
 
   it('boosts privacy by 1.2× for pii', () => {
-    const opus = getModel('claude-opus-4.6')!
+    const opus = getModel('claude-opus-4.7')!
     const boosted = scoreModels({ ...baseInput, dataSensitivity: 'pii' })
-      .find(m => m.slug === 'claude-opus-4.6')!
+      .find(m => m.slug === 'claude-opus-4.7')!
     expect(boosted.factorScores.privacy).toBeCloseTo(opus.privacy_score * 1.2, 6)
   })
 
   it('leaves privacy unchanged when dataSensitivity is none or omitted', () => {
-    const opus = getModel('claude-opus-4.6')!
+    const opus = getModel('claude-opus-4.7')!
     const noneResult = scoreModels({ ...baseInput, dataSensitivity: 'none' })
-      .find(m => m.slug === 'claude-opus-4.6')!
-    const omittedResult = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+      .find(m => m.slug === 'claude-opus-4.7')!
+    const omittedResult = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.7')!
     expect(noneResult.factorScores.privacy).toBeCloseTo(opus.privacy_score, 6)
     expect(omittedResult.factorScores.privacy).toBeCloseTo(opus.privacy_score, 6)
   })
@@ -309,22 +309,22 @@ describe('latency_target (Phase 4.2)', () => {
       expect(reg.speed_score).toBeGreaterThanOrEqual(0.85)
     }
     // Slow flagship excluded.
-    expect(results.find(m => m.slug === 'claude-opus-4.6')).toBeUndefined()
+    expect(results.find(m => m.slug === 'claude-opus-4.7')).toBeUndefined()
     // Fast model survives.
     expect(results.find(m => m.slug === 'gemini-2.5-flash-lite')).toBeDefined()
   })
 
   it('boosts cost factor by 1.3× when latency_target=batch', () => {
-    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.7')!
     const batched = scoreModels({ ...baseInput, latencyTarget: 'batch' })
-      .find(m => m.slug === 'claude-opus-4.6')!
+      .find(m => m.slug === 'claude-opus-4.7')!
     expect(batched.factorScores.cost).toBeCloseTo(baseline.factorScores.cost * 1.3, 6)
   })
 
   it('leaves cost unchanged for interactive (default) latency', () => {
-    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.7')!
     const interactive = scoreModels({ ...baseInput, latencyTarget: 'interactive' })
-      .find(m => m.slug === 'claude-opus-4.6')!
+      .find(m => m.slug === 'claude-opus-4.7')!
     expect(interactive.factorScores.cost).toBeCloseTo(baseline.factorScores.cost, 6)
   })
 })
@@ -341,33 +341,33 @@ describe('volume (Phase 4.3)', () => {
   }
 
   it('boosts cost factor by 1.6× for millions_per_day', () => {
-    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.7')!
     const millions = scoreModels({ ...baseInput, volume: 'millions_per_day' })
-      .find(m => m.slug === 'claude-opus-4.6')!
+      .find(m => m.slug === 'claude-opus-4.7')!
     expect(millions.factorScores.cost).toBeCloseTo(baseline.factorScores.cost * 1.6, 6)
   })
 
   it('boosts cost factor by 1.3× for thousands_per_day', () => {
-    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.7')!
     const thousands = scoreModels({ ...baseInput, volume: 'thousands_per_day' })
-      .find(m => m.slug === 'claude-opus-4.6')!
+      .find(m => m.slug === 'claude-opus-4.7')!
     expect(thousands.factorScores.cost).toBeCloseTo(baseline.factorScores.cost * 1.3, 6)
   })
 
   it('leaves cost unchanged for one_off (default) volume', () => {
-    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.7')!
     const oneOff = scoreModels({ ...baseInput, volume: 'one_off' })
-      .find(m => m.slug === 'claude-opus-4.6')!
+      .find(m => m.slug === 'claude-opus-4.7')!
     expect(oneOff.factorScores.cost).toBeCloseTo(baseline.factorScores.cost, 6)
   })
 
   it('uses max() not multiplication when batch latency stacks with millions volume', () => {
-    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.7')!
     const stacked = scoreModels({
       ...baseInput,
       latencyTarget: 'batch',
       volume: 'millions_per_day',
-    }).find(m => m.slug === 'claude-opus-4.6')!
+    }).find(m => m.slug === 'claude-opus-4.7')!
     // Expected: max(1.3, 1.6) = 1.6 (NOT 1.3 * 1.6 = 2.08).
     expect(stacked.factorScores.cost).toBeCloseTo(baseline.factorScores.cost * 1.6, 6)
     expect(stacked.factorScores.cost).not.toBeCloseTo(baseline.factorScores.cost * 1.3 * 1.6, 4)
@@ -546,14 +546,14 @@ describe('is_agentic (Phase 4.5b)', () => {
   }
 
   // Opus has both tools and extended_thinking — the canonical agentic host.
-  const opus = getModel('claude-opus-4.6')!
+  const opus = getModel('claude-opus-4.7')!
   const opusHasBoth = opus.capabilities.includes('tools') && opus.capabilities.includes('extended_thinking')
 
   it('boosts quality by 1.15× when isAgentic=true and model has both tools + extended_thinking', () => {
     expect(opusHasBoth).toBe(true)
-    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.7')!
     const boosted = scoreModels({ ...baseInput, isAgentic: true })
-      .find(m => m.slug === 'claude-opus-4.6')!
+      .find(m => m.slug === 'claude-opus-4.7')!
     expect(boosted.factorScores.quality).toBeCloseTo(baseline.factorScores.quality * 1.15, 6)
   })
 
@@ -581,15 +581,15 @@ describe('is_agentic (Phase 4.5b)', () => {
   })
 
   it('leaves quality unchanged when isAgentic is false', () => {
-    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.6')!
+    const baseline = scoreModels(baseInput).find(m => m.slug === 'claude-opus-4.7')!
     const noFlag = scoreModels({ ...baseInput, isAgentic: false })
-      .find(m => m.slug === 'claude-opus-4.6')!
+      .find(m => m.slug === 'claude-opus-4.7')!
     expect(noFlag.factorScores.quality).toBeCloseTo(baseline.factorScores.quality, 6)
   })
 })
 
 describe('output_length cost separation (Phase 4.6)', () => {
-  const opus = getModel('claude-opus-4.6')!
+  const opus = getModel('claude-opus-4.7')!
 
   it('estimateCost reflects higher output tokens for longer outputs (same input)', () => {
     const shortOut = estimateCost(opus, 'short', 'short')
@@ -618,8 +618,8 @@ describe('output_length cost separation (Phase 4.6)', () => {
     // Using Opus (expensive) should produce a lower cost score with very_long
     // output than with short output, because relative to other models the
     // output-token cost dominates.
-    const shortOut = scoreModels({ ...baseInput, outputLength: 'short' }).find(m => m.slug === 'claude-opus-4.6')!
-    const veryLongOut = scoreModels({ ...baseInput, outputLength: 'very_long' }).find(m => m.slug === 'claude-opus-4.6')!
+    const shortOut = scoreModels({ ...baseInput, outputLength: 'short' }).find(m => m.slug === 'claude-opus-4.7')!
+    const veryLongOut = scoreModels({ ...baseInput, outputLength: 'very_long' }).find(m => m.slug === 'claude-opus-4.7')!
     // estimatedCost should differ noticeably.
     expect(veryLongOut.estimatedCost).toBeGreaterThan(shortOut.estimatedCost)
   })
@@ -638,7 +638,7 @@ describe('hardFilter (Phase 5.1)', () => {
 
   it('rejects models below the long-context threshold when needsLongContext', () => {
     // Synthetic stub — registry models all sit above 100k today, so we mint one.
-    const small = { ...getModel('claude-opus-4.6')!, context_window: 32_000 }
+    const small = { ...getModel('claude-opus-4.7')!, context_window: 32_000 }
     const result = hardFilter(small, { ...baseInput, needsLongContext: true })
     expect(result).toEqual({ ok: false, reason: 'long_context' })
   })
@@ -668,21 +668,21 @@ describe('hardFilter (Phase 5.1)', () => {
   })
 
   it('rejects models without tools when needsTools', () => {
-    const opus = getModel('claude-opus-4.6')!
+    const opus = getModel('claude-opus-4.7')!
     const noTools = { ...opus, capabilities: opus.capabilities.filter(c => c !== 'tools') }
     const result = hardFilter(noTools, { ...baseInput, needsTools: true })
     expect(result).toEqual({ ok: false, reason: 'missing_tools' })
   })
 
   it('rejects models without code when needsCode', () => {
-    const opus = getModel('claude-opus-4.6')!
+    const opus = getModel('claude-opus-4.7')!
     const noCode = { ...opus, capabilities: opus.capabilities.filter(c => c !== 'code') }
     const result = hardFilter(noCode, { ...baseInput, needsCode: true })
     expect(result).toEqual({ ok: false, reason: 'missing_code' })
   })
 
   it('admits a fully-capable model with no constraints', () => {
-    const opus = getModel('claude-opus-4.6')!
+    const opus = getModel('claude-opus-4.7')!
     expect(hardFilter(opus, baseInput)).toEqual({ ok: true })
   })
 })

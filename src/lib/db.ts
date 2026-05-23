@@ -71,7 +71,8 @@ export async function createTask(params: TaskParams): Promise<string> {
       mode,
       priority_order,
       classification_confidence,
-      pipeline_stages
+      pipeline_stages,
+      classification_schema_version
     ) VALUES (
       ${params.descriptionHash ?? null},
       ${params.taskType ?? null},
@@ -93,7 +94,8 @@ export async function createTask(params: TaskParams): Promise<string> {
       ${params.mode ?? 'recommend'},
       ${params.priorityOrder ? JSON.stringify(params.priorityOrder) : null},
       ${params.classificationConfidence ?? null},
-      ${params.pipelineStages ? JSON.stringify(params.pipelineStages) : null}
+      ${params.pipelineStages ? JSON.stringify(params.pipelineStages) : null},
+      'v0.8'
     )
     RETURNING id
   `
@@ -142,6 +144,45 @@ export async function saveRecommendations(
         ${model.weightedScore},
         ${JSON.stringify(model.factorScores)},
         ${model.reasoning ?? null}
+      )
+    `
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Local recommendations (open-weight models for local inference)
+// ---------------------------------------------------------------------------
+
+export interface LocalRecommendationInput {
+  modelSlug: string
+  rank: number
+  effectiveQuality: number
+  quant: string
+  vramGb: number
+  qualityPenalty: number
+  hardwareTierId: string
+}
+
+/** Insert one row per ranked local candidate. Zero rows means the recommender
+ *  produced no viable local suggestion for this task. */
+export async function saveLocalRecommendations(
+  taskId: string,
+  candidates: LocalRecommendationInput[],
+): Promise<void> {
+  for (const c of candidates) {
+    await getDb()`
+      INSERT INTO local_recommendations (
+        task_id, model_slug, rank, effective_quality,
+        quant, vram_gb, quality_penalty, hardware_tier_id
+      ) VALUES (
+        ${taskId},
+        ${c.modelSlug},
+        ${c.rank},
+        ${c.effectiveQuality},
+        ${c.quant},
+        ${c.vramGb},
+        ${c.qualityPenalty},
+        ${c.hardwareTierId}
       )
     `
   }

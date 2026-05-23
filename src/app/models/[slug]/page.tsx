@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { getModelLive, getAllModels } from '@/lib/registry'
+import { getModelLive, getAllModels, TASK_TYPE_LABELS } from '@/lib/registry'
 import type { Capability } from '@/lib/registry'
 
 const capabilityLabels: Record<Capability, string> = {
@@ -30,16 +30,10 @@ function tierColour(tier: string): string {
   return 'bg-teal/10 text-teal'
 }
 
-const taskLabels: Record<string, string> = {
-  summarise: 'Summarise',
-  generate: 'Generate',
-  extract: 'Extract',
-  code: 'Code',
-  analyse: 'Analyse',
-  translate: 'Translate',
-  conversation: 'Conversation',
-  vision: 'Vision',
-  other: 'Other',
+// Display labels for task_fitness keys. Falls back to the raw key for legacy
+// rows (e.g. `vision` on archived registry snapshots).
+function taskLabel(task: string): string {
+  return (TASK_TYPE_LABELS as Record<string, string>)[task] ?? task
 }
 
 // Pre-render the slugs we know about at build time; Next will render others
@@ -190,7 +184,7 @@ export default async function ModelDetailPage({
             {Object.entries(model.task_fitness).map(([task, score]) => (
               <div key={task} className="flex items-center gap-3">
                 <span className="w-28 shrink-0 text-sm text-grey-blue">
-                  {taskLabels[task] ?? task}
+                  {taskLabel(task)}
                 </span>
                 <div className="relative h-2.5 flex-1 rounded-full bg-cream-dark">
                   <div

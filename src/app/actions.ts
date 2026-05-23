@@ -19,6 +19,7 @@ import {
   updateTaskPriorities,
   getTask,
   saveRecommendations,
+  saveLocalRecommendations,
   saveSelection,
   saveOutcome,
   createComparison,
@@ -247,6 +248,25 @@ export async function getResults(taskId: string) {
     const allModelsRaw = getAllModels()
     const localResult = scoreLocalModels(models, allModelsRaw, task.task_type)
     const local = localResult.recommendations.length > 0 ? localResult : null
+
+    // Persist the local-rec set so the public dataset can answer "what local
+    // model would Bearing have suggested for this task?". Matches the
+    // recommendations pattern (overwrite-by-append; dataset DISTINCTs to the
+    // latest set per task). Zero recs = no row, which is itself a signal.
+    if (local) {
+      await saveLocalRecommendations(
+        taskId,
+        local.recommendations.map((c, i) => ({
+          modelSlug: c.model.slug,
+          rank: i + 1,
+          effectiveQuality: c.effectiveQuality,
+          quant: c.bestQuant.quant,
+          vramGb: c.bestQuant.vram_gb,
+          qualityPenalty: c.bestQuant.quality_penalty,
+          hardwareTierId: c.hardwareTier.id,
+        })),
+      )
+    }
 
     return { task, models, reasoning, pipeline, local, excluded }
   } catch (error) {
