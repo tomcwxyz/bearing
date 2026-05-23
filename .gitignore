@@ -16,3 +16,6 @@ tsconfig.tsbuildinfo
 
 # mkdocs build output
 site
+
+# local-only plan doc (untracked by request)
+docs/plans/2026-05-23-embedding-models.md
