@@ -42,6 +42,40 @@ describe('classification', () => {
     expect(result.task_type).toBe('code')
   })
 
+  it('parses task_type=embedding (v0.9)', () => {
+    const raw = JSON.stringify({
+      task_type: 'embedding',
+      task_subtype: 'rag_index_build',
+      complexity: 'simple',
+      input_length: 'medium',
+      needs_vision: false,
+      needs_tools: false,
+      needs_code: false,
+      is_recurring: true,
+      confidence: 0.88,
+      clarification_needed: false,
+      suggested_questions: [],
+    })
+    const result = parseClassificationResponse(raw)
+    expect(result.task_type).toBe('embedding')
+  })
+
+  it('exposes the full v0.9 task_type enum in CLASSIFY_TOOL', () => {
+    // Guard against the v0.7 → v0.8 → v0.9 drift that left the tool schema
+    // stuck on the old enum. Whenever ALL_TASK_TYPES changes, this should fail
+    // and remind us to update the tool schema in lockstep.
+    const enumValues = (CLASSIFY_TOOL.input_schema.properties.task_type as { enum: string[] }).enum
+    expect(enumValues).toContain('embedding')
+    expect(enumValues).toContain('comms')
+    expect(enumValues).toContain('math')
+    expect(enumValues).toContain('reasoning')
+    expect(enumValues).toContain('research')
+    expect(enumValues).toContain('qa')
+    expect(enumValues).not.toContain('other')
+    expect(enumValues).not.toContain('vision')
+    expect(enumValues.length).toBe(13)
+  })
+
   it('throws on invalid JSON', () => {
     expect(() => parseClassificationResponse('not json')).toThrow()
   })

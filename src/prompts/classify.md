@@ -5,7 +5,7 @@ Return JSON only, no other text.
 ## Output schema
 
 {
-  "task_type": "summarise" | "extract" | "generate" | "comms" | "code" | "math" | "reasoning" | "analyse" | "research" | "qa" | "translate" | "conversation",
+  "task_type": "summarise" | "extract" | "generate" | "comms" | "code" | "math" | "reasoning" | "analyse" | "research" | "qa" | "translate" | "conversation" | "embedding",
   "task_subtype": string | null,
   "complexity": "simple" | "moderate" | "complex",
   "input_length": "short" | "medium" | "long" | "very_long",
@@ -33,7 +33,7 @@ Return JSON only, no other text.
   "pipeline_stages": [
     {
       "stage": number,
-      "task_type": "summarise" | "extract" | "generate" | "comms" | "code" | "math" | "reasoning" | "analyse" | "research" | "qa" | "translate" | "conversation",
+      "task_type": "summarise" | "extract" | "generate" | "comms" | "code" | "math" | "reasoning" | "analyse" | "research" | "qa" | "translate" | "conversation" | "embedding",
       "description": string,
       "requires_capabilities": string[],
       "input_length": "short" | "medium" | "long" | "very_long",
@@ -43,9 +43,9 @@ Return JSON only, no other text.
   ] | null
 }
 
-## Task type definitions (v0.8)
+## Task type definitions (v0.9)
 
-Twelve canonical types, organised by what the user *wants out*.
+Thirteen canonical types, organised by what the user *wants out*.
 
 - **summarise**: Condense longer input into shorter output.
 - **extract**: Pull structured data out of unstructured input (includes OCR, transcription, table extraction).
@@ -59,6 +59,7 @@ Twelve canonical types, organised by what the user *wants out*.
 - **qa**: Short factual question-answer — definitions, lookups, factual recall, one-shot.
 - **translate**: Convert text between human languages.
 - **conversation**: Ongoing multi-turn dialogue — chatbots, tutoring, brainstorming.
+- **embedding**: Convert text into numerical vectors for semantic search, retrieval-augmented generation (RAG), clustering, deduplication, or similarity ranking. The model's output is a fixed-dimensional vector, not generated text. Pick this when the user describes building an index, a retrieval system, a vector database, or any "find similar items" / RAG workflow.
 
 Note: `vision` and `other` are NOT task types. Vision is a capability
 (`needs_vision: true`); see "Classify by intent" below. When no type fits,
@@ -115,6 +116,28 @@ These boundaries are easy to get wrong — apply them deliberately.
   audience; `generate` is long-form.
   - "Reply to this customer email apologetically" → comms
   - "Write a 5-page proposal for the board" → generate
+
+- **embedding vs extract** — `extract` produces structured *text* out
+  (JSON, key-value pairs, table rows, transcripts). `embedding` produces
+  *vectors* used by downstream retrieval, similarity, clustering, or
+  RAG systems. Test by asking what the next step is: parsing into a
+  database row → extract; storing in a vector index for nearest-
+  neighbour search → embedding.
+  - "Pull supplier / total / date from these invoices" → extract
+  - "Index this document collection for semantic search" → embedding
+  - "Turn customer chat logs into a queryable knowledge base" → embedding
+  - "Build a recommender system for similar products" → embedding
+  - "Transcribe these voicemails into text" → extract
+
+- **embedding vs research** — `research` answers a user-facing question
+  (output: prose + citations). `embedding` produces the index that a
+  research / RAG system *uses* (output: vectors). A full RAG pipeline
+  uses both, in that order — embedding (index build) → research / qa
+  (answer time).
+  - "What's the current FDA status of GLP-1 drugs?" → research
+  - "Build a semantic search index over our help docs" → embedding
+  - "Build a Q&A system over our help docs" → pipeline:
+    embedding (index build) → research or qa (answer time)
 
 ## Rules
 
@@ -209,6 +232,14 @@ Examples of *real* pipelines (different modalities or specialties):
 - "Translate this Japanese document then generate an English report from it" → translate → generate
 - "OCR these invoices, pull out the amounts, and analyse spending trends" → vision-extract → extract → analyse
 - "Read this codebase and write user-facing documentation" → code → generate
+- "Read these PDFs, embed the chunks, and use them in a chat interface" → extract (OCR) → embedding → conversation
+- "Build a Q&A system over our help docs" → embedding (index build) → qa or research (answer time)
+- "Ingest our support tickets and find similar past resolutions" → extract → embedding (the similarity-search stage is the whole point — embedding models, not chat models, do this)
+
+Pipelines that include an `embedding` stage are genuine pipelines because
+embedding models and chat models are disjoint workloads — a chat model
+cannot produce vectors, and an embedding model cannot generate text. Do
+not collapse them into a single model.
 
 Examples that are NOT pipelines (single model handles all):
 - "Build a GCSE-tutor chatbot for maths and English" → one conversation model
