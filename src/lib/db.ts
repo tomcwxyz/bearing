@@ -150,6 +150,45 @@ export async function saveRecommendations(
 }
 
 // ---------------------------------------------------------------------------
+// Local recommendations (open-weight models for local inference)
+// ---------------------------------------------------------------------------
+
+export interface LocalRecommendationInput {
+  modelSlug: string
+  rank: number
+  effectiveQuality: number
+  quant: string
+  vramGb: number
+  qualityPenalty: number
+  hardwareTierId: string
+}
+
+/** Insert one row per ranked local candidate. Zero rows means the recommender
+ *  produced no viable local suggestion for this task. */
+export async function saveLocalRecommendations(
+  taskId: string,
+  candidates: LocalRecommendationInput[],
+): Promise<void> {
+  for (const c of candidates) {
+    await getDb()`
+      INSERT INTO local_recommendations (
+        task_id, model_slug, rank, effective_quality,
+        quant, vram_gb, quality_penalty, hardware_tier_id
+      ) VALUES (
+        ${taskId},
+        ${c.modelSlug},
+        ${c.rank},
+        ${c.effectiveQuality},
+        ${c.quant},
+        ${c.vramGb},
+        ${c.qualityPenalty},
+        ${c.hardwareTierId}
+      )
+    `
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Selections
 // ---------------------------------------------------------------------------
 

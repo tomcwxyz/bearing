@@ -166,6 +166,7 @@ export default function DataPage() {
                       ['pipeline_stages', 'object[]?', 'Multi-stage plan if recommended'],
                       ['classification_schema_version', 'string', 'v0.7 or v0.8 — task_type enum used'],
                       ['models_recommended', 'object[]', '{slug, rank, weighted_score}'],
+                      ['local_recommendations', 'object[]', '{slug, rank, effective_quality, quant, vram_gb, hardware_tier_id} for local-inference candidates'],
                       ['model_selected', 'object?', '{slug, recommended_rank} — null if no selection'],
                       ['outcome_success', 'boolean?', 'User-reported success'],
                       ['failure_reason', 'string?', 'Failure reason if applicable'],

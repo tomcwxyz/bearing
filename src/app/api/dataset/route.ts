@@ -40,6 +40,43 @@ export async function GET(request: NextRequest) {
     })
   }
 
+  // Local-inference recommendations (open-weight models for local hardware).
+  // Same dedupe pattern: a fresh set is written on every visit to the results
+  // page, so we keep the latest per (task_id, rank). Tasks with no viable
+  // local candidates have zero rows here — absence means "no local rec",
+  // not "data missing". Pre-2026-05-23 tasks have zero rows because the
+  // local set was computed but not persisted.
+  const localRecs = await sql`
+    SELECT DISTINCT ON (l.task_id, l.rank)
+      l.task_id, l.model_slug, l.rank, l.effective_quality,
+      l.quant, l.vram_gb, l.quality_penalty, l.hardware_tier_id
+    FROM local_recommendations l
+    ORDER BY l.task_id, l.rank, l.created_at DESC
+  `
+
+  const localByTask = new Map<string, Array<{
+    slug: string
+    rank: number
+    effective_quality: number
+    quant: string
+    vram_gb: number
+    quality_penalty: number
+    hardware_tier_id: string
+  }>>()
+  for (const l of localRecs) {
+    const taskId = l.task_id as string
+    if (!localByTask.has(taskId)) localByTask.set(taskId, [])
+    localByTask.get(taskId)!.push({
+      slug: l.model_slug as string,
+      rank: l.rank as number,
+      effective_quality: l.effective_quality as number,
+      quant: l.quant as string,
+      vram_gb: l.vram_gb as number,
+      quality_penalty: l.quality_penalty as number,
+      hardware_tier_id: l.hardware_tier_id as string,
+    })
+  }
+
   // Every task that reached recommendation OR has a pipeline plan is a
   // "Bearing use" worth exporting — even if the user never selected a model.
   // selections + outcomes are deduped to the latest row per task (selections
@@ -115,6 +152,7 @@ export async function GET(request: NextRequest) {
       pipeline_stages: row.pipeline_stages ?? null,
       classification_schema_version: row.classification_schema_version,
       models_recommended: recsByTask.get(row.task_id as string) ?? [],
+      local_recommendations: localByTask.get(row.task_id as string) ?? [],
       model_selected: row.selected_model
         ? { slug: row.selected_model, recommended_rank: row.recommended_rank }
         : null,
@@ -146,6 +184,7 @@ export async function GET(request: NextRequest) {
       'pipeline_stages',
       'classification_schema_version',
       'models_recommended',
+      'local_recommendations',
       'selected_model',
       'selected_recommended_rank',
       'outcome_success',
@@ -171,6 +210,7 @@ export async function GET(request: NextRequest) {
         esc(r.pipeline_stages ? JSON.stringify(r.pipeline_stages) : ''),
         esc(r.classification_schema_version),
         esc(JSON.stringify(r.models_recommended)),
+        esc(JSON.stringify(r.local_recommendations)),
         esc(r.model_selected?.slug),
         r.model_selected?.recommended_rank ?? '',
         r.outcome_success,
@@ -194,7 +234,7 @@ export async function GET(request: NextRequest) {
     {
       meta: {
         name: 'Bearing Public Dataset',
-        version: '1.2',
+        version: '1.3',
         exported_at: new Date().toISOString(),
         record_count: records.length,
         description:
@@ -213,6 +253,7 @@ export async function GET(request: NextRequest) {
           },
         },
         changelog: {
+          '1.3': 'Adds local_recommendations — the open-weight models the recommender suggested for local hardware, with quant / VRAM / hardware tier per candidate. Persisted from 2026-05-23; empty array for earlier tasks.',
           '1.2': 'Includes every task that reached the recommendation stage (not just tasks with a selection). Adds excluded_factors, factor_weights (normalised per-factor weights actually applied by the recommender), pipeline_stages (the classifier-produced multi-stage plan when one was generated), and mode (recommend / pipeline / validate). model_selected is now nullable.',
           '1.1': 'Adds classification_schema_version per row + per-version task_type enum docs.',
           '1.0': 'Initial release.',
@@ -234,6 +275,7 @@ export async function GET(request: NextRequest) {
           pipeline_stages: 'Classifier-produced multi-stage pipeline plan when one was recommended; null otherwise',
           classification_schema_version: 'Which version of the task-type enum was used to assign task_type — v0.7 or v0.8',
           models_recommended: 'Array of {slug, rank, weighted_score} for each recommended model. Empty for pure pipeline-mode tasks.',
+          local_recommendations: 'Array of {slug, rank, effective_quality, quant, vram_gb, quality_penalty, hardware_tier_id} for open-weight models recommendable on local hardware. Empty array means either no viable local candidate OR (for tasks before 2026-05-23) that the local set was computed but not persisted.',
           model_selected: '{slug, recommended_rank} of the model the user chose. null if no selection was made.',
           outcome_success: 'Whether the user reported success (true/false/null)',
           failure_reason: 'User-reported failure reason if applicable',
