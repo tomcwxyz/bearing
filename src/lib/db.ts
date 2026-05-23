@@ -71,7 +71,8 @@ export async function createTask(params: TaskParams): Promise<string> {
       mode,
       priority_order,
       classification_confidence,
-      pipeline_stages
+      pipeline_stages,
+      classification_schema_version
     ) VALUES (
       ${params.descriptionHash ?? null},
       ${params.taskType ?? null},
@@ -93,7 +94,8 @@ export async function createTask(params: TaskParams): Promise<string> {
       ${params.mode ?? 'recommend'},
       ${params.priorityOrder ? JSON.stringify(params.priorityOrder) : null},
       ${params.classificationConfidence ?? null},
-      ${params.pipelineStages ? JSON.stringify(params.pipelineStages) : null}
+      ${params.pipelineStages ? JSON.stringify(params.pipelineStages) : null},
+      'v0.8'
     )
     RETURNING id
   `

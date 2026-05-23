@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
       t.needs_reasoning,
       t.is_recurring,
       t.priority_order,
+      t.classification_schema_version,
       t.created_at::date AS task_date,
       s.model_slug  AS selected_model,
       s.recommended_rank,
@@ -72,6 +73,7 @@ export async function GET(request: NextRequest) {
     needs_reasoning: row.needs_reasoning,
     is_recurring: row.is_recurring,
     priority_order: row.priority_order,
+    classification_schema_version: row.classification_schema_version,
     models_recommended: recsByTask.get(row.task_id as string) ?? [],
     model_selected: {
       slug: row.selected_model,
@@ -98,6 +100,7 @@ export async function GET(request: NextRequest) {
       'needs_reasoning',
       'is_recurring',
       'priority_order',
+      'classification_schema_version',
       'models_recommended',
       'selected_model',
       'selected_recommended_rank',
@@ -118,6 +121,7 @@ export async function GET(request: NextRequest) {
         r.needs_reasoning,
         r.is_recurring,
         esc(JSON.stringify(r.priority_order)),
+        esc(r.classification_schema_version),
         esc(JSON.stringify(r.models_recommended)),
         esc(r.model_selected.slug),
         r.model_selected.recommended_rank,
@@ -142,13 +146,25 @@ export async function GET(request: NextRequest) {
     {
       meta: {
         name: 'Bearing Public Dataset',
-        version: '1.0',
+        version: '1.1',
         exported_at: new Date().toISOString(),
         record_count: records.length,
         description: 'Anonymised task-to-model selection data from Bearing',
         licence: 'CC BY-NC 4.0',
+        // Each record carries the classification_schema_version under which
+        // task_type was assigned. Filter or interpret accordingly.
+        classification_schema_versions: {
+          'v0.7': {
+            task_types: ['summarise', 'extract', 'generate', 'code', 'analyse', 'translate', 'conversation', 'vision', 'other'],
+            note: 'Used for all tasks classified before 2026-05-19.',
+          },
+          'v0.8': {
+            task_types: ['summarise', 'extract', 'generate', 'comms', 'code', 'math', 'reasoning', 'analyse', 'research', 'qa', 'translate', 'conversation'],
+            note: 'Used for tasks classified on or after 2026-05-19. Removed `vision` (now a capability only) and `other` (replaced by clarification flow). Added `comms`, `math`, `reasoning`, `research`, `qa`.',
+          },
+        },
         fields: {
-          task_type: 'Primary task category (e.g. summarisation, code_generation)',
+          task_type: 'Primary task category (see classification_schema_versions for the valid set per row)',
           task_subtype: 'More specific task category',
           complexity: 'Estimated complexity: low, medium, high',
           input_length: 'Estimated input length: short, medium, long, very_long',
@@ -158,6 +174,7 @@ export async function GET(request: NextRequest) {
           needs_reasoning: 'Whether the task requires multi-step reasoning / extended thinking',
           is_recurring: 'Whether this is a recurring/repeated task',
           priority_order: 'User-ranked priority factors in order of importance',
+          classification_schema_version: 'Which version of the task-type enum was used to assign task_type — v0.7 or v0.8',
           models_recommended: 'Array of {slug, rank, weighted_score} for each recommended model',
           model_selected: '{slug, recommended_rank} of the model the user chose',
           outcome_success: 'Whether the user reported success (true/false/null)',
