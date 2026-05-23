@@ -22,7 +22,8 @@ async function generate() {
     SELECT slug, name, provider, tier, pricing, context_window,
            capabilities, strengths, weaknesses, task_fitness,
            speed_score, privacy_score, transparency, sustainability,
-           local_info
+           local_info,
+           model_class, embedding_dim, max_input_tokens, supports_matryoshka
     FROM models
     WHERE active = true
     ORDER BY slug
@@ -40,6 +41,9 @@ async function generate() {
       name: rest.name,
       provider: rest.provider,
       tier: rest.tier,
+      // v0.9: model_class is always emitted. Defaults to 'chat' for any row
+      // somehow missing the column (shouldn't happen post-migration 021).
+      model_class: rest.model_class ?? 'chat',
       pricing: rest.pricing,
       context_window: rest.context_window,
       capabilities: rest.capabilities,
@@ -51,6 +55,10 @@ async function generate() {
       transparency: rest.transparency,
       sustainability: rest.sustainability,
       ...(rest.local_info ? { local_info: rest.local_info } : {}),
+      // Embedding-specific fields only emitted on embedding rows.
+      ...(rest.embedding_dim != null ? { embedding_dim: rest.embedding_dim } : {}),
+      ...(rest.max_input_tokens != null ? { max_input_tokens: rest.max_input_tokens } : {}),
+      ...(rest.supports_matryoshka ? { supports_matryoshka: true } : {}),
     }
   }
 

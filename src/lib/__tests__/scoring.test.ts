@@ -508,9 +508,15 @@ describe('needs_multilingual (Phase 4.5a)', () => {
     priorityOrder: defaultPriority,
   }
 
-  // Find a multilingual-capable model and a non-multilingual one for asymmetric checks.
-  const multilingualModel = getAllModels().find(m => m.capabilities.includes('multilingual'))!
-  const nonMultilingualModel = getAllModels().find(m => !m.capabilities.includes('multilingual'))!
+  // Find a multilingual-capable model and a non-multilingual one for asymmetric
+  // checks. Scope to chat models — embedding models are class-filtered out
+  // under taskType='analyse' and would never appear in scoreModels output.
+  const multilingualModel = getAllModels().find(
+    m => m.model_class === 'chat' && m.capabilities.includes('multilingual'),
+  )!
+  const nonMultilingualModel = getAllModels().find(
+    m => m.model_class === 'chat' && !m.capabilities.includes('multilingual'),
+  )!
 
   it('boosts quality by 1.10× on a multilingual-capable model when needsMultilingual=true', () => {
     const baseline = scoreModels(baseInput).find(m => m.slug === multilingualModel.slug)!
@@ -662,7 +668,12 @@ describe('hardFilter (Phase 5.1)', () => {
   })
 
   it('rejects models without vision when needsVision', () => {
-    const noVision = getAllModels().find(m => !m.capabilities.includes('vision'))!
+    // Scope to chat models so the class filter doesn't pre-empt with
+    // 'wrong_class' before missing_vision is reached (baseInput.taskType
+    // is 'analyse', which is a chat task).
+    const noVision = getAllModels().find(
+      m => m.model_class === 'chat' && !m.capabilities.includes('vision'),
+    )!
     const result = hardFilter(noVision, { ...baseInput, needsVision: true })
     expect(result).toEqual({ ok: false, reason: 'missing_vision' })
   })
@@ -732,7 +743,12 @@ describe('scoreModelsDetailed (Phase 5.1)', () => {
       dataSensitivity: 'on_prem_required',
     })
     expect(result.excluded.length).toBeGreaterThan(0)
-    expect(result.excluded.every(e => e.reason === 'on_prem_required')).toBe(true)
+    // After v0.9, the excluded list contains BOTH on_prem_required rejections
+    // (cloud-only chat models) AND wrong_class rejections (every embedding
+    // model, since taskType='analyse' is a chat task). Both reasons are
+    // legitimate.
+    expect(result.excluded.every(e => e.reason === 'on_prem_required' || e.reason === 'wrong_class')).toBe(true)
+    expect(result.excluded.some(e => e.reason === 'on_prem_required')).toBe(true)
     expect(result.models.every(m => {
       const model = getModel(m.slug)!
       return !!model.local_info
