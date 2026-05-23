@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Nav } from "@/components/nav";
+import { Analytics } from "@/components/analytics";
 import "./globals.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://findbearing.org";
@@ -46,6 +47,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased" data-scroll-behavior="smooth">
       <body className="min-h-full flex flex-col font-body">
+        <Analytics />
         <Nav />
 
         <main className="flex-1">{children}</main>
