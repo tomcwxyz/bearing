@@ -1,4 +1,4 @@
-import { getAllModels, type Factor, type Model } from './registry'
+import { ALL_TASK_TYPES, getAllModels, type Factor, type Model } from './registry'
 import { priorityToWeights } from './weights'
 
 export interface ScoringInput {
@@ -185,7 +185,23 @@ function qualityScore(
   benchmarkScores: Map<string, number> | undefined,
   blend: number,
 ): number {
-  const curated = model.task_fitness[taskType] ?? 0.5
+  const curated = model.task_fitness[taskType]
+  if (curated === undefined) {
+    // Post-v0.8 every registry row carries all twelve canonical keys, so a
+    // miss either means the classifier returned a value outside the enum
+    // (bug upstream) or the registry row is stale. Warn and fall back to
+    // 0.5 so we don't silently bias rankings — but make the gap visible.
+    if ((ALL_TASK_TYPES as readonly string[]).includes(taskType)) {
+      console.warn(
+        `[scoring] model ${model.slug} is missing task_fitness key "${taskType}" — registry row may be stale; falling back to 0.5`,
+      )
+    } else {
+      console.warn(
+        `[scoring] received unknown taskType "${taskType}" not in ALL_TASK_TYPES — classifier output drift; falling back to 0.5`,
+      )
+    }
+    return 0.5
+  }
   if (blend <= 0 || !benchmarkScores) return curated
   const benchmark = benchmarkScores.get(`${model.slug}::${taskType}`)
   if (benchmark === undefined) return curated

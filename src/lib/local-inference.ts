@@ -1,4 +1,4 @@
-import type { Model, LocalInfo, QuantOption } from './registry'
+import { ALL_TASK_TYPES, type Model, type LocalInfo, type QuantOption } from './registry'
 import type { ScoredModel } from './scoring'
 
 // ---------------------------------------------------------------------------
@@ -108,7 +108,23 @@ export function scoreLocalModels(
     const full = modelMap.get(scored.slug)
     if (!full?.local_info) continue
 
-    const taskFitness = full.task_fitness[taskType] ?? 0
+    // Post-v0.8 a missing key is a registry/classifier drift bug, not a
+    // legitimate "no fit" signal. Warn instead of silent-zeroing (which
+    // disappeared the entire "Run it locally" section under the old `other`
+    // task type). 0.5 keeps the model in candidate pool so the bug surfaces.
+    let taskFitness = full.task_fitness[taskType]
+    if (taskFitness === undefined) {
+      if ((ALL_TASK_TYPES as readonly string[]).includes(taskType)) {
+        console.warn(
+          `[local-inference] model ${full.slug} is missing task_fitness key "${taskType}" — registry row may be stale; treating as 0.5`,
+        )
+      } else {
+        console.warn(
+          `[local-inference] received unknown taskType "${taskType}" not in ALL_TASK_TYPES — classifier output drift; treating as 0.5`,
+        )
+      }
+      taskFitness = 0.5
+    }
     if (taskFitness < MIN_TASK_FITNESS) continue
 
     const bestQuant = pickBestQuant(full.local_info.quant_options)

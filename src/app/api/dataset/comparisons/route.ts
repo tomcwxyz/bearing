@@ -12,6 +12,9 @@ export async function GET(request: NextRequest) {
 
   const sql = getDb()
 
+  // Dedupe: a user can record the same pairwise comparison multiple times
+  // (re-clicking preferences). Keep only the latest row per
+  // (task_id, model_a_slug, model_b_slug).
   const rows = await sql`
     SELECT
       t.task_type,
@@ -21,9 +24,14 @@ export async function GET(request: NextRequest) {
       c.preferred,
       c.preference_reason,
       c.created_at::date AS task_date
-    FROM comparisons c
+    FROM (
+      SELECT DISTINCT ON (task_id, model_a_slug, model_b_slug)
+        task_id, model_a_slug, model_b_slug, preferred, preference_reason, created_at
+      FROM comparisons
+      WHERE preferred IS NOT NULL
+      ORDER BY task_id, model_a_slug, model_b_slug, created_at DESC
+    ) c
     INNER JOIN tasks t ON t.id = c.task_id
-    WHERE c.preferred IS NOT NULL
     ORDER BY c.created_at DESC
   `
 

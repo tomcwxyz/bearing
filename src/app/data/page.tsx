@@ -15,9 +15,13 @@ export default function DataPage() {
             </h2>
             <p className="mt-3 leading-relaxed">
               Every time someone uses Bearing, we record the task classification
-              (type, subtype, complexity), the user&apos;s priority ranking, which
-              models were recommended and at what scores, which model the user
-              selected, and -- optionally -- whether it worked.
+              (type, subtype, complexity), the user&apos;s priority ranking and
+              the normalised factor weights the recommender actually applied,
+              which models were recommended and at what scores, any multi-stage
+              pipeline plan, which model the user selected (if any), and --
+              optionally -- whether it worked. Tasks that reached the
+              recommendation stage are included even when the user did not pick
+              a model.
             </p>
             <p className="mt-3 leading-relaxed">
               We also publish head-to-head comparison data: which two models were
@@ -153,10 +157,16 @@ export default function DataPage() {
                       ['needs_vision', 'boolean', 'Requires image/vision capabilities'],
                       ['needs_tools', 'boolean', 'Requires tool use / function calling'],
                       ['needs_code', 'boolean', 'Requires code generation'],
+                      ['needs_reasoning', 'boolean', 'Requires multi-step reasoning'],
                       ['is_recurring', 'boolean', 'Recurring or repeated task'],
+                      ['mode', 'string', 'recommend | pipeline | validate'],
                       ['priority_order', 'string[]', 'User-ranked priority factors'],
+                      ['excluded_factors', 'string[]', 'Factors the user opted out of'],
+                      ['factor_weights', 'object?', 'Normalised per-factor weights actually applied'],
+                      ['pipeline_stages', 'object[]?', 'Multi-stage plan if recommended'],
+                      ['classification_schema_version', 'string', 'v0.7 or v0.8 — task_type enum used'],
                       ['models_recommended', 'object[]', '{slug, rank, weighted_score}'],
-                      ['model_selected', 'object', '{slug, recommended_rank}'],
+                      ['model_selected', 'object?', '{slug, recommended_rank} — null if no selection'],
                       ['outcome_success', 'boolean?', 'User-reported success'],
                       ['failure_reason', 'string?', 'Failure reason if applicable'],
                       ['task_date', 'date', 'Date the task was created'],
@@ -194,6 +204,7 @@ export default function DataPage() {
                   <tbody className="divide-y divide-cream-dark">
                     {[
                       ['task_type', 'string', 'Primary task category'],
+                      ['classification_schema_version', 'string', 'v0.7 or v0.8 — task_type enum used'],
                       ['model_a_slug', 'string', 'First model in comparison'],
                       ['model_b_slug', 'string', 'Second model in comparison'],
                       ['preferred', 'string', 'model_a | model_b | tie'],

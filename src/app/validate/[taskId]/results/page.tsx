@@ -1,6 +1,6 @@
 import { getValidationResults } from '@/app/actions'
 import type { ScoredModel } from '@/lib/scoring'
-import type { Factor } from '@/lib/registry'
+import { TASK_TYPE_LABELS, type Factor } from '@/lib/registry'
 
 const FACTOR_LABELS: Record<Factor, string> = {
   cost: 'Cost',
@@ -174,7 +174,7 @@ export default async function ValidateResultsPage({
           Validation results
         </h2>
         <p className="text-grey-blue mb-8">
-          Assessed for <strong>{task.task_type}</strong> tasks
+          Assessed for <strong>{(TASK_TYPE_LABELS as Record<string, string>)[task.task_type] ?? task.task_type}</strong> tasks
         </p>
 
         {/* Assessment banner */}
