@@ -685,6 +685,38 @@ describe('hardFilter (Phase 5.1)', () => {
     const opus = getModel('claude-opus-4.7')!
     expect(hardFilter(opus, baseInput)).toEqual({ ok: true })
   })
+
+  // v0.9 — model_class routing
+  it('rejects chat models on an embedding task', () => {
+    const opus = getModel('claude-opus-4.7')!
+    const result = hardFilter(opus, { ...baseInput, taskType: 'embedding' })
+    expect(result).toEqual({ ok: false, reason: 'wrong_class' })
+  })
+
+  it('rejects embedding models on a non-embedding task', () => {
+    // No seeded embedding models yet (phase 3), so synthesise one inline.
+    const opus = getModel('claude-opus-4.7')!
+    const stubEmbedding = { ...opus, model_class: 'embedding' as const }
+    const result = hardFilter(stubEmbedding, baseInput) // taskType = 'analyse'
+    expect(result).toEqual({ ok: false, reason: 'wrong_class' })
+  })
+
+  it('admits an embedding model on an embedding task', () => {
+    const opus = getModel('claude-opus-4.7')!
+    const stubEmbedding = { ...opus, model_class: 'embedding' as const }
+    const result = hardFilter(stubEmbedding, { ...baseInput, taskType: 'embedding' })
+    expect(result).toEqual({ ok: true })
+  })
+
+  it('class filter runs before capability gates (no missing_vision on an embedding mismatch)', () => {
+    // A chat model that lacks vision being scored on an embedding task with
+    // needsVision=true should report wrong_class — not missing_vision —
+    // because class routing is the dominant rejection reason.
+    const opus = getModel('claude-opus-4.7')!
+    const noVision = { ...opus, capabilities: opus.capabilities.filter(c => c !== 'vision') }
+    const result = hardFilter(noVision, { ...baseInput, taskType: 'embedding', needsVision: true })
+    expect(result).toEqual({ ok: false, reason: 'wrong_class' })
+  })
 })
 
 describe('scoreModelsDetailed (Phase 5.1)', () => {

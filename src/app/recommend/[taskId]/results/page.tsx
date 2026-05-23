@@ -62,6 +62,7 @@ const REASON_LABELS: Record<HardFilterReason, string> = {
   missing_vision: 'they do not support vision',
   missing_tools: 'they do not support tool use',
   missing_code: 'they are not coding-capable',
+  wrong_class: 'they are the wrong model class (embedding vs chat) for this task',
 }
 
 function ExclusionSummary({ excluded }: { excluded: Exclusion[] }) {
