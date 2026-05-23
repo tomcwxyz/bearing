@@ -17,7 +17,7 @@ function getDb() {
   return neon(url)
 }
 
-export type BenchmarkSource = 'lmarena' | 'livebench' | 'artificialanalysis'
+export type BenchmarkSource = 'lmarena' | 'livebench' | 'artificialanalysis' | 'mteb'
 
 export type SignalType = 'task' | 'speed' | 'latency'
 
@@ -88,6 +88,19 @@ export const CATEGORY_TO_TASKS: Record<BenchmarkSource, Record<string, TaskType[
     tau2: ['code', 'reasoning'],
     terminalbench_hard: ['code', 'reasoning'],
     lcr: ['code'],
+  },
+  // MTEB (Massive Text Embedding Benchmark). All four sub-categories collapse
+  // to the single `embedding` task type — the four are highly correlated and
+  // the recommender only needs one quality signal per embedding model.
+  // `mteb.overall` is the headline average that publishers cite on model
+  // cards; the four sub-categories exist as future-compatible buckets if we
+  // ever want to weight retrieval vs STS differently in scoring.
+  mteb: {
+    overall: ['embedding'],
+    retrieval: ['embedding'],
+    sts: ['embedding'],
+    classification: ['embedding'],
+    clustering: ['embedding'],
   },
 }
 

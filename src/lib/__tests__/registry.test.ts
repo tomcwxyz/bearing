@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { getRegistry, getModel, getAllModels, getModelSlugs, ALL_TASK_TYPES, TASK_TYPE_LABELS } from '../registry'
+import { CATEGORY_TO_TASKS } from '../benchmarks'
 
 describe('registry', () => {
   it('loads the registry with metadata', () => {
@@ -82,6 +83,28 @@ describe('registry', () => {
     for (const m of embeddingModels) {
       expect(m.embedding_dim, `${m.slug}: embedding_dim required`).toBeTypeOf('number')
       expect(m.max_input_tokens, `${m.slug}: max_input_tokens required`).toBeTypeOf('number')
+    }
+  })
+
+  it('every CATEGORY_TO_TASKS entry maps to a valid TaskType', () => {
+    const validTypes = new Set<string>(ALL_TASK_TYPES as readonly string[])
+    for (const [source, cats] of Object.entries(CATEGORY_TO_TASKS)) {
+      for (const [cat, tasks] of Object.entries(cats)) {
+        for (const t of tasks) {
+          expect(
+            validTypes.has(t),
+            `CATEGORY_TO_TASKS.${source}.${cat} points at unknown task type "${t}"`,
+          ).toBe(true)
+        }
+      }
+    }
+  })
+
+  it('all four mteb sub-categories + overall map to embedding only', () => {
+    const mteb = CATEGORY_TO_TASKS.mteb
+    expect(mteb).toBeDefined()
+    for (const cat of ['overall', 'retrieval', 'sts', 'classification', 'clustering']) {
+      expect(mteb[cat], `mteb.${cat} should be defined`).toEqual(['embedding'])
     }
   })
 })

@@ -420,8 +420,12 @@ export async function suggestAliasesForImport(input: {
 }): Promise<SuggestionsBySource> {
   await requireAdmin()
 
+  // MTEB intentionally omitted from suggestion fetching: it covers embedding
+  // models only and admin "discover" is chat-focused (imports from OpenRouter).
+  // Embedding aliases are seeded via scripts/ingest-mteb.ts. We still seed an
+  // empty bucket so SuggestionsBySource's shape is satisfied.
   const sources: BenchmarkSource[] = ['lmarena', 'livebench', 'artificialanalysis']
-  const result: SuggestionsBySource = { lmarena: [], livebench: [], artificialanalysis: [] }
+  const result: SuggestionsBySource = { lmarena: [], livebench: [], artificialanalysis: [], mteb: [] }
 
   for (const source of sources) {
     const candidates = await getCandidateSourceModelNames(source)
