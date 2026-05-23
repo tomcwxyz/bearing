@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getRegistry, getModel, getAllModels, getModelSlugs } from '../registry'
+import { getRegistry, getModel, getAllModels, getModelSlugs, ALL_TASK_TYPES, TASK_TYPE_LABELS } from '../registry'
 
 describe('registry', () => {
   it('loads the registry with metadata', () => {
@@ -33,5 +33,24 @@ describe('registry', () => {
     expect(slugs).toContain('ibm-granite-3.3')
     expect(slugs).toContain('mistral-ocr')
     expect(slugs.length).toBe(31)
+  })
+
+  it('exposes thirteen canonical task types including embedding', () => {
+    expect(ALL_TASK_TYPES.length).toBe(13)
+    expect(ALL_TASK_TYPES).toContain('embedding')
+    expect(ALL_TASK_TYPES).not.toContain('vision')
+    expect(ALL_TASK_TYPES).not.toContain('other')
+    // every task type has a UI label
+    for (const t of ALL_TASK_TYPES) {
+      expect(TASK_TYPE_LABELS[t]).toBeTruthy()
+    }
+  })
+
+  it('defaults model_class to "chat" on existing rows', () => {
+    const all = getAllModels()
+    expect(all.length).toBeGreaterThan(0)
+    for (const m of all) {
+      expect(m.model_class).toBe('chat')
+    }
   })
 })

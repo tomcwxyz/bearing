@@ -319,6 +319,10 @@ export function modelRowToModel(row: any): Model {
     name: row.name,
     provider: row.provider,
     tier: row.tier,
+    // model_class falls back to 'chat' for rows written before migration 021
+    // (the column defaults to 'chat' in the schema, so this is belt-and-
+    // braces against any code path that constructs a row without it).
+    model_class: row.model_class ?? 'chat',
     pricing: row.pricing,
     context_window: row.context_window,
     capabilities: row.capabilities,
@@ -330,6 +334,9 @@ export function modelRowToModel(row: any): Model {
     transparency: row.transparency,
     sustainability: row.sustainability,
     ...(row.local_info ? { local_info: row.local_info } : {}),
+    ...(row.embedding_dim != null ? { embedding_dim: row.embedding_dim } : {}),
+    ...(row.max_input_tokens != null ? { max_input_tokens: row.max_input_tokens } : {}),
+    ...(row.supports_matryoshka != null ? { supports_matryoshka: row.supports_matryoshka } : {}),
   }
 }
 
