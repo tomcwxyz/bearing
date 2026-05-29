@@ -19,7 +19,7 @@ function getDb() {
 
 export type BenchmarkSource = 'lmarena' | 'livebench' | 'artificialanalysis' | 'mteb' | 'ecologits'
 
-export type SignalType = 'task' | 'speed' | 'latency'
+export type SignalType = 'task' | 'speed' | 'latency' | 'sustainability'
 
 // Maps a source's category name onto one or more bearing task types.
 // A source category can map to multiple task types (e.g. LiveBench "language"
@@ -229,6 +229,7 @@ export async function getLatestBenchmarkScores(): Promise<Map<string, number>> {
         source, source_category, bearing_slug, normalised_score
       FROM benchmark_snapshots
       WHERE bearing_slug IS NOT NULL
+        AND (signal_type = 'task' OR signal_type IS NULL)
       ORDER BY source, source_category, bearing_slug, snapshot_date DESC, captured_at DESC
     )
     SELECT source, source_category, bearing_slug, normalised_score

@@ -49,7 +49,8 @@ async function generate() {
   // Blend ratio: 0 = fully curated, 1 = fully ecologits.
   // When curated inference_energy is null, ecologits is adopted directly
   // regardless of blend ratio.
-  const ECOLOGITS_BLEND = parseFloat(process.env.ECOLOGITS_BLEND ?? '0.5')
+  const rawBlend = parseFloat(process.env.ECOLOGITS_BLEND ?? '0.5')
+  const ECOLOGITS_BLEND = isNaN(rawBlend) ? 0.5 : Math.max(0, Math.min(1, rawBlend))
 
   const registryPath = join(__dirname, '..', 'src', 'data', 'bearing-registry.json')
   const existing = JSON.parse(readFileSync(registryPath, 'utf-8'))
@@ -89,6 +90,7 @@ async function generate() {
       const sustainability = models[slug as string].sustainability
       if (sustainability) {
         const curated = sustainability.inference_energy as number | null
+
         const blended = curated == null
           ? ecoScore
           : curated * (1 - ECOLOGITS_BLEND) + ecoScore * ECOLOGITS_BLEND
@@ -105,6 +107,8 @@ async function generate() {
           inference_energy: Math.round(blended * 100) / 100,
           sustainability_score: Math.round(composite * 100) / 100,
         }
+      } else {
+        console.warn(`  ⚠ ${slug}: has EcoLogits score but no sustainability object — score dropped`)
       }
     }
   }

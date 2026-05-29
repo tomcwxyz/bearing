@@ -111,6 +111,7 @@ async function run() {
       voteCount: null,
       snapshotDate: SNAPSHOT_DATE,
       lowerIsBetter: true,
+      signalType: 'sustainability',
     })
   }
 
