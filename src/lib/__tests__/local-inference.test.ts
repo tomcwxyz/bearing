@@ -37,6 +37,7 @@ function makeModel(slug: string, taskFitness: Record<string, number>, localInfo?
     name: slug,
     provider: 'Test',
     tier: 'balanced',
+    model_class: 'chat',
     pricing: { input_per_1m: 1, output_per_1m: 5 },
     context_window: 128000,
     capabilities: ['code'],

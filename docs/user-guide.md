@@ -1,6 +1,6 @@
 # User Guide
 
-This guide covers everything you need to know about using Bearing to find, validate, and compare AI models.
+This guide covers everything you need to know about using Bearing to find, validate, and compare AI models — including embedding models for search and retrieval.
 
 ## Getting a recommendation
 
@@ -47,6 +47,8 @@ If your task involves multiple steps — like extracting text from a PDF and the
 
 Each stage shows a recommended model and one alternative. The footer compares the total pipeline cost against the top single-model recommendation so you can see the trade-off at a glance.
 
+If a stage requires a capability (like vision or tool use) that the recommended model doesn't support, the stage card shows a warning so you know exactly where the gap is.
+
 Not every task gets a pipeline suggestion — only tasks where splitting the work across models would genuinely help.
 
 ### Step 5: Select a model
@@ -76,6 +78,40 @@ Bearing will show one of three assessments:
 
 In all cases, the full ranked list is shown below so you can explore.
 
+## Finding an embedding model
+
+If you're building a search index, RAG pipeline, or anything that needs to convert text into vectors, the **Embedding** tab on the home page is the fastest way to find the right model.
+
+Embedding models are fundamentally different from chat models — they produce fixed-length vectors rather than text, they're priced on input tokens only, and the key quality signal is MTEB (Massive Text Embedding Benchmark) rather than chat-style evals. Bearing handles all of this separately so you get relevant results.
+
+### How it works
+
+1. Go to the **Embedding** tab on the home page (or visit `/embedding` directly)
+2. Answer five quick questions:
+   - **What's it for?** — retrieval/RAG, semantic similarity, classification, clustering, or deduplication
+   - **How long are the texts?** — short (queries, sentences), medium (paragraphs), or long (full documents)
+   - **Hosting preference** — hosted API or open weights you can run yourself
+   - **Languages** — English only, a handful of languages, or broad multilingual coverage
+   - **Latency** — batch (building an index overnight), interactive (embedding queries at request time), or realtime
+3. Tap **Show me embedding models**
+
+### Reading the results
+
+Each model card shows:
+- **Match score** — weighted against your use case, hosting preference, and latency need
+- **Embedding dimension** — the size of the vectors produced (larger = more expressive, more storage)
+- **Matryoshka badge** — if present, you can truncate the vector to a smaller size without retraining, saving storage without much quality loss
+- **Max input** — the maximum number of tokens the model can embed in one call
+- **Price** — per million input tokens, or "Free (self-host)" for open-weight models
+
+### Open-weight options
+
+If you choose **Prefer open / self-hosted**, Bearing shows only models you can run locally: BGE-M3, Nomic-embed-v2-MoE, and GTE-Qwen2-7B. These can be served with Ollama, llama.cpp, or the `sentence-transformers` Python library. Useful when data cannot leave your infrastructure.
+
+### Embedding stages in pipelines
+
+When Bearing suggests a pipeline for a multi-step task (e.g. "process PDFs, build a search index, answer queries"), embedding stages are automatically routed to embedding models — not chat models. The stage card shows the embedding model's dimension, Matryoshka support, and per-million-token price.
+
 ## Comparing two models
 
 For tasks where specs alone don't tell the full story — creative writing, nuanced analysis, tone-sensitive work — you can run a head-to-head comparison.
@@ -104,7 +140,7 @@ Your preference is recorded as pairwise data — the same format used by researc
 
 ## Browsing the model registry
 
-Visit the **Models** page to explore all 29 models in the registry.
+Visit the **Models** page to explore all 41 models in the registry — 31 chat models and 10 embedding models.
 
 ### Filtering
 
@@ -119,10 +155,11 @@ Tap any filter again to remove it, or use **Clear filters** to reset.
 Click any model card to see its full profile:
 
 - Capabilities, strengths, and weaknesses
-- Pricing (per million tokens, input and output)
+- Pricing (per million tokens, input and output — embedding models show input-only)
 - Transparency scores (open weights, training data, methodology, licence, provider disclosure)
 - Sustainability data (inference energy, training footprint, provider infrastructure)
 - Task fitness bars showing how well the model performs across different task types
+- For embedding models: embedding dimension, max input length, Matryoshka support, and MTEB quality score
 
 Want to understand how these scores are calculated? See [How We Rate Models](model-ratings.md) for the full methodology, research sources, and decisions behind every rating.
 
@@ -140,10 +177,10 @@ Feedback is the most valuable signal for improving recommendations. Even a thumb
 
 All anonymised data is available for download on the **Data** page.
 
-- **Recommendation data** — task types, priorities, which model was recommended and chosen, outcomes
+- **Recommendation data** — task types, priorities, which models were recommended (with `model_class` so you can filter chat vs embedding recommendations), local inference alternatives, and outcomes
 - **Comparison data** — which model was preferred in head-to-head tests
 
-Available in JSON and CSV formats. Never includes raw descriptions, prompts, email addresses, or anything that could identify you.
+Available in JSON and CSV formats. The dataset covers every task that reached the recommendation stage, including tasks where no model was ultimately selected. Never includes raw descriptions, prompts, email addresses, or anything that could identify you.
 
 ## Managing models (admin)
 

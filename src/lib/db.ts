@@ -49,6 +49,9 @@ export interface RecommendationInput {
 
 /** Insert a new task row and return its UUID. */
 export async function createTask(params: TaskParams): Promise<string> {
+  // Embedding tasks follow schema v0.9 which introduced the embedding task type;
+  // all other task types remain on v0.8.
+  const schemaVersion = params.taskType === 'embedding' ? 'v0.9' : 'v0.8'
   const rows = await getDb()`
     INSERT INTO tasks (
       description_hash,
@@ -95,7 +98,7 @@ export async function createTask(params: TaskParams): Promise<string> {
       ${params.priorityOrder ? JSON.stringify(params.priorityOrder) : null},
       ${params.classificationConfidence ?? null},
       ${params.pipelineStages ? JSON.stringify(params.pipelineStages) : null},
-      'v0.8'
+      ${schemaVersion}
     )
     RETURNING id
   `
@@ -319,6 +322,10 @@ export function modelRowToModel(row: any): Model {
     name: row.name,
     provider: row.provider,
     tier: row.tier,
+    // model_class falls back to 'chat' for rows written before migration 021
+    // (the column defaults to 'chat' in the schema, so this is belt-and-
+    // braces against any code path that constructs a row without it).
+    model_class: row.model_class ?? 'chat',
     pricing: row.pricing,
     context_window: row.context_window,
     capabilities: row.capabilities,
@@ -330,6 +337,9 @@ export function modelRowToModel(row: any): Model {
     transparency: row.transparency,
     sustainability: row.sustainability,
     ...(row.local_info ? { local_info: row.local_info } : {}),
+    ...(row.embedding_dim != null ? { embedding_dim: row.embedding_dim } : {}),
+    ...(row.max_input_tokens != null ? { max_input_tokens: row.max_input_tokens } : {}),
+    ...(row.supports_matryoshka != null ? { supports_matryoshka: row.supports_matryoshka } : {}),
   }
 }
 
@@ -389,13 +399,20 @@ export async function upsertModel(model: {
   local_info?: any;
   openrouter_id?: string | null;
   active?: boolean;
+  // v0.9 fields. Defaults preserve chat-model behaviour for all existing
+  // call sites; embedding seed scripts pass these explicitly.
+  model_class?: 'chat' | 'embedding';
+  embedding_dim?: number | null;
+  max_input_tokens?: number | null;
+  supports_matryoshka?: boolean;
 }): Promise<void> {
   await getDb()`
     INSERT INTO models (
       slug, name, provider, tier, pricing, context_window,
       capabilities, strengths, weaknesses, task_fitness,
       speed_score, privacy_score, transparency, sustainability,
-      local_info, openrouter_id, active
+      local_info, openrouter_id, active,
+      model_class, embedding_dim, max_input_tokens, supports_matryoshka
     ) VALUES (
       ${model.slug}, ${model.name}, ${model.provider}, ${model.tier},
       ${JSON.stringify(model.pricing)}::jsonb, ${model.context_window},
@@ -406,7 +423,11 @@ export async function upsertModel(model: {
       ${JSON.stringify(model.sustainability)}::jsonb,
       ${model.local_info ? JSON.stringify(model.local_info) : null}::jsonb,
       ${model.openrouter_id ?? null},
-      ${model.active ?? true}
+      ${model.active ?? true},
+      ${model.model_class ?? 'chat'},
+      ${model.embedding_dim ?? null},
+      ${model.max_input_tokens ?? null},
+      ${model.supports_matryoshka ?? false}
     )
     ON CONFLICT (slug) DO UPDATE SET
       name = EXCLUDED.name, provider = EXCLUDED.provider, tier = EXCLUDED.tier,
@@ -417,6 +438,10 @@ export async function upsertModel(model: {
       transparency = EXCLUDED.transparency, sustainability = EXCLUDED.sustainability,
       local_info = EXCLUDED.local_info, openrouter_id = EXCLUDED.openrouter_id,
       active = EXCLUDED.active,
+      model_class = EXCLUDED.model_class,
+      embedding_dim = EXCLUDED.embedding_dim,
+      max_input_tokens = EXCLUDED.max_input_tokens,
+      supports_matryoshka = EXCLUDED.supports_matryoshka,
       updated_at = now()
   `
 }

@@ -2,10 +2,12 @@ import registryData from '@/data/bearing-registry.json'
 
 export type Factor = 'cost' | 'speed' | 'quality' | 'privacy' | 'sustainability' | 'transparency' | 'capability'
 
-// Canonical task types as of v0.8.0. The classifier picks one of these for the
-// top-level task and for each pipeline stage. `vision` was removed (it's
-// available as a capability, not a task) and `other` was removed (the
-// classifier now sets `clarification_needed: true` instead of escape-valving).
+// Canonical task types as of v0.9.0. The classifier picks one of these for
+// the top-level task and for each pipeline stage. `vision` was removed in
+// v0.8 (it's a capability, not a task); `other` was removed in v0.8 (the
+// classifier now sets `clarification_needed: true` instead of
+// escape-valving). v0.9 added `embedding` — see model_class on Model and
+// docs/plans/2026-05-23-embedding-models.md.
 export const ALL_TASK_TYPES = [
   'summarise',
   'extract',
@@ -19,6 +21,7 @@ export const ALL_TASK_TYPES = [
   'qa',
   'translate',
   'conversation',
+  'embedding',
 ] as const
 
 export type TaskType = typeof ALL_TASK_TYPES[number]
@@ -37,7 +40,15 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   qa: 'question answering',
   translate: 'translation',
   conversation: 'conversation',
+  embedding: 'embedding (vector search / RAG)',
 }
+
+// Splits the registry into generative chat models (the v0.8 set) and
+// embedding models (v0.9). Scoring uses this as a hard filter — an
+// `embedding` task routes only to `embedding` models, and every other task
+// routes only to `chat` models. New chat models added via the admin
+// flow default to 'chat'.
+export type ModelClass = 'chat' | 'embedding'
 
 export type Capability = 'vision' | 'tools' | 'code' | 'long_context' | 'extended_thinking' | 'structured_output' | 'multilingual' | 'audio' | 'video' | 'computer_use'
 
@@ -83,6 +94,11 @@ export interface Model {
   name: string
   provider: string
   tier: string
+  // 'chat' for the generative v0.8 set, 'embedding' for the v0.9 vector
+  // models. Defaults to 'chat' on existing rows (migration 021) and on
+  // newly imported models — `embedding` is set explicitly when seeding
+  // an embedding model. Used as a hard filter in scoring.
+  model_class: ModelClass
   pricing: ModelPricing
   context_window: number
   capabilities: Capability[]
@@ -94,6 +110,12 @@ export interface Model {
   transparency: ModelTransparency
   sustainability: ModelSustainability
   local_info?: LocalInfo
+  // Embedding-only fields. Null / undefined on chat models. Pricing
+  // invariant: when `model_class === 'embedding'`, `pricing.output_per_1m`
+  // is always 0 (embedding APIs bill input tokens only).
+  embedding_dim?: number | null
+  max_input_tokens?: number | null
+  supports_matryoshka?: boolean | null
 }
 
 export interface Registry {
@@ -116,7 +138,15 @@ export function getRegistry(): Registry {
   const data = registryData as any
   const models: Record<string, Model> = {}
   for (const [slug, model] of Object.entries(data.models)) {
-    models[slug] = { slug, ...(model as any) }
+    // Default model_class to 'chat' for rows that pre-date v0.9 — the JSON
+    // is regenerated from the DB, but the v0.8 dump won't carry the new
+    // column until the next `scripts/generate-registry.ts` run.
+    const raw = model as Record<string, unknown>
+    models[slug] = {
+      slug,
+      model_class: (raw.model_class as ModelClass) ?? 'chat',
+      ...(raw as Omit<Model, 'slug' | 'model_class'>),
+    }
   }
   return { ...data, models }
 }

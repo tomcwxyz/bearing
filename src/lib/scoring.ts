@@ -229,6 +229,12 @@ export type HardFilterReason =
   | 'missing_vision'
   | 'missing_tools'
   | 'missing_code'
+  // v0.9: routes embedding tasks to model_class='embedding' models only,
+  // and all other tasks to model_class='chat' models only. Embedding
+  // models have task_fitness scores that don't compare meaningfully to
+  // chat models on generative tasks (and vice versa) — the two are
+  // disjoint workloads, so a hard class filter beats trying to blend.
+  | 'wrong_class'
 
 export interface HardFilterResult {
   ok: boolean
@@ -236,6 +242,16 @@ export interface HardFilterResult {
 }
 
 export function hardFilter(model: Model, input: ScoringInput): HardFilterResult {
+  // Class routing runs first so the rest of the filter chain doesn't have to
+  // reason about cross-class comparisons. An `embedding` task wants a vector
+  // model; anything else wants a chat model.
+  const wantsEmbedding = input.taskType === 'embedding'
+  if (wantsEmbedding && model.model_class !== 'embedding') {
+    return { ok: false, reason: 'wrong_class' }
+  }
+  if (!wantsEmbedding && model.model_class === 'embedding') {
+    return { ok: false, reason: 'wrong_class' }
+  }
   if (input.needsLongContext && model.context_window < LONG_CONTEXT_THRESHOLD) {
     return { ok: false, reason: 'long_context' }
   }

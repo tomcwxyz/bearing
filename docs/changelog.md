@@ -4,10 +4,32 @@ All notable changes to Bearing will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.9.0] — 2026-05-29
+
+### Added
+
+- **Embedding models as a first-class category** — Bearing now recommends embedding models for vector-producing tasks. Ten embedding models added to the registry: OpenAI text-embedding-3-large and -small, Voyage 3 Large and Lite, Cohere Embed v4, Mistral Embed 2, GreenPT Green Embedding, BGE-M3, Nomic-embed-v2-MoE, and GTE-Qwen2-7B. Open-weight models include local deployment guidance.
+- **MTEB benchmark ingest** — embedding model quality is grounded in MTEB Overall averages (Muennighoff et al. 2023). Scores are normalised within the embedding-model cohort and blended with curated values via the existing `BENCHMARK_BLEND` environment variable.
+- **`/embedding` entry point** — a dedicated "Find an embedding model" form on the home page. Fields: use case, input size, hosting preference (hosted / open weights), languages, and latency requirement. No LLM classification needed — the form maps directly to a scored recommendation.
+- **Model class routing** — a new `model_class` field (`"chat"` | `"embedding"`) on every registry entry hard-filters models to the correct workload. Embedding tasks never see chat models; chat tasks never see embedding models. The rejection reason `wrong_class` appears on the results page for mismatches.
+- **Embedding-aware pipeline stage cards** — when a pipeline stage has `task_type = "embedding"`, the stage card shows the embedding model's dimension, Matryoshka badge, max input, and pricing as "$X.XX / 1M tokens" or "Free (self-host)".
+- **Model detail page adapts for embedding models** — pricing section shows input-only billing; a new "Embedding specs" section surfaces dim / max input / Matryoshka support; Task Fitness collapses to a single MTEB quality bar.
+- **`model_class` in public dataset** — every entry in `models_recommended` and `local_recommendations` now carries a `model_class` field. Dataset schema version 1.3 → 1.4.
+
+### Changed
+
+- **`classification_schema_version`** for new tasks bumped to `v0.9`. Adds `embedding` as the 13th canonical task type. Backward-compatible superset of v0.8.
+- **Home page** gains an "Embedding" tab alongside Recommend, Pipeline, and Validate.
+- Registry version bumped 0.8.0 → 0.9.0; 41 active models (31 chat + 10 embedding).
+
 ## [0.8.0] — 2026-05-06
 
 ### Added
 
+- **12 canonical task types** — the classifier now distinguishes between twelve types of task (summarise, extract, generate, comms, code, math, reasoning, analyse, research, Q&A, translate, conversation). More precise classification means better-matched recommendations, especially for tasks that previously fell into a catch-all bucket.
+- **Pipeline capability warnings** — if a pipeline stage requires a capability (e.g. vision or tool use) that the recommended model doesn't support, Bearing now shows a warning on the stage card rather than silently falling back. You'll know exactly which stage has a coverage gap.
+- **Per-stage detail in pipelines** — each pipeline stage now carries its own input/output length estimate and reasoning flag, so the per-stage cost estimate is more accurate and the stage model selection reflects the actual workload of that step.
+- **Local inference recommendations in the public dataset** — the open-weight models Bearing would suggest for local hardware are now included in the dataset download per task, with quant, VRAM, and hardware tier details.
 - **Artificial Analysis as a third benchmark source** — Bearing now ingests per-model evaluations (intelligence, coding, math indices, plus MMLU-Pro, GPQA, HLE, LiveCodeBench, SciCode, IFBench, Tau2, TerminalBench, AIME, LCR), output throughput, and time-to-first-token from [Artificial Analysis](https://artificialanalysis.ai). 513 models covered; existing LMArena and LiveBench coverage continues unchanged.
 - **Benchmark matches panel in admin import** — when importing a model from OpenRouter, Bearing shows ranked candidate variants per source (LMArena, LiveBench, Artificial Analysis) and lets you confirm which represent the model. Reasoning / non-reasoning / effort variants can all map to a single registry slug; their scores are averaged at recommendation time.
 - **Refresh from benchmarks button** on every model's edit page — recomputes grounded fields from the latest benchmark snapshots and provider profile without rerunning Haiku.
@@ -26,6 +48,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - The `code` capability is no longer guessed by Haiku for general-purpose models; it now reflects the grounded benchmark evidence.
 - DeepSeek, Qwen, Kimi, and Granite imports no longer default to closed-weight transparency settings.
+- Comparison model selections now persist across the sign-in redirect, so you no longer lose your two chosen models when you sign in mid-flow.
+- The public dataset now includes every task that reached the recommendation stage, not just tasks where the user made a final model selection. Earlier tasks with no selection were previously absent.
 
 ## [0.7.0] — 2026-04-15
 

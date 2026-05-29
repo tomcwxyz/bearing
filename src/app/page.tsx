@@ -39,7 +39,7 @@ function SubmitProgress() {
 }
 
 export default function Home() {
-  const [mode, setMode] = useState<'recommend' | 'validate'>('recommend')
+  const [mode, setMode] = useState<'recommend' | 'validate' | 'embedding'>('recommend')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -106,6 +106,19 @@ export default function Home() {
           >
             Validate
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'embedding'}
+            onClick={() => setMode('embedding')}
+            className={`flex-1 rounded-lg px-4 py-2.5 font-display text-sm font-semibold transition-colors ${
+              mode === 'embedding'
+                ? 'bg-navy text-cream'
+                : 'bg-cream-dark text-navy hover:bg-navy hover:text-cream'
+            }`}
+          >
+            Embedding
+          </button>
         </div>
 
         {mode === 'validate' ? (
@@ -118,6 +131,20 @@ export default function Home() {
               className="inline-block rounded-lg bg-navy px-6 py-3 font-display text-sm font-semibold text-cream transition-colors hover:bg-navy-light"
             >
               Check my model
+            </Link>
+          </div>
+        ) : mode === 'embedding' ? (
+          <div className="rounded-lg border border-cream-dark bg-white p-8 text-center" role="tabpanel">
+            <p className="mb-4 text-grey-blue">
+              Building a search index, RAG system, or similarity matcher? Pick the
+              right embedding model — Bearing ranks by MTEB, pricing, multilingual
+              coverage, and self-hosting options.
+            </p>
+            <Link
+              href="/embedding"
+              className="inline-block rounded-lg bg-navy px-6 py-3 font-display text-sm font-semibold text-cream transition-colors hover:bg-navy-light"
+            >
+              Find an embedding model
             </Link>
           </div>
         ) : (

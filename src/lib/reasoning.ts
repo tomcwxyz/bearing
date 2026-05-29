@@ -46,7 +46,14 @@ export async function generateReasoning(
 
   const text = response.content[0].type === 'text' ? response.content[0].text : '[]'
   const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-  const parsed: { slug: string; reasoning: string }[] = JSON.parse(cleaned)
+
+  let parsed: { slug: string; reasoning: string }[] = []
+  try {
+    const raw = JSON.parse(cleaned)
+    if (Array.isArray(raw)) parsed = raw
+  } catch {
+    // Claude returned unparseable output — degrade to empty reasoning
+  }
 
   const map: Record<string, string> = {}
   for (const item of parsed) {

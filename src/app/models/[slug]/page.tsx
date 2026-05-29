@@ -111,17 +111,74 @@ export default async function ModelDetailPage({
           </Section>
         </div>
 
-        {/* Pricing */}
+        {/* Pricing — embedding models bill input only (output_per_1m === 0
+            invariant); show a single price column + open-weight badge.
+            Chat models keep the three-column layout. */}
         <Section title="Pricing">
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <Stat label="Input / 1M tokens" value={`$${model.pricing.input_per_1m}`} />
-            <Stat label="Output / 1M tokens" value={`$${model.pricing.output_per_1m}`} />
-            <Stat
-              label="Context window"
-              value={`${(model.context_window / 1000).toLocaleString()}k`}
-            />
-          </div>
+          {model.model_class === 'embedding' ? (
+            <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+              <Stat
+                label="Input / 1M tokens"
+                value={
+                  model.pricing.input_per_1m === 0
+                    ? 'Free (self-host)'
+                    : `$${model.pricing.input_per_1m.toFixed(2)}`
+                }
+              />
+              <Stat
+                label="Output"
+                value="—"
+              />
+              <Stat
+                label="Hosting"
+                value={model.local_info ? 'Open weights' : 'Hosted only'}
+              />
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <Stat label="Input / 1M tokens" value={`$${model.pricing.input_per_1m}`} />
+              <Stat label="Output / 1M tokens" value={`$${model.pricing.output_per_1m}`} />
+              <Stat
+                label="Context window"
+                value={`${(model.context_window / 1000).toLocaleString()}k`}
+              />
+            </div>
+          )}
         </Section>
+
+        {/* Embedding specs — only shown for model_class='embedding'. Captures
+            the axes that actually matter when choosing a vector model:
+            output dimension (with Matryoshka note), max input length, and
+            whether partial-dimension Matryoshka truncation is supported. */}
+        {model.model_class === 'embedding' && (
+          <Section title="Embedding specs">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+              <Stat
+                label="Output dimension"
+                value={model.embedding_dim != null ? String(model.embedding_dim) : 'N/A'}
+              />
+              <Stat
+                label="Max input"
+                value={
+                  model.max_input_tokens != null
+                    ? `${model.max_input_tokens.toLocaleString()} tokens`
+                    : 'N/A'
+                }
+              />
+              <Stat
+                label="Matryoshka"
+                value={model.supports_matryoshka ? 'Supported' : 'No'}
+              />
+            </div>
+            {model.supports_matryoshka && (
+              <p className="mt-2 text-grey-blue italic text-sm">
+                Matryoshka representation learning: dimension can be truncated to a smaller
+                size at index time without retraining, trading retrieval quality for index
+                size and speed.
+              </p>
+            )}
+          </Section>
+        )}
 
         {/* Transparency */}
         <Section title="Transparency">
@@ -178,27 +235,59 @@ export default async function ModelDetailPage({
           )}
         </Section>
 
-        {/* Task Fitness */}
-        <Section title="Task Fitness">
-          <div className="space-y-3">
-            {Object.entries(model.task_fitness).map(([task, score]) => (
-              <div key={task} className="flex items-center gap-3">
-                <span className="w-28 shrink-0 text-sm text-grey-blue">
-                  {taskLabel(task)}
-                </span>
-                <div className="relative h-2.5 flex-1 rounded-full bg-cream-dark">
-                  <div
-                    className="absolute inset-y-0 left-0 rounded-full bg-teal"
-                    style={{ width: `${score * 100}%` }}
-                  />
-                </div>
-                <span className="w-10 text-right font-mono text-xs tabular-nums text-grey-blue">
-                  {(score * 100).toFixed(0)}%
-                </span>
+        {/* Task Fitness — for chat models, every task_fitness key is meaningful
+            and shown as a bar. For embedding models, the other twelve keys are
+            structurally zero (the class hard filter blocks them anyway) so we
+            collapse to a single MTEB-grounded headline. */}
+        {model.model_class === 'embedding' ? (
+          <Section title="MTEB quality">
+            <div className="flex items-center gap-3">
+              <span className="w-28 shrink-0 text-sm text-grey-blue">Embedding</span>
+              <div className="relative h-2.5 flex-1 rounded-full bg-cream-dark">
+                <div
+                  className="absolute inset-y-0 left-0 rounded-full bg-teal"
+                  style={{ width: `${(model.task_fitness.embedding ?? 0) * 100}%` }}
+                />
               </div>
-            ))}
-          </div>
-        </Section>
+              <span className="w-10 text-right font-mono text-xs tabular-nums text-grey-blue">
+                {((model.task_fitness.embedding ?? 0) * 100).toFixed(0)}%
+              </span>
+            </div>
+            <p className="mt-3 text-grey-blue italic text-sm">
+              Grounded in the MTEB (Massive Text Embedding Benchmark) Overall average
+              published by the model authors. Bearing collapses MTEB's retrieval, STS,
+              classification, and clustering categories into a single quality signal
+              because they correlate strongly for embedding models.{' '}
+              <Link href="/data" className="text-teal underline underline-offset-2 hover:text-teal-light">
+                Methodology
+              </Link>
+              .
+            </p>
+          </Section>
+        ) : (
+          <Section title="Task Fitness">
+            <div className="space-y-3">
+              {Object.entries(model.task_fitness)
+                .filter(([task]) => task !== 'embedding') // chat models always have 0 here — hide the noise
+                .map(([task, score]) => (
+                <div key={task} className="flex items-center gap-3">
+                  <span className="w-28 shrink-0 text-sm text-grey-blue">
+                    {taskLabel(task)}
+                  </span>
+                  <div className="relative h-2.5 flex-1 rounded-full bg-cream-dark">
+                    <div
+                      className="absolute inset-y-0 left-0 rounded-full bg-teal"
+                      style={{ width: `${score * 100}%` }}
+                    />
+                  </div>
+                  <span className="w-10 text-right font-mono text-xs tabular-nums text-grey-blue">
+                    {(score * 100).toFixed(0)}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Section>
+        )}
       </div>
     </div>
   )

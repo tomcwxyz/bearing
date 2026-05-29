@@ -83,7 +83,20 @@ export const CLASSIFY_TOOL = {
   input_schema: {
     type: 'object' as const,
     properties: {
-      task_type: { type: 'string', enum: ['summarise', 'generate', 'extract', 'code', 'analyse', 'translate', 'conversation', 'other'] },
+      // v0.9: thirteen canonical task types. Keep in sync with ALL_TASK_TYPES
+      // in src/lib/registry.ts and the prose enum in src/prompts/classify.md.
+      // This list was stuck on v0.7 (drive-by fix as part of phase 5) — the
+      // markdown prompt had been updated through v0.8 + v0.9 but this
+      // structured-output schema was missed, which meant some classifier
+      // responses would have been silently coerced to 'other' by the API.
+      task_type: {
+        type: 'string',
+        enum: [
+          'summarise', 'extract', 'generate', 'comms', 'code', 'math',
+          'reasoning', 'analyse', 'research', 'qa', 'translate',
+          'conversation', 'embedding',
+        ],
+      },
       task_subtype: { type: ['string', 'null'] },
       complexity: { type: 'string', enum: ['simple', 'moderate', 'complex'] },
       input_length: { type: 'string', enum: ['short', 'medium', 'long', 'very_long'] },
@@ -119,7 +132,17 @@ export const CLASSIFY_TOOL = {
           type: 'object',
           properties: {
             stage: { type: 'number' },
-            task_type: { type: 'string' },
+            // Same v0.9 enum as the top-level task_type above. Constraining
+            // pipeline stages too keeps embedding pipelines (extract →
+            // embedding → qa) parseable end-to-end.
+            task_type: {
+              type: 'string',
+              enum: [
+                'summarise', 'extract', 'generate', 'comms', 'code', 'math',
+                'reasoning', 'analyse', 'research', 'qa', 'translate',
+                'conversation', 'embedding',
+              ],
+            },
             description: { type: 'string' },
             requires_capabilities: {
               type: 'array',

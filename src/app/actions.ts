@@ -453,6 +453,160 @@ export async function getValidationResults(taskId: string, currentModelSlug: str
 }
 
 // ---------------------------------------------------------------------------
+// Embedding mode — v0.9
+// ---------------------------------------------------------------------------
+//
+// Unlike /recommend, /embedding does not need an LLM classification step:
+// the form fields map directly onto task params (task_type is always
+// 'embedding', the other fields constrain capability + priority). Persist
+// the task + recommendations so the row shows up in the public dataset
+// alongside chat-task selections.
+
+export interface EmbeddingFormInput {
+  useCase: 'retrieval' | 'similarity' | 'classification' | 'clustering' | 'dedup' | 'other'
+  inputSize: 'short' | 'medium' | 'long'
+  hosting: 'hosted' | 'open' | 'no_preference'
+  languages: 'english' | 'few' | 'many'
+  latency: 'any' | 'interactive' | 'realtime'
+}
+
+function embeddingPriorityFor(hosting: EmbeddingFormInput['hosting']): Factor[] {
+  // Default ordering: quality dominates because MTEB is the single best
+  // signal; cost / speed / capability follow; privacy / transparency /
+  // sustainability bring up the rear (they matter less for a stateless
+  // vector job). Hosting preference reshuffles privacy + transparency up
+  // when the user explicitly wants open / self-hosted.
+  if (hosting === 'open') {
+    return ['quality', 'transparency', 'privacy', 'sustainability', 'cost', 'speed', 'capability']
+  }
+  if (hosting === 'hosted') {
+    return ['quality', 'speed', 'cost', 'capability', 'privacy', 'sustainability', 'transparency']
+  }
+  return ['quality', 'cost', 'speed', 'capability', 'privacy', 'sustainability', 'transparency']
+}
+
+export async function submitEmbeddingTask(input: EmbeddingFormInput) {
+  try {
+    const priorityOrder = embeddingPriorityFor(input.hosting)
+
+    // Map the long-input case onto our 4-bucket scale so the cost estimator
+    // and (future) context-window filter resolve correctly.
+    const inputLength = input.inputSize === 'long' ? 'very_long' : input.inputSize
+
+    // Encode hosting=open as on_prem_required so the scoring hard filter
+    // routes to embedding models with local_info populated (BGE-M3, Nomic,
+    // GTE-Qwen2-7B). hosting=hosted leaves data_sensitivity at 'none'.
+    const dataSensitivity = input.hosting === 'open' ? 'on_prem_required' : 'none'
+
+    const taskId = await createTask({
+      taskType: 'embedding',
+      taskSubtype: input.useCase,
+      complexity: 'simple',
+      inputLength,
+      needsVision: false,
+      needsTools: false,
+      needsCode: false,
+      needsReasoning: false,
+      isRecurring: true,
+      dataSensitivity,
+      latencyTarget: input.latency === 'any' ? 'batch' : input.latency,
+      volume: 'one_off',
+      needsLongContext: false, // embedding models use max_input_tokens, not context_window — this filter doesn't apply
+      needsMultilingual: input.languages !== 'english',
+      isAgentic: false,
+      outputLength: 'short', // vectors are tiny relative to chat output
+      mode: 'embedding',
+      priorityOrder,
+      classificationConfidence: 1.0, // direct form input, not an LLM guess
+      pipelineStages: null,
+    })
+
+    // Score now so the row persists with recommendations attached. We use
+    // scoreModelsDetailed (not scoreModels) so excluded reasons could be
+    // surfaced if we later add UI for them.
+    const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
+    const { models } = scoreModelsDetailed({
+      taskType: 'embedding',
+      complexity: 'simple',
+      inputLength,
+      needsVision: false,
+      needsTools: false,
+      needsCode: false,
+      needsReasoning: false,
+      dataSensitivity,
+      latencyTarget: input.latency === 'any' ? 'batch' : input.latency,
+      volume: 'one_off',
+      needsLongContext: false, // embedding models use max_input_tokens, not context_window — this filter doesn't apply
+      needsMultilingual: input.languages !== 'english',
+      isAgentic: false,
+      outputLength: 'short',
+      priorityOrder,
+      benchmarkScores,
+    })
+
+    await saveRecommendations(
+      taskId,
+      models.map((m, i) => ({
+        modelSlug: m.slug,
+        rank: i + 1,
+        weightedScore: m.weightedScore,
+        factorScores: m.factorScores as Record<string, number>,
+      })),
+    )
+
+    redirect(`/embedding/${taskId}/results`)
+  } catch (error) {
+    if (isRedirectError(error)) throw error
+    return { error: error instanceof Error ? error.message : 'Failed to find embedding models.' }
+  }
+}
+
+export async function getEmbeddingResults(taskId: string) {
+  try {
+    const task = await getTask(taskId)
+    if (!task) return { error: 'Task not found.' }
+    if (task.task_type !== 'embedding') {
+      return { error: 'This task is not an embedding task.' }
+    }
+
+    const priorityOrder: Factor[] = task.priority_order
+      ? (typeof task.priority_order === 'string'
+          ? JSON.parse(task.priority_order)
+          : task.priority_order)
+      : ['quality', 'cost', 'speed', 'capability', 'privacy', 'sustainability', 'transparency']
+
+    const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
+    const { models } = scoreModelsDetailed({
+      taskType: 'embedding',
+      complexity: task.complexity ?? 'simple',
+      inputLength: task.input_length ?? 'medium',
+      needsVision: false,
+      needsTools: false,
+      needsCode: false,
+      dataSensitivity: task.data_sensitivity ?? 'none',
+      latencyTarget: task.latency_target ?? 'batch',
+      volume: 'one_off',
+      needsLongContext: task.needs_long_context ?? false,
+      needsMultilingual: task.needs_multilingual ?? false,
+      isAgentic: false,
+      outputLength: 'short',
+      priorityOrder,
+      benchmarkScores,
+    })
+
+    return {
+      task: {
+        task_type: task.task_type as string,
+        task_subtype: task.task_subtype as string | null,
+      },
+      models,
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Failed to load embedding results.' }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 // Pipeline reasoning helper
 // ---------------------------------------------------------------------------
