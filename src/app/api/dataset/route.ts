@@ -29,17 +29,6 @@ export async function GET(request: NextRequest) {
     ORDER BY r.task_id, r.rank, r.created_at DESC
   `
 
-  const recsByTask = new Map<string, { slug: string; rank: number; weighted_score: number }[]>()
-  for (const r of recs) {
-    const taskId = r.task_id as string
-    if (!recsByTask.has(taskId)) recsByTask.set(taskId, [])
-    recsByTask.get(taskId)!.push({
-      slug: r.model_slug as string,
-      rank: r.rank as number,
-      weighted_score: r.weighted_score as number,
-    })
-  }
-
   // Local-inference recommendations (open-weight models for local hardware).
   // Same dedupe pattern: a fresh set is written on every visit to the results
   // page, so we keep the latest per (task_id, rank). Tasks with no viable
@@ -54,6 +43,26 @@ export async function GET(request: NextRequest) {
     ORDER BY l.task_id, l.rank, l.created_at DESC
   `
 
+  const modelClasses = await sql`
+    SELECT slug, model_class FROM models WHERE active = true
+  `
+  const classBySlug = new Map<string, string>()
+  for (const m of modelClasses) {
+    classBySlug.set(m.slug as string, (m.model_class as string) ?? 'chat')
+  }
+
+  const recsByTask = new Map<string, { slug: string; rank: number; weighted_score: number; model_class: string }[]>()
+  for (const r of recs) {
+    const taskId = r.task_id as string
+    if (!recsByTask.has(taskId)) recsByTask.set(taskId, [])
+    recsByTask.get(taskId)!.push({
+      slug: r.model_slug as string,
+      rank: r.rank as number,
+      weighted_score: r.weighted_score as number,
+      model_class: classBySlug.get(r.model_slug as string) ?? 'chat',
+    })
+  }
+
   const localByTask = new Map<string, Array<{
     slug: string
     rank: number
@@ -62,6 +71,7 @@ export async function GET(request: NextRequest) {
     vram_gb: number
     quality_penalty: number
     hardware_tier_id: string
+    model_class: string
   }>>()
   for (const l of localRecs) {
     const taskId = l.task_id as string
@@ -74,6 +84,7 @@ export async function GET(request: NextRequest) {
       vram_gb: l.vram_gb as number,
       quality_penalty: l.quality_penalty as number,
       hardware_tier_id: l.hardware_tier_id as string,
+      model_class: classBySlug.get(l.model_slug as string) ?? 'chat',
     })
   }
 
@@ -234,7 +245,7 @@ export async function GET(request: NextRequest) {
     {
       meta: {
         name: 'Bearing Public Dataset',
-        version: '1.3',
+        version: '1.4',
         exported_at: new Date().toISOString(),
         record_count: records.length,
         description:
@@ -251,8 +262,13 @@ export async function GET(request: NextRequest) {
             task_types: ['summarise', 'extract', 'generate', 'comms', 'code', 'math', 'reasoning', 'analyse', 'research', 'qa', 'translate', 'conversation'],
             note: 'Used for tasks classified on or after 2026-05-19. Removed `vision` (now a capability only) and `other` (replaced by clarification flow). Added `comms`, `math`, `reasoning`, `research`, `qa`.',
           },
+          'v0.9': {
+            task_types: ['summarise', 'extract', 'generate', 'comms', 'code', 'math', 'reasoning', 'analyse', 'research', 'qa', 'translate', 'conversation', 'embedding'],
+            note: 'Used for tasks classified on or after 2026-05-29. Adds `embedding` as the 13th task type for vector-producing pipeline stages and dedicated embedding requests. New tasks also carry mode="embedding" when submitted via the /embedding entry point.',
+          },
         },
         changelog: {
+          '1.4': 'Adds model_class to every entry in models_recommended and local_recommendations ("chat" or "embedding"). Adds v0.9 classification_schema_version with the 13-value task type enum.',
           '1.3': 'Adds local_recommendations — the open-weight models the recommender suggested for local hardware, with quant / VRAM / hardware tier per candidate. Persisted from 2026-05-23; empty array for earlier tasks.',
           '1.2': 'Includes every task that reached the recommendation stage (not just tasks with a selection). Adds excluded_factors, factor_weights (normalised per-factor weights actually applied by the recommender), pipeline_stages (the classifier-produced multi-stage plan when one was generated), and mode (recommend / pipeline / validate). model_selected is now nullable.',
           '1.1': 'Adds classification_schema_version per row + per-version task_type enum docs.',
@@ -273,9 +289,9 @@ export async function GET(request: NextRequest) {
           excluded_factors: 'Factors the user explicitly opted out of (force zero weight)',
           factor_weights: 'Normalised per-factor weights actually applied by the recommender (after complexity boost + low-priority damping + exclusion zeroing). null if the user did not provide a priority order.',
           pipeline_stages: 'Classifier-produced multi-stage pipeline plan when one was recommended; null otherwise',
-          classification_schema_version: 'Which version of the task-type enum was used to assign task_type — v0.7 or v0.8',
-          models_recommended: 'Array of {slug, rank, weighted_score} for each recommended model. Empty for pure pipeline-mode tasks.',
-          local_recommendations: 'Array of {slug, rank, effective_quality, quant, vram_gb, quality_penalty, hardware_tier_id} for open-weight models recommendable on local hardware. Empty array means either no viable local candidate OR (for tasks before 2026-05-23) that the local set was computed but not persisted.',
+          classification_schema_version: 'Which version of the task-type enum was used to assign task_type — v0.7, v0.8, or v0.9',
+          models_recommended: 'Array of {slug, rank, weighted_score, model_class} for each recommended model. model_class is "chat" or "embedding". Empty for pure pipeline-mode tasks.',
+          local_recommendations: 'Array of {slug, rank, effective_quality, quant, vram_gb, quality_penalty, hardware_tier_id, model_class} for open-weight models recommendable on local hardware. model_class is "chat" or "embedding". Empty array means either no viable local candidate OR (for tasks before 2026-05-23) that the local set was computed but not persisted.',
           model_selected: '{slug, recommended_rank} of the model the user chose. null if no selection was made.',
           outcome_success: 'Whether the user reported success (true/false/null)',
           failure_reason: 'User-reported failure reason if applicable',
