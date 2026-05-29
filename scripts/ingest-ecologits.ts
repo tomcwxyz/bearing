@@ -19,115 +19,22 @@ config()
 
 import { neon } from '@neondatabase/serverless'
 import { ingestSnapshot, upsertAlias, type SnapshotRow } from '../src/lib/benchmarks'
+import {
+  ECOLOGITS_PROVIDER_MAP,
+  normaliseName,
+  resolveModelName,
+  fetchEcoModelList,
+  fetchGwpRaw,
+} from '../src/lib/ecologits-grounding'
 
 const apply = process.argv.includes('--apply')
 
-const CANONICAL_OUTPUT_TOKENS = 300
 // Derive snapshot date from today rather than hardcoding.
 const SNAPSHOT_DATE = new Date().toISOString().split('T')[0]
-const ECOLOGITS_API = 'https://api.ecologits.ai/v1beta/estimations'
 
-// Maps Bearing's `provider` field (from models table) to EcoLogits provider string.
-// Only providers EcoLogits supports are listed. Others → skip.
-const PROVIDER_MAP: Record<string, string> = {
-  'Anthropic': 'anthropic',
-  'OpenAI': 'openai',
-  'Google': 'google_genai',
-  'Mistral': 'mistralai',
-  'Cohere': 'cohere',
-  'Meta (via hosted providers)': 'huggingface_hub',
-}
-
-// Normalise for comparison: lowercase + dots→hyphens
-function normaliseName(name: string): string {
-  return name.toLowerCase().replace(/\./g, '-')
-}
-
-// Match a Bearing slug to the best EcoLogits model name from the provider's list.
-// Returns null if no confident match.
-function resolveModelName(slug: string, ecoModels: string[]): string | null {
-  const normSlug = normaliseName(slug)
-
-  // 1. Exact match after normalisation
-  for (const m of ecoModels) {
-    if (normaliseName(m) === normSlug) return m
-  }
-
-  // 2. Bearing slug is a prefix of EcoLogits name (eco adds -preview, date suffix, etc.)
-  //    e.g. 'gemini-3-flash' matches 'gemini-3-flash-preview'
-  const prefixMatches = ecoModels.filter(m => normaliseName(m).startsWith(normSlug))
-  if (prefixMatches.length === 1) return prefixMatches[0]
-  if (prefixMatches.length > 1) {
-    // Pick shortest name (fewest extra characters beyond the slug)
-    return prefixMatches.sort((a, b) => a.length - b.length)[0]
-  }
-
-  // 3. EcoLogits name is a prefix of bearing slug — pick longest (most specific)
-  const reverseMatches = ecoModels.filter(m => normSlug.startsWith(normaliseName(m)))
-  if (reverseMatches.length > 0) {
-    return reverseMatches.sort((a, b) => b.length - a.length)[0]
-  }
-
-  return null
-}
-
-// GET https://api.ecologits.ai/v1beta/models/{provider}
-// Returns array of model name strings for that provider.
-async function fetchEcoModelList(provider: string): Promise<string[]> {
-  const res = await fetch(`https://api.ecologits.ai/v1beta/models/${provider}`, {
-    signal: AbortSignal.timeout(10_000),
-  })
-  if (!res.ok) {
-    console.warn(`  ⚠ Could not fetch model list for provider '${provider}': ${res.status}`)
-    return []
-  }
-  const data: { models: Array<{ name: string }> } = await res.json()
-  return data.models.map(m => m.name)
-}
-
-interface EstimationResponse {
-  impacts: {
-    gwp: { value: { min: number; max: number }; unit: string }
-    warnings?: Array<{ code: string; message: string }>
-    errors?: null | string
-  }
-}
-
-async function fetchGwp(provider: string, modelName: string): Promise<{ gwpMidpoint: number; warnings: string[] } | null> {
-  const res = await fetch(ECOLOGITS_API, {
-    signal: AbortSignal.timeout(10_000),
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      provider,
-      model_name: modelName,
-      output_token_count: CANONICAL_OUTPUT_TOKENS,
-      electricity_mix_zone: 'WOR',
-    }),
-  })
-
-  if (!res.ok) {
-    const text = await res.text()
-    console.warn(`  ⚠ API error for ${provider}/${modelName}: ${res.status} ${text.slice(0, 200)}`)
-    return null
-  }
-
-  const data: EstimationResponse = await res.json()
-  if (data.impacts.errors) {
-    console.warn(`  ⚠ Body-level error for ${provider}/${modelName}: ${data.impacts.errors}`)
-    return null
-  }
-  const { min, max } = data.impacts.gwp.value
-  const gwpMidpoint = (min + max) / 2
-  if (!isFinite(gwpMidpoint)) {
-    console.warn(`  ⚠ Non-finite GWP for ${provider}/${modelName}: min=${min}, max=${max}`)
-    return null
-  }
-  return {
-    gwpMidpoint,
-    warnings: (data.impacts.warnings ?? []).map(w => w.code),
-  }
-}
+// Alias for local readability — the ingest script calls fetchGwpRaw directly
+// so it can log per-model results before deciding to store them.
+const fetchGwp = fetchGwpRaw
 
 function getDb() {
   const url = process.env.NEON_DATABASE_URL
@@ -150,7 +57,7 @@ interface ResolvedModel {
 
 async function run() {
   console.log(`EcoLogits ingest — ${apply ? 'APPLY' : 'DRY RUN'} — ${SNAPSHOT_DATE}`)
-  console.log(`Canonical request: output_token_count=${CANONICAL_OUTPUT_TOKENS}, zone=WOR\n`)
+  console.log(`Canonical request: output_token_count=300, zone=WOR\n`)
 
   const sql = getDb()
 
@@ -183,14 +90,14 @@ async function run() {
     // Step A: confirmed alias takes priority.
     if (confirmedBySlug.has(slug)) {
       const ecoModelName = confirmedBySlug.get(slug)!
-      // We need to figure out the provider from the model name.  Use PROVIDER_MAP as guide.
-      const ecoProvider = PROVIDER_MAP[provider]
+      // We need to figure out the provider from the model name.  Use ECOLOGITS_PROVIDER_MAP as guide.
+      const ecoProvider = ECOLOGITS_PROVIDER_MAP[provider]
       if (!ecoProvider) {
         // Alias exists but provider isn't in EcoLogits — trust the alias, use
         // the confirmed ecoModelName and derive provider from the alias key.
         // We can't call the API without a provider, so we must have one.
         // Flag as skipped with a note.
-        console.log(`  ${slug}  confirmed alias found but provider '${provider}' not in PROVIDER_MAP — skipping`)
+        console.log(`  ${slug}  confirmed alias found but provider '${provider}' not in ECOLOGITS_PROVIDER_MAP — skipping`)
         skippedNoProvider.push(slug)
         continue
       }
@@ -200,7 +107,7 @@ async function run() {
     }
 
     // Step B: map Bearing provider to EcoLogits provider.
-    const ecoProvider = PROVIDER_MAP[provider]
+    const ecoProvider = ECOLOGITS_PROVIDER_MAP[provider]
     if (!ecoProvider) {
       console.log(`  ${slug}  no EcoLogits provider for '${provider}' — skipped`)
       skippedNoProvider.push(slug)
