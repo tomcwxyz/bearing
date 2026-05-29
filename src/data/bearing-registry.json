@@ -79,9 +79,16 @@
   "sustainability_methodology": {
     "description": "Three sub-dimensions, each 0.0-1.0. Composite = mean of available (nulls excluded).",
     "dimensions": {
-      "inference_energy": "1.0=published per-query metrics; 0.8=very small/efficient; 0.6=MoE; 0.4=standard large; null=no data",
+      "inference_energy": "Grounded by EcoLogits (api.ecologits.ai) where available: normalised GWP (kgCO2eq) per 300-output-token canonical request, lower-is-better, cohort min-max scaled. Blended with curated values via ECOLOGITS_BLEND env var (default 0.5). When curated is null, EcoLogits score is adopted directly. Curated scale: 1.0=published per-query metrics; 0.8=very small/efficient; 0.6=MoE; 0.4=standard large; null=no data",
       "training_footprint": "1.0=published with offsets; 0.7=published; 0.4=estimated; 0.0=no info; null=no data",
       "provider_infrastructure": "1.0=100% renewable+heat recovery; 0.8=100% renewable; 0.6=significant commitment+reporting; 0.4=some renewable; 0.2=none; null=no data"
+    },
+    "ecologits": {
+      "source": "https://api.ecologits.ai",
+      "methodology": "ISO 14044 LCA, bottom-up model, inference-time only (training excluded)",
+      "canonical_request": "output_token_count=300, electricity_mix_zone=WOR",
+      "coverage": "anthropic, openai, google_genai, mistralai, cohere, huggingface_hub",
+      "limitation": "Inference-time hosting only. Training energy (which can dominate lifecycle impact for frontier models) is excluded. Proprietary model architecture estimates are based on leaked/inferred parameter counts and carry model-arch-not-released warnings."
     }
   },
   "models": {
