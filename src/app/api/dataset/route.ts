@@ -44,11 +44,11 @@ export async function GET(request: NextRequest) {
   `
 
   const modelClasses = await sql`
-    SELECT slug, model_class FROM models WHERE active = true
+    SELECT slug, model_class FROM models
   `
   const classBySlug = new Map<string, string>()
   for (const m of modelClasses) {
-    classBySlug.set(m.slug as string, (m.model_class as string) ?? 'chat')
+    classBySlug.set(m.slug as string, m.model_class as string)
   }
 
   const recsByTask = new Map<string, { slug: string; rank: number; weighted_score: number; model_class: string }[]>()
