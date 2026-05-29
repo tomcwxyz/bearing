@@ -2,7 +2,7 @@
   "meta": {
     "name": "Bearing Model Registry",
     "version": "0.9.0",
-    "updated": "2026-05-23",
+    "updated": "2026-05-29",
     "maintainer": "The Good Ship · good-ship.co.uk",
     "license": "CC BY-NC 4.0",
     "notes": "Generated from database. 41 active models — 31 chat + 10 embedding. v0.9.0 introduces model_class ('chat' | 'embedding') and adds `embedding` as the 13th canonical task type. Embedding tasks route only to embedding models (and vice versa) via a hard class filter in scoring. Embedding seed: openai-embed-3-large/small, voyage-3-large/lite, cohere-embed-v4, mistral-embed-2, greenpt-green-embedding (Qwen3-Embedding-4B on renewable infrastructure), and three open-weight local options — bge-m3, nomic-embed-v2-moe, gte-qwen2-7b. Initial embedding task_fitness is hand-curated from MTEB averages; phase 4 (scripts/ingest-mteb.ts) will replace with benchmark-grounded values via the same provenance flow as LMArena / LiveBench / AA. Pricing invariant: every embedding model has output_per_1m === 0 (embedding APIs bill input tokens only)."
@@ -40,9 +40,17 @@
           "url": "https://huggingface.co/datasets/mteb/results",
           "license": "MIT",
           "citation": "Muennighoff, N., Tazi, N., Magne, L., & Reimers, N. (2023). MTEB: Massive Text Embedding Benchmark. arXiv:2210.07316.",
-          "subsets": ["overall", "retrieval", "sts", "classification", "clustering"],
+          "subsets": [
+            "overall",
+            "retrieval",
+            "sts",
+            "classification",
+            "clustering"
+          ],
           "metric": "MTEB Overall average, normalised linearly within the embedding-model cohort (min-max). Only 'overall' is currently populated; sub-category buckets are reserved for future scoring if weighting by task sub-type becomes useful.",
-          "applies_to": ["embedding"]
+          "applies_to": [
+            "embedding"
+          ]
         }
       }
     },
@@ -210,9 +218,9 @@
       },
       "sustainability": {
         "notes": "Smaller model = more efficient inference. Anthropic committed to covering 100% grid upgrade costs, water-efficient cooling, energy price offset for ratepayers. No renewable energy target published.",
-        "inference_energy": 0.5,
+        "inference_energy": 0.75,
         "training_footprint": null,
-        "sustainability_score": 0.45,
+        "sustainability_score": 0.57,
         "provider_infrastructure": 0.4
       }
     },
@@ -273,9 +281,9 @@
       },
       "sustainability": {
         "notes": "Anthropic committed to covering 100% grid upgrade costs, water-efficient cooling, energy price offset for ratepayers. No renewable energy target published.",
-        "inference_energy": null,
+        "inference_energy": 0.63,
         "training_footprint": null,
-        "sustainability_score": 0.4,
+        "sustainability_score": 0.52,
         "provider_infrastructure": 0.4
       }
     },
@@ -404,9 +412,9 @@
       },
       "sustainability": {
         "notes": "Anthropic committed to covering 100% grid upgrade costs, water-efficient cooling, energy price offset for ratepayers. No renewable energy target published.",
-        "inference_energy": null,
+        "inference_energy": 0.86,
         "training_footprint": null,
-        "sustainability_score": 0.4,
+        "sustainability_score": 0.63,
         "provider_infrastructure": 0.4
       }
     },
@@ -1140,7 +1148,7 @@
         "notes": "Flash models designed for efficiency. TPU infrastructure. Google 100% renewable match since 2017. Published per-query energy: 0.24 Wh median text prompt. Targeting 24/7 carbon-free by 2030 (this has been downgraded on new information about Google using gas powered stations for data centres and moving off 2030 target)",
         "inference_energy": 0.8,
         "training_footprint": 0.4,
-        "sustainability_score": 0.55,
+        "sustainability_score": 0.67,
         "provider_infrastructure": 0.8
       }
     },
@@ -1203,9 +1211,9 @@
       },
       "sustainability": {
         "notes": "Custom TPUs. Google 100% renewable match since 2017. Published per-query energy: 0.24 Wh median text prompt. Targeting 24/7 carbon-free by 2030. Best mainstream sustainability disclosure.",
-        "inference_energy": 0.6,
+        "inference_energy": 0.3,
         "training_footprint": 0.4,
-        "sustainability_score": 0.6,
+        "sustainability_score": 0.5,
         "provider_infrastructure": 0.8
       }
     },
@@ -1266,9 +1274,9 @@
       },
       "sustainability": {
         "notes": "CEO stated 0.34 Wh per average ChatGPT query. Claims 100% renewable by 2027 via Microsoft Azure RECs (not direct PPAs). Zero published Scope 1/2/3 emissions as of 2026.",
-        "inference_energy": 0.4,
+        "inference_energy": 0.62,
         "training_footprint": null,
-        "sustainability_score": 0.4,
+        "sustainability_score": 0.51,
         "provider_infrastructure": 0.4
       }
     },
@@ -1327,9 +1335,9 @@
       },
       "sustainability": {
         "notes": "Smaller model = more efficient. CEO stated 0.34 Wh per average ChatGPT query. Claims 100% renewable by 2027 via Microsoft Azure RECs (not direct PPAs). Zero published Scope 1/2/3 emissions as of 2026.",
-        "inference_energy": 0.55,
+        "inference_energy": 0.75,
         "training_footprint": null,
-        "sustainability_score": 0.48,
+        "sustainability_score": 0.58,
         "provider_infrastructure": 0.4
       }
     },
