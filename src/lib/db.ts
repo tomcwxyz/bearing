@@ -49,6 +49,9 @@ export interface RecommendationInput {
 
 /** Insert a new task row and return its UUID. */
 export async function createTask(params: TaskParams): Promise<string> {
+  // Embedding tasks follow schema v0.9 which introduced the embedding task type;
+  // all other task types remain on v0.8.
+  const schemaVersion = params.taskType === 'embedding' ? 'v0.9' : 'v0.8'
   const rows = await getDb()`
     INSERT INTO tasks (
       description_hash,
@@ -95,7 +98,7 @@ export async function createTask(params: TaskParams): Promise<string> {
       ${params.priorityOrder ? JSON.stringify(params.priorityOrder) : null},
       ${params.classificationConfidence ?? null},
       ${params.pipelineStages ? JSON.stringify(params.pipelineStages) : null},
-      'v0.8'
+      ${schemaVersion}
     )
     RETURNING id
   `

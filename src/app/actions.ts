@@ -511,7 +511,7 @@ export async function submitEmbeddingTask(input: EmbeddingFormInput) {
       dataSensitivity,
       latencyTarget: input.latency === 'any' ? 'batch' : input.latency,
       volume: 'one_off',
-      needsLongContext: input.inputSize === 'long',
+      needsLongContext: false, // embedding models use max_input_tokens, not context_window — this filter doesn't apply
       needsMultilingual: input.languages !== 'english',
       isAgentic: false,
       outputLength: 'short', // vectors are tiny relative to chat output
@@ -536,7 +536,7 @@ export async function submitEmbeddingTask(input: EmbeddingFormInput) {
       dataSensitivity,
       latencyTarget: input.latency === 'any' ? 'batch' : input.latency,
       volume: 'one_off',
-      needsLongContext: input.inputSize === 'long',
+      needsLongContext: false, // embedding models use max_input_tokens, not context_window — this filter doesn't apply
       needsMultilingual: input.languages !== 'english',
       isAgentic: false,
       outputLength: 'short',
