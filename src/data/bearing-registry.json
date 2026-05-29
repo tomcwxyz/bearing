@@ -35,6 +35,14 @@
           "url": "https://huggingface.co/datasets/livebench/model_judgment",
           "license": "pending — see docs/plans/2026-05-04-livebench-licence-request.md",
           "status": "not yet ingested"
+        },
+        "mteb": {
+          "url": "https://huggingface.co/datasets/mteb/results",
+          "license": "MIT",
+          "citation": "Muennighoff, N., Tazi, N., Magne, L., & Reimers, N. (2023). MTEB: Massive Text Embedding Benchmark. arXiv:2210.07316.",
+          "subsets": ["overall", "retrieval", "sts", "classification", "clustering"],
+          "metric": "MTEB Overall average, normalised linearly within the embedding-model cohort (min-max). Only 'overall' is currently populated; sub-category buckets are reserved for future scoring if weighting by task sub-type becomes useful.",
+          "applies_to": ["embedding"]
         }
       }
     },
