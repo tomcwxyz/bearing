@@ -55,6 +55,7 @@ interface EstimationResponse {
 
 async function fetchGwp(provider: string, modelName: string): Promise<{ gwpMidpoint: number; warnings: string[] } | null> {
   const res = await fetch(ECOLOGITS_API, {
+    signal: AbortSignal.timeout(10_000),
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -72,6 +73,10 @@ async function fetchGwp(provider: string, modelName: string): Promise<{ gwpMidpo
   }
 
   const data: EstimationResponse = await res.json()
+  if (data.impacts.errors) {
+    console.warn(`  ⚠ Body-level error for ${provider}/${modelName}: ${data.impacts.errors}`)
+    return null
+  }
   const { min, max } = data.impacts.gwp.value
   return {
     gwpMidpoint: (min + max) / 2,
