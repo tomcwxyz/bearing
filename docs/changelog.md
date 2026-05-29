@@ -26,6 +26,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Added
 
+- **12 canonical task types** — the classifier now distinguishes between twelve types of task (summarise, extract, generate, comms, code, math, reasoning, analyse, research, Q&A, translate, conversation). More precise classification means better-matched recommendations, especially for tasks that previously fell into a catch-all bucket.
+- **Pipeline capability warnings** — if a pipeline stage requires a capability (e.g. vision or tool use) that the recommended model doesn't support, Bearing now shows a warning on the stage card rather than silently falling back. You'll know exactly which stage has a coverage gap.
+- **Per-stage detail in pipelines** — each pipeline stage now carries its own input/output length estimate and reasoning flag, so the per-stage cost estimate is more accurate and the stage model selection reflects the actual workload of that step.
+- **Local inference recommendations in the public dataset** — the open-weight models Bearing would suggest for local hardware are now included in the dataset download per task, with quant, VRAM, and hardware tier details.
 - **Artificial Analysis as a third benchmark source** — Bearing now ingests per-model evaluations (intelligence, coding, math indices, plus MMLU-Pro, GPQA, HLE, LiveCodeBench, SciCode, IFBench, Tau2, TerminalBench, AIME, LCR), output throughput, and time-to-first-token from [Artificial Analysis](https://artificialanalysis.ai). 513 models covered; existing LMArena and LiveBench coverage continues unchanged.
 - **Benchmark matches panel in admin import** — when importing a model from OpenRouter, Bearing shows ranked candidate variants per source (LMArena, LiveBench, Artificial Analysis) and lets you confirm which represent the model. Reasoning / non-reasoning / effort variants can all map to a single registry slug; their scores are averaged at recommendation time.
 - **Refresh from benchmarks button** on every model's edit page — recomputes grounded fields from the latest benchmark snapshots and provider profile without rerunning Haiku.
@@ -44,6 +48,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - The `code` capability is no longer guessed by Haiku for general-purpose models; it now reflects the grounded benchmark evidence.
 - DeepSeek, Qwen, Kimi, and Granite imports no longer default to closed-weight transparency settings.
+- Comparison model selections now persist across the sign-in redirect, so you no longer lose your two chosen models when you sign in mid-flow.
+- The public dataset now includes every task that reached the recommendation stage, not just tasks where the user made a final model selection. Earlier tasks with no selection were previously absent.
 
 ## [0.7.0] — 2026-04-15
 
