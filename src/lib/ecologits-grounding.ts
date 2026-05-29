@@ -12,7 +12,7 @@
 // GWP → normalise against current DB cohort → optionally store.
 
 import { neon } from '@neondatabase/serverless'
-import { ingestSnapshot, upsertAlias } from './benchmarks'
+import { upsertAlias } from './benchmarks'
 
 function getDb() {
   const url = process.env.NEON_DATABASE_URL
@@ -140,6 +140,41 @@ export async function fetchGwpRaw(
 }
 
 /**
+ * Write a single benchmark_snapshots row with a pre-computed normalised score,
+ * bypassing ingestSnapshot's within-batch re-normalisation.
+ *
+ * Used when we already have the correct cohort-wide normalised_score (computed
+ * against the existing DB cohort) and just need to persist it without
+ * ingestSnapshot collapsing the single-row batch to linear = 1.0.
+ */
+async function upsertSnapshotDirect(params: {
+  ecoModelName: string
+  bearingSlug: string
+  rawScore: number
+  normalisedScore: number
+  snapshotDate: string
+}): Promise<void> {
+  await getDb()`
+    INSERT INTO benchmark_snapshots (
+      source, source_category, source_model_name, bearing_slug,
+      raw_score, normalised_score, vote_count, snapshot_date, signal_type
+    ) VALUES (
+      'ecologits', 'inference_efficiency',
+      ${params.ecoModelName}, ${params.bearingSlug},
+      ${params.rawScore}, ${params.normalisedScore},
+      NULL, ${params.snapshotDate}, 'sustainability'
+    )
+    ON CONFLICT (source, source_category, source_model_name, snapshot_date)
+    DO UPDATE SET
+      raw_score        = EXCLUDED.raw_score,
+      normalised_score = EXCLUDED.normalised_score,
+      bearing_slug     = EXCLUDED.bearing_slug,
+      signal_type      = EXCLUDED.signal_type,
+      captured_at      = now()
+  `
+}
+
+/**
  * Query min/max raw_score from the existing ecologits cohort in benchmark_snapshots.
  * Used to normalise a new GWP reading against the current distribution.
  */
@@ -195,17 +230,19 @@ export async function fetchEcoLogitsScore(
 
   if (storeInDb) {
     const snapshotDate = new Date().toISOString().split('T')[0]
+    // upsertAlias must run first so upsertSnapshotDirect can write bearing_slug.
     await upsertAlias('ecologits', ecoModelName, slug)
-    await ingestSnapshot([{
-      source: 'ecologits',
-      sourceCategory: 'inference_efficiency',
-      sourceModelName: ecoModelName,
+    // Use direct upsert (not ingestSnapshot) to preserve the normalisedScore we
+    // already computed against the full DB cohort. ingestSnapshot re-normalises
+    // within its input batch — for a single row min === max → linear = 1.0 →
+    // with lowerIsBetter the score collapses to 0.0 regardless of actual GWP.
+    await upsertSnapshotDirect({
+      ecoModelName,
+      bearingSlug: slug,
       rawScore: gwpMidpoint,
-      voteCount: null,
+      normalisedScore,
       snapshotDate,
-      lowerIsBetter: true,
-      signalType: 'sustainability',
-    }])
+    })
   }
 
   return { normalisedScore, rawGwp: gwpMidpoint, ecoProvider, ecoModelName }
