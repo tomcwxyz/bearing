@@ -1,91 +1,48 @@
-# Handoff — 2026-05-04
+# Handoff — 2026-05-29
 
-## What happened this session
+## TL;DR
 
-### Public benchmarks blended into the quality factor (LMArena live, LiveBench pending)
+v0.9 embedding feature shipped and merged to master (PR #22). Two P1 bugs from code review fixed before merge. Docs updated. Master is clean and deployable.
 
-Goal: improve the curated `task_fitness` quality factor by blending in real
-benchmark data. LMArena (CC-BY-4.0) is wired end-to-end; LiveBench is on hold
-pending licence clarification.
+## Branch state
 
-**Schema (migration 009 — applied to Neon)**
-- `benchmark_snapshots` — raw per-source/category/model/date rows with
-  cohort-normalised scores (0..1)
-- `benchmark_aliases` — source model name → bearing slug mapping (FK ON UPDATE
-  CASCADE), back-fills snapshots on insert/delete
+| Branch | State |
+|---|---|
+| `master` | PR #22 merged — v0.9.0 embedding models fully landed |
+| `feat/embedding-models` | Merged, can be deleted |
 
-**Ingest** (`scripts/ingest-lmarena.ts`)
-- Pulls LMArena `text` / `webdev` / `vision` subsets from HF datasets-server
-- Sequential fetch, 1s/2s delays, 5s→160s exponential backoff on 429/502/503/504
-- Uses `HF_TOKEN` (in `.env.local`)
-- Stored: 8,992 rows, latest snapshot 2026-05-01
+## What landed in v0.9 (PR #22)
 
-**Aliases seeded** (`scripts/seed-lmarena-aliases.ts --apply`)
-- 41 alias rows committed, covering 27 of 30 active models
-- Left curated (no LMArena coverage): `ibm-granite-3.3`, `codestral-25.01`,
-  `mistral-medium-3`
-- Lossy proxies flagged: `greenpt-greenl ← mistral-small-3.1` (we run 3.2),
-  `mistral-ocr ← pixtral-large-2411`
-- 1,069 snapshot rows now matched, 140 (slug, task) blended scores ready
+- **Embedding models as a first-class category** — 10 models (hosted + open-weight), MTEB quality scoring, `/embedding` entry point, pipeline routing, model detail page, dataset v1.4
+- **Classifier extended to 13 task types** — `embedding` added; CLASSIFY_TOOL schema fixed (was stuck on v0.7 8-value enum)
+- **Two P1 bug fixes post-code-review:**
+  1. `needsLongContext` was incorrectly set for embedding form submissions, causing the 100k chat context-window filter to fire against 32k embedding models. Fixed: always `false` for embedding tasks.
+  2. `createTask` hardcoded `classification_schema_version = 'v0.8'` for all rows. Fixed: derives `'v0.9'` when `taskType === 'embedding'`.
+- **Reasoning hardened** — `generateReasoning` now gracefully degrades on unparseable Claude output instead of crashing the results page
+- **Docs updated** — `user-guide.md` (embedding section, model count 29→41), `changelog.md` (v0.9.0 + missing v0.8.0 entries), `embedding-rubric.md` (new), MTEB citation in registry JSON
 
-**Scoring blend** (`src/lib/scoring.ts`)
-- New `BENCHMARK_BLEND` env var (0..1, default **0** — ships dark)
-- `qualityScore(model, task, benchmarkScores, blend)` blends curated × (1−blend)
-  with benchmark × blend; falls back to curated when blend ≤ 0, no map, or no
-  row for `${slug}::${task}`
-- Wired into both `scoreModels()` call sites in `src/app/actions.ts`
-- Sync injection of the score map (no async cascade, preserves test purity)
-- 3 new unit tests in `src/lib/__tests__/scoring.test.ts` — all 66 tests pass
+## Known caveats (not bugs)
 
-**Admin Benchmarks tab** (`src/app/admin/benchmarks-tab.tsx`)
-- Summary: rows per source, matched/total + coverage %, latest snapshot
-- Aliases list with one-click remove (NULLs the snapshot bearing_slug)
-- Unmatched source models, sorted by max `vote_count`, searchable, with a slug
-  picker per row + "Map" action (back-fills snapshots via `upsertAlias`)
-- Server actions in `src/app/admin/actions.ts`: `fetchBenchmarksData`,
-  `addBenchmarkAlias`, `removeBenchmarkAlias` — all gated on `requireAdmin`
+- **MTEB cohort normalisation is tight** — 10 models, raw range ~62–74. Per-cohort min-max stretches relative differences. `BENCHMARK_BLEND` env var (default 0) controls blending; revisit when cohort grows.
+- **Recommend-flow embedding tasks** — when a task arrives via the generic Recommend tab (not `/embedding`) and gets classified as `task_type='embedding'`, the hard filter may apply `needs_vision`/`needs_long_context` from the full task description, potentially leaving zero top-level results (only the pipeline renders). This is correct filtering behaviour — the `/embedding` form is the right entry point for explicit embedding searches.
+- **Mixed-pipeline cost footer** — for chat+embedding pipelines, the "vs single model" cost comparison is awkward (no single chat model can produce vectors). Not misleading; leave until users flag it.
 
-**Registry** (`src/data/bearing-registry.json`)
-- Bumped 0.5.0 → 0.6.0
-- Added `scoring_methodology.benchmarks` block documenting LMArena (CC-BY-4.0)
-  and LiveBench (licence pending)
+## Database state
 
-**LiveBench email draft**
-- `docs/plans/2026-05-04-livebench-licence-request.md` — to
-  `livebench@livebench.ai`, asks about (1) licensing of the
-  `livebench/model_judgment` HF dataset, (2) access to the 2025-04-25 release,
-  (3) preferred citation form
+Migrations applied to Neon (001–021):
+- 021 — `model_class` + embedding columns on `models`
 
-## What's not done yet
+41 active models: 31 chat + 10 embedding.
+`benchmark_snapshots` has 10 `source='mteb'` rows.
 
-### Before flipping the blend on
-1. **Set `BENCHMARK_BLEND=0.3` in `.env.local`** and spot-check that
-   recommendation order shifts sensibly (Opus 4.7 / Sonnet 4.6 / GPT-5.4 should
-   stay strong on `code` and `analyse`).
-2. Decide a target blend weight (suggest 0.3 to start, raise to 0.5 once we
-   have LiveBench coverage too).
-3. Send the LiveBench email — draft is ready.
+## Tests
 
-### After LiveBench access
-- Build `scripts/ingest-livebench.ts` mirroring the LMArena script
-- The category map is already in `CATEGORY_TO_TASKS.livebench` in
-  `src/lib/benchmarks.ts`
+179/180 pass (1 skipped — unmeetable-capability test retired in v0.8). `tsc --noEmit` clean.
 
-### Other open work (carried from prior handoff)
-- Community scoring (designed in
-  `docs/plans/2026-04-13-community-scoring-design.md`, not built)
-- Deploy to Vercel + production smoke test
-- URL fetch + web search in Compare mode
-- Trained routing model (v1.5)
+## Open items / next session ideas
 
-## Where things are
-- Repo: https://github.com/dataforaction-tom/bearing
-- Branch: master — **everything in this session is uncommitted** (working tree
-  changes + new files in `scripts/`, `src/lib/`, `src/app/`,
-  `src/db/migrations/`, `docs/plans/`)
-- Tests: 66 / 66 pass; `npx tsc --noEmit` clean
-- Migrations applied to Neon: 001–009 (009 is the benchmark schema)
-- Registry: 30 active models; 27 mapped to LMArena; 25 mapped to OpenRouter
-- Admin: tom@good-ship.co.uk (is_admin = true)
-- Key env vars: `NEON_DATABASE_URL`, `HF_TOKEN`, `BENCHMARK_BLEND` (currently
-  unset → 0)
+- Deploy to Vercel (v0.9 ready to ship)
+- Consider re-ranker models (Cohere Rerank, BGE-reranker) as a future workload category
+- Multimodal embeddings (CLIP etc.) out of scope for now
+- MTEB cohort: blend policy worth revisiting once >20 embedding models are in the registry
+- LiveBench licence still pending (see `docs/plans/2026-05-04-livebench-licence-request.md`)
