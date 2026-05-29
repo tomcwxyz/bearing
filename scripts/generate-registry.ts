@@ -29,6 +29,28 @@ async function generate() {
     ORDER BY slug
   `
 
+  // Latest EcoLogits inference_efficiency score per slug (normalised 0..1,
+  // already inverted so 1 = most efficient, 0 = least efficient).
+  const ecoRows = await sql`
+    SELECT DISTINCT ON (bearing_slug)
+      bearing_slug,
+      normalised_score
+    FROM benchmark_snapshots
+    WHERE source = 'ecologits'
+      AND source_category = 'inference_efficiency'
+      AND bearing_slug IS NOT NULL
+    ORDER BY bearing_slug, snapshot_date DESC, captured_at DESC
+  `
+  const ecoScoreBySlug = new Map<string, number>()
+  for (const r of ecoRows) {
+    ecoScoreBySlug.set(r.bearing_slug as string, r.normalised_score as number)
+  }
+
+  // Blend ratio: 0 = fully curated, 1 = fully ecologits.
+  // When curated inference_energy is null, ecologits is adopted directly
+  // regardless of blend ratio.
+  const ECOLOGITS_BLEND = parseFloat(process.env.ECOLOGITS_BLEND ?? '0.5')
+
   const registryPath = join(__dirname, '..', 'src', 'data', 'bearing-registry.json')
   const existing = JSON.parse(readFileSync(registryPath, 'utf-8'))
 
@@ -60,6 +82,31 @@ async function generate() {
       ...(rest.max_input_tokens != null ? { max_input_tokens: rest.max_input_tokens } : {}),
       ...(rest.supports_matryoshka ? { supports_matryoshka: true } : {}),
     }
+
+    // Blend EcoLogits score into inference_energy if available.
+    const ecoScore = ecoScoreBySlug.get(slug as string)
+    if (ecoScore !== undefined && ECOLOGITS_BLEND >= 0) {
+      const sustainability = models[slug as string].sustainability
+      if (sustainability) {
+        const curated = sustainability.inference_energy as number | null
+        const blended = curated == null
+          ? ecoScore
+          : curated * (1 - ECOLOGITS_BLEND) + ecoScore * ECOLOGITS_BLEND
+
+        // Recalculate composite from updated sub-dimensions (nulls excluded).
+        const subs = [blended, sustainability.provider_infrastructure, sustainability.training_footprint]
+          .filter((v): v is number => v != null)
+        const composite = subs.length > 0
+          ? subs.reduce((a: number, b: number) => a + b, 0) / subs.length
+          : sustainability.sustainability_score
+
+        models[slug as string].sustainability = {
+          ...sustainability,
+          inference_energy: Math.round(blended * 100) / 100,
+          sustainability_score: Math.round(composite * 100) / 100,
+        }
+      }
+    }
   }
 
   const registry = {
@@ -73,6 +120,8 @@ async function generate() {
     models,
   }
 
+  const ecoCovered = rows.filter((r) => ecoScoreBySlug.has(r.slug as string)).length
+  console.log(`EcoLogits coverage: ${ecoCovered}/${rows.length} models`)
   writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n')
   console.log(`Generated registry with ${Object.keys(models).length} models → ${registryPath}`)
 }
