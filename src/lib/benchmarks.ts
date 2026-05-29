@@ -17,7 +17,7 @@ function getDb() {
   return neon(url)
 }
 
-export type BenchmarkSource = 'lmarena' | 'livebench' | 'artificialanalysis' | 'mteb'
+export type BenchmarkSource = 'lmarena' | 'livebench' | 'artificialanalysis' | 'mteb' | 'ecologits'
 
 export type SignalType = 'task' | 'speed' | 'latency'
 
@@ -101,6 +101,12 @@ export const CATEGORY_TO_TASKS: Record<BenchmarkSource, Record<string, TaskType[
     sts: ['embedding'],
     classification: ['embedding'],
     clustering: ['embedding'],
+  },
+  // EcoLogits: inference-time environmental impact. inference_efficiency does
+  // NOT map to any task type quality score — it feeds sustainability scoring
+  // only. Empty task array signals this to getLatestBenchmarkScores().
+  ecologits: {
+    inference_efficiency: [],
   },
 }
 

@@ -425,7 +425,7 @@ export async function suggestAliasesForImport(input: {
   // Embedding aliases are seeded via scripts/ingest-mteb.ts. We still seed an
   // empty bucket so SuggestionsBySource's shape is satisfied.
   const sources: BenchmarkSource[] = ['lmarena', 'livebench', 'artificialanalysis']
-  const result: SuggestionsBySource = { lmarena: [], livebench: [], artificialanalysis: [], mteb: [] }
+  const result: SuggestionsBySource = { lmarena: [], livebench: [], artificialanalysis: [], mteb: [], ecologits: [] }
 
   for (const source of sources) {
     const candidates = await getCandidateSourceModelNames(source)
