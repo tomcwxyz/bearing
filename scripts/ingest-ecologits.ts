@@ -62,9 +62,10 @@ function resolveModelName(slug: string, ecoModels: string[]): string | null {
     return prefixMatches.sort((a, b) => a.length - b.length)[0]
   }
 
-  // 3. EcoLogits name is a prefix of bearing slug
-  for (const m of ecoModels) {
-    if (normSlug.startsWith(normaliseName(m))) return m
+  // 3. EcoLogits name is a prefix of bearing slug — pick longest (most specific)
+  const reverseMatches = ecoModels.filter(m => normSlug.startsWith(normaliseName(m)))
+  if (reverseMatches.length > 0) {
+    return reverseMatches.sort((a, b) => b.length - a.length)[0]
   }
 
   return null
@@ -76,7 +77,10 @@ async function fetchEcoModelList(provider: string): Promise<string[]> {
   const res = await fetch(`https://api.ecologits.ai/v1beta/models/${provider}`, {
     signal: AbortSignal.timeout(10_000),
   })
-  if (!res.ok) return []
+  if (!res.ok) {
+    console.warn(`  ⚠ Could not fetch model list for provider '${provider}': ${res.status}`)
+    return []
+  }
   const data: { models: Array<{ name: string }> } = await res.json()
   return data.models.map(m => m.name)
 }
