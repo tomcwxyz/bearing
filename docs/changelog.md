@@ -4,6 +4,24 @@ All notable changes to Bearing will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.9.0] — 2026-05-29
+
+### Added
+
+- **Embedding models as a first-class category** — Bearing now recommends embedding models for vector-producing tasks. Ten embedding models added to the registry: OpenAI text-embedding-3-large and -small, Voyage 3 Large and Lite, Cohere Embed v4, Mistral Embed 2, GreenPT Green Embedding, BGE-M3, Nomic-embed-v2-MoE, and GTE-Qwen2-7B. Open-weight models include local deployment guidance.
+- **MTEB benchmark ingest** — embedding model quality is grounded in MTEB Overall averages (Muennighoff et al. 2023). Scores are normalised within the embedding-model cohort and blended with curated values via the existing `BENCHMARK_BLEND` environment variable.
+- **`/embedding` entry point** — a dedicated "Find an embedding model" form on the home page. Fields: use case, input size, hosting preference (hosted / open weights), languages, and latency requirement. No LLM classification needed — the form maps directly to a scored recommendation.
+- **Model class routing** — a new `model_class` field (`"chat"` | `"embedding"`) on every registry entry hard-filters models to the correct workload. Embedding tasks never see chat models; chat tasks never see embedding models. The rejection reason `wrong_class` appears on the results page for mismatches.
+- **Embedding-aware pipeline stage cards** — when a pipeline stage has `task_type = "embedding"`, the stage card shows the embedding model's dimension, Matryoshka badge, max input, and pricing as "$X.XX / 1M tokens" or "Free (self-host)".
+- **Model detail page adapts for embedding models** — pricing section shows input-only billing; a new "Embedding specs" section surfaces dim / max input / Matryoshka support; Task Fitness collapses to a single MTEB quality bar.
+- **`model_class` in public dataset** — every entry in `models_recommended` and `local_recommendations` now carries a `model_class` field. Dataset schema version 1.3 → 1.4.
+
+### Changed
+
+- **`classification_schema_version`** for new tasks bumped to `v0.9`. Adds `embedding` as the 13th canonical task type. Backward-compatible superset of v0.8.
+- **Home page** gains an "Embedding" tab alongside Recommend, Pipeline, and Validate.
+- Registry version bumped 0.8.0 → 0.9.0; 41 active models (31 chat + 10 embedding).
+
 ## [0.8.0] — 2026-05-06
 
 ### Added
