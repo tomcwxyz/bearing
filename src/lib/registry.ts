@@ -68,8 +68,26 @@ export interface ModelTransparency {
   notes: string
 }
 
+// Provenance for the `inference_energy` sub-score. Lets a consumer of the
+// public registry tell whether the value is grounded in real measurement
+// (EcoLogits) or a curated editorial estimate — closing the transparency gap
+// where a blended number was indistinguishable from a hand-set one.
+export interface InferenceEnergyProvenance {
+  // 'ecologits' = blended with a real per-request GWP measurement.
+  // 'curated'   = editorial estimate against the sustainability rubric anchors.
+  source: 'ecologits' | 'curated'
+  // The fields below are only present when source === 'ecologits'.
+  blend?: number // ECOLOGITS_BLEND weight applied (0..1; 0 = all curated, 1 = all EcoLogits)
+  eco_score?: number // absolute GWP-curve efficiency score before blending (1 = most efficient)
+  raw_gwp_gco2eq?: number // raw GWP for the canonical 300-output-token request, grams CO2eq
+  eco_model?: string // resolved EcoLogits model name the reading came from
+  snapshot_date?: string // date of the EcoLogits snapshot used
+}
+
 export interface ModelSustainability {
   inference_energy: number | null
+  // Provenance for inference_energy. Absent on rows with a null inference_energy.
+  inference_energy_source?: InferenceEnergyProvenance
   training_footprint: number | null
   provider_infrastructure: number | null
   sustainability_score: number

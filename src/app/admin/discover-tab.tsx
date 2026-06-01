@@ -248,7 +248,7 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
         setSelectedAliases(initial)
       })
       .catch(() => {
-        if (!cancelled) setSuggestions({ lmarena: [], livebench: [], artificialanalysis: [], mteb: [] })
+        if (!cancelled) setSuggestions({ lmarena: [], livebench: [], artificialanalysis: [], mteb: [], ecologits: [] })
       })
       .finally(() => { if (!cancelled) setSuggestionsLoading(false) })
     return () => { cancelled = true }
@@ -811,6 +811,7 @@ const SOURCE_LABELS: Record<SourceKey, string> = {
   livebench: 'LiveBench',
   artificialanalysis: 'Artificial Analysis',
   mteb: 'MTEB',
+  ecologits: 'EcoLogits',
 }
 
 function BenchmarkAliasPanel({
