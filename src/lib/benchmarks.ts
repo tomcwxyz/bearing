@@ -121,6 +121,13 @@ export interface SnapshotRow {
   signalType?: SignalType
   /** When true, normalisation inverts so the lowest raw score becomes 1.0 (e.g. latency, where lower is better). */
   lowerIsBetter?: boolean
+  /**
+   * Pre-computed 0..1 score. When set, it is stored verbatim and cohort min-max
+   * scaling is skipped for this row — used by sources scored on an absolute
+   * curve (e.g. EcoLogits gwpToScore) where the value must not depend on the
+   * batch. Takes precedence over lowerIsBetter.
+   */
+  normalisedScore?: number
 }
 
 /** Look up the bearing_slug for a source's model name. */
@@ -138,7 +145,9 @@ export async function resolveAlias(
 /**
  * Insert a batch of snapshot rows. Normalises raw scores linearly within each
  * (source, source_category, snapshot_date) bucket so the highest-scoring model
- * in the cohort lands at 1.0 and the lowest at 0.0.
+ * in the cohort lands at 1.0 and the lowest at 0.0. Rows carrying an explicit
+ * `normalisedScore` skip cohort scaling and store that value directly (used by
+ * absolute-curve sources like EcoLogits).
  *
  * Resolves bearing_slug for each row via benchmark_aliases. Rows with no alias
  * are still stored (so we can audit coverage) but bearing_slug is left NULL.
@@ -187,7 +196,10 @@ export async function ingestSnapshot(rows: SnapshotRow[]): Promise<{
     const cohort = cohorts.get(cohortKey)!
     const range = cohort.max - cohort.min
     const linear = range > 0 ? (r.rawScore - cohort.min) / range : 1.0
-    const normalised = r.lowerIsBetter ? 1 - linear : linear
+    // A pre-computed score (absolute-curve sources) bypasses cohort scaling.
+    const normalised = r.normalisedScore != null
+      ? Math.max(0, Math.min(1, r.normalisedScore))
+      : (r.lowerIsBetter ? 1 - linear : linear)
     const signalType = r.signalType ?? 'task'
 
     const bearingSlug = aliasMap.get(`${r.source}::${r.sourceModelName}`) ?? null

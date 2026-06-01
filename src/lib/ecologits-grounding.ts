@@ -23,6 +23,36 @@ function getDb() {
 const ECOLOGITS_API = 'https://api.ecologits.ai/v1beta/estimations'
 const CANONICAL_OUTPUT_TOKENS = 300
 
+// Absolute GWP→efficiency curve. Maps one request's carbon footprint to a 0..1
+// efficiency score on a FIXED logarithmic scale, independent of any cohort.
+//
+// Why absolute, not cohort min-max: a given GWP always yields the same score,
+// so adding or removing a covered model never reshuffles the others, and the
+// grounded score sits on the same interpretable axis as the curated rubric
+// values it blends with (cohort-relative scores were not comparable to curated).
+//
+// Anchors are grams CO2eq for the canonical 300-output-token request:
+//   BEST  0.01 g → 1.0  (best-in-class efficient model today, e.g. a small flash)
+//   WORST 2.5  g → 0.0  (heavy frontier model)
+// Log scale because inference emissions span >2 orders of magnitude (~0.01–2 g);
+// a linear scale would crush every efficient model together near 1.0.
+export const GWP_SCORE_BEST_G = 0.01
+export const GWP_SCORE_WORST_G = 2.5
+
+/**
+ * Convert a raw GWP reading (kgCO2eq, as returned by the EcoLogits API) to a
+ * 0..1 efficiency score: 1 = most efficient (lowest GWP), 0 = least efficient.
+ * Cohort-independent — see GWP_SCORE_BEST_G / GWP_SCORE_WORST_G for the anchors.
+ */
+export function gwpToScore(gwpKg: number): number {
+  const grams = gwpKg * 1000
+  if (!isFinite(grams) || grams <= 0) return 1.0
+  const logBest = Math.log10(GWP_SCORE_BEST_G)
+  const logWorst = Math.log10(GWP_SCORE_WORST_G)
+  const score = (logWorst - Math.log10(grams)) / (logWorst - logBest)
+  return Math.max(0, Math.min(1, score))
+}
+
 // Maps Bearing's `provider` field (from models table) to EcoLogits provider string.
 // Only providers EcoLogits supports are listed. Others → skip.
 export const ECOLOGITS_PROVIDER_MAP: Record<string, string> = {
@@ -140,12 +170,12 @@ export async function fetchGwpRaw(
 }
 
 /**
- * Write a single benchmark_snapshots row with a pre-computed normalised score,
- * bypassing ingestSnapshot's within-batch re-normalisation.
+ * Write a single benchmark_snapshots row with a pre-computed normalised score.
  *
- * Used when we already have the correct cohort-wide normalised_score (computed
- * against the existing DB cohort) and just need to persist it without
- * ingestSnapshot collapsing the single-row batch to linear = 1.0.
+ * EcoLogits scores come from the absolute gwpToScore() curve, not cohort min-max,
+ * so the score is final at write time and we store it directly rather than
+ * routing through ingestSnapshot (whose linear cohort scaling would collapse a
+ * single-row batch to 1.0).
  */
 async function upsertSnapshotDirect(params: {
   ecoModelName: string
@@ -175,25 +205,12 @@ async function upsertSnapshotDirect(params: {
 }
 
 /**
- * Query min/max raw_score from the existing ecologits cohort in benchmark_snapshots.
- * Used to normalise a new GWP reading against the current distribution.
- */
-async function getCohortStats(): Promise<{ min: number | null; max: number | null }> {
-  const rows = await getDb()`
-    SELECT MIN(raw_score) as min, MAX(raw_score) as max
-    FROM benchmark_snapshots
-    WHERE source = 'ecologits' AND source_category = 'inference_efficiency'
-  `
-  return { min: rows[0]?.min ?? null, max: rows[0]?.max ?? null }
-}
-
-/**
  * All-in-one EcoLogits grounding for a single Bearing model.
  *
  * 1. Maps Bearing provider → EcoLogits provider (returns null if not covered).
  * 2. Fetches the EcoLogits model list and resolves the slug → eco model name.
  * 3. Fetches GWP from the estimations API.
- * 4. Normalises against the current DB cohort (lower GWP → higher score).
+ * 4. Scores it on the absolute gwpToScore() curve (lower GWP → higher score).
  * 5. Optionally stores the snapshot + alias in the DB (default: true).
  *
  * Returns null if the model is not covered by EcoLogits or the API fails.
@@ -219,23 +236,14 @@ export async function fetchEcoLogitsScore(
 
   const { gwpMidpoint } = gwpResult
 
-  // Normalise against the existing cohort in benchmark_snapshots.
-  // Extend the [min, max] window to include this new reading so the returned
-  // score is comparable to what will be stored after ingestSnapshot runs.
-  const cohortStats = await getCohortStats()
-  const extMin = Math.min(cohortStats.min ?? gwpMidpoint, gwpMidpoint)
-  const extMax = Math.max(cohortStats.max ?? gwpMidpoint, gwpMidpoint)
-  const range = extMax - extMin
-  const normalisedScore = range > 0 ? Math.max(0, Math.min(1, 1 - (gwpMidpoint - extMin) / range)) : 1.0
+  // Score on the absolute curve — cohort-independent, so a single-model import
+  // and a full batch produce identical, comparable scores.
+  const normalisedScore = gwpToScore(gwpMidpoint)
 
   if (storeInDb) {
     const snapshotDate = new Date().toISOString().split('T')[0]
     // upsertAlias must run first so upsertSnapshotDirect can write bearing_slug.
     await upsertAlias('ecologits', ecoModelName, slug)
-    // Use direct upsert (not ingestSnapshot) to preserve the normalisedScore we
-    // already computed against the full DB cohort. ingestSnapshot re-normalises
-    // within its input batch — for a single row min === max → linear = 1.0 →
-    // with lowerIsBetter the score collapses to 0.0 regardless of actual GWP.
     await upsertSnapshotDirect({
       ecoModelName,
       bearingSlug: slug,

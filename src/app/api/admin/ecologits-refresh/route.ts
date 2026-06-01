@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import { fetchEcoLogitsScore, ECOLOGITS_PROVIDER_MAP } from '@/lib/ecologits-grounding'
-import { ingestSnapshot, upsertAlias } from '@/lib/benchmarks'
-import type { SnapshotRow } from '@/lib/benchmarks'
 
 function getDb() {
   const url = process.env.NEON_DATABASE_URL
@@ -37,14 +35,10 @@ export async function GET(request: NextRequest) {
     failed: [] as string[],
   }
 
-  // Phase 1: collect all GWP values without storing.
-  // Passing storeInDb: false means each model is resolved and its GWP fetched
-  // but no snapshot is written yet — so normalisation happens over the full
-  // cohort in Phase 2 rather than per-model (which collapses to 0.0 for
-  // lowerIsBetter when only one row is in the batch).
-  type Resolved = { slug: string; ecoProvider: string; ecoModelName: string; rawGwp: number }
-  const resolved: Resolved[] = []
-
+  // EcoLogits scores come from the absolute gwpToScore() curve, so each model
+  // can be stored independently — no cohort-wide batch step is needed (every
+  // score is final the moment its GWP is fetched). fetchEcoLogitsScore with
+  // storeInDb:true resolves the alias and writes the snapshot in one call.
   for (const row of rows) {
     const slug = row.slug as string
     const provider = row.provider as string
@@ -55,9 +49,8 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      const score = await fetchEcoLogitsScore(slug, provider, { storeInDb: false })
+      const score = await fetchEcoLogitsScore(slug, provider, { storeInDb: true })
       if (score) {
-        resolved.push({ slug, ecoProvider: score.ecoProvider, ecoModelName: score.ecoModelName, rawGwp: score.rawGwp })
         results.updated.push(slug)
       } else {
         results.skippedNoMatch.push(slug)
@@ -65,27 +58,6 @@ export async function GET(request: NextRequest) {
     } catch {
       results.failed.push(slug)
     }
-  }
-
-  // Phase 2: upsert aliases and batch-ingest all rows together.
-  // ingestSnapshot normalises within the batch — passing all rows at once
-  // ensures correct cohort-wide min-max scaling.
-  if (resolved.length > 0) {
-    const snapshotDate = new Date().toISOString().split('T')[0]
-    for (const r of resolved) {
-      await upsertAlias('ecologits', r.ecoModelName, r.slug)
-    }
-    const snapshotRows: SnapshotRow[] = resolved.map(r => ({
-      source: 'ecologits' as const,
-      sourceCategory: 'inference_efficiency',
-      sourceModelName: r.ecoModelName,
-      rawScore: r.rawGwp,
-      voteCount: null,
-      snapshotDate,
-      lowerIsBetter: true,
-      signalType: 'sustainability' as const,
-    }))
-    await ingestSnapshot(snapshotRows)
   }
 
   return NextResponse.json({

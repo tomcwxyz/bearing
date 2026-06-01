@@ -2,7 +2,7 @@
   "meta": {
     "name": "Bearing Model Registry",
     "version": "0.9.0",
-    "updated": "2026-05-29",
+    "updated": "2026-06-01",
     "maintainer": "The Good Ship · good-ship.co.uk",
     "license": "CC BY-NC 4.0",
     "notes": "Generated from database. 41 active models — 31 chat + 10 embedding. v0.9.0 introduces model_class ('chat' | 'embedding') and adds `embedding` as the 13th canonical task type. Embedding tasks route only to embedding models (and vice versa) via a hard class filter in scoring. Embedding seed: openai-embed-3-large/small, voyage-3-large/lite, cohere-embed-v4, mistral-embed-2, greenpt-green-embedding (Qwen3-Embedding-4B on renewable infrastructure), and three open-weight local options — bge-m3, nomic-embed-v2-moe, gte-qwen2-7b. Initial embedding task_fitness is hand-curated from MTEB averages; phase 4 (scripts/ingest-mteb.ts) will replace with benchmark-grounded values via the same provenance flow as LMArena / LiveBench / AA. Pricing invariant: every embedding model has output_per_1m === 0 (embedding APIs bill input tokens only)."
@@ -79,7 +79,7 @@
   "sustainability_methodology": {
     "description": "Three sub-dimensions, each 0.0-1.0. Composite = mean of available (nulls excluded).",
     "dimensions": {
-      "inference_energy": "Grounded by EcoLogits (api.ecologits.ai) where available: normalised GWP (kgCO2eq) per 300-output-token canonical request, lower-is-better, cohort min-max scaled. Blended with curated values via ECOLOGITS_BLEND env var (default 0.5). When curated is null, EcoLogits score is adopted directly. Curated scale: 1.0=published per-query metrics; 0.8=very small/efficient; 0.6=MoE; 0.4=standard large; null=no data",
+      "inference_energy": "Grounded by EcoLogits (api.ecologits.ai) where available: GWP (kgCO2eq) per 300-output-token canonical request, mapped to a 0-1 efficiency score on a FIXED logarithmic curve (0.01 gCO2eq = 1.0 best, 2.5 gCO2eq = 0.0 worst). The curve is absolute, not cohort-relative, so a model's score never changes when other models are added or removed and grounded scores sit on the same axis as the curated ones. Blended with curated values via ECOLOGITS_BLEND env var (default 0.5); when curated is null the EcoLogits score is adopted directly. Each model carries an inference_energy_source field recording provenance (ecologits vs curated). Curated scale: 1.0=published per-query metrics; 0.8=very small/efficient; 0.6=MoE; 0.4=standard large; null=no data",
       "training_footprint": "1.0=published with offsets; 0.7=published; 0.4=estimated; 0.0=no info; null=no data",
       "provider_infrastructure": "1.0=100% renewable+heat recovery; 0.8=100% renewable; 0.6=significant commitment+reporting; 0.4=some renewable; 0.2=none; null=no data"
     },
@@ -87,6 +87,7 @@
       "source": "https://api.ecologits.ai",
       "methodology": "ISO 14044 LCA, bottom-up model, inference-time only (training excluded)",
       "canonical_request": "output_token_count=300, electricity_mix_zone=WOR",
+      "scoring_curve": "Absolute log scale: score = clamp01((log10(2.5) - log10(gwp_grams)) / (log10(2.5) - log10(0.01))). Anchors: 0.01 gCO2eq -> 1.0, 2.5 gCO2eq -> 0.0. Cohort-independent.",
       "coverage": "anthropic, openai, google_genai, mistralai, cohere, huggingface_hub",
       "limitation": "Inference-time hosting only. Training energy (which can dominate lifecycle impact for frontier models) is excluded. Proprietary model architecture estimates are based on leaked/inferred parameter counts and carry model-arch-not-released warnings."
     }
@@ -147,7 +148,10 @@
         "inference_energy": 0.85,
         "training_footprint": null,
         "sustainability_score": 0.78,
-        "provider_infrastructure": 0.7
+        "provider_infrastructure": 0.7,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": false,
@@ -225,10 +229,18 @@
       },
       "sustainability": {
         "notes": "Smaller model = more efficient inference. Anthropic committed to covering 100% grid upgrade costs, water-efficient cooling, energy price offset for ratepayers. No renewable energy target published.",
-        "inference_energy": 0.75,
+        "inference_energy": 0.7,
         "training_footprint": null,
-        "sustainability_score": 0.57,
-        "provider_infrastructure": 0.4
+        "sustainability_score": 0.55,
+        "provider_infrastructure": 0.4,
+        "inference_energy_source": {
+          "source": "ecologits",
+          "blend": 0.5,
+          "eco_score": 0.902,
+          "raw_gwp_gco2eq": 0.0171,
+          "eco_model": "claude-haiku-4-5-20251001",
+          "snapshot_date": "2026-06-01"
+        }
       }
     },
     "claude-opus-4.6": {
@@ -288,10 +300,18 @@
       },
       "sustainability": {
         "notes": "Anthropic committed to covering 100% grid upgrade costs, water-efficient cooling, energy price offset for ratepayers. No renewable energy target published.",
-        "inference_energy": 0.63,
+        "inference_energy": 0.21,
         "training_footprint": null,
-        "sustainability_score": 0.52,
-        "provider_infrastructure": 0.4
+        "sustainability_score": 0.31,
+        "provider_infrastructure": 0.4,
+        "inference_energy_source": {
+          "source": "ecologits",
+          "blend": 1,
+          "eco_score": 0.211,
+          "raw_gwp_gco2eq": 0.7804,
+          "eco_model": "claude-opus-4-6",
+          "snapshot_date": "2026-06-01"
+        }
       }
     },
     "claude-opus-4.7": {
@@ -419,10 +439,18 @@
       },
       "sustainability": {
         "notes": "Anthropic committed to covering 100% grid upgrade costs, water-efficient cooling, energy price offset for ratepayers. No renewable energy target published.",
-        "inference_energy": 0.86,
+        "inference_energy": 0.38,
         "training_footprint": null,
-        "sustainability_score": 0.63,
-        "provider_infrastructure": 0.4
+        "sustainability_score": 0.39,
+        "provider_infrastructure": 0.4,
+        "inference_energy_source": {
+          "source": "ecologits",
+          "blend": 1,
+          "eco_score": 0.382,
+          "raw_gwp_gco2eq": 0.3037,
+          "eco_model": "claude-sonnet-4-6",
+          "snapshot_date": "2026-06-01"
+        }
       }
     },
     "codestral-25.01": {
@@ -485,7 +513,10 @@
         "inference_energy": 0.6,
         "training_footprint": null,
         "sustainability_score": 0.57,
-        "provider_infrastructure": 0.55
+        "provider_infrastructure": 0.55,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": false,
@@ -630,7 +661,10 @@
         "inference_energy": 0.4,
         "training_footprint": null,
         "sustainability_score": 0.3,
-        "provider_infrastructure": 0.2
+        "provider_infrastructure": 0.2,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": true,
@@ -709,7 +743,10 @@
         "inference_energy": 0.35,
         "training_footprint": null,
         "sustainability_score": 0.28,
-        "provider_infrastructure": 0.2
+        "provider_infrastructure": 0.2,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": true,
@@ -735,8 +772,8 @@
       "tier": "balanced",
       "model_class": "chat",
       "pricing": {
-        "input_per_1m": 0.15,
-        "output_per_1m": 0.75
+        "input_per_1m": 0.21,
+        "output_per_1m": 0.7899999999999999
       },
       "context_window": 128000,
       "capabilities": [
@@ -788,7 +825,10 @@
         "inference_energy": 0.65,
         "training_footprint": null,
         "sustainability_score": 0.43,
-        "provider_infrastructure": 0.2
+        "provider_infrastructure": 0.2,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": true,
@@ -814,8 +854,8 @@
       "tier": "flagship",
       "model_class": "chat",
       "pricing": {
-        "input_per_1m": 0.25899999999999995,
-        "output_per_1m": 0.42
+        "input_per_1m": 0.252,
+        "output_per_1m": 0.378
       },
       "context_window": 128000,
       "capabilities": [
@@ -868,7 +908,10 @@
         "inference_energy": 0.5,
         "training_footprint": null,
         "sustainability_score": 0.35,
-        "provider_infrastructure": 0.2
+        "provider_infrastructure": 0.2,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": true,
@@ -1011,7 +1054,10 @@
         "inference_energy": 0.7,
         "training_footprint": null,
         "sustainability_score": 0.63,
-        "provider_infrastructure": 0.55
+        "provider_infrastructure": 0.55,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": false,
@@ -1089,10 +1135,18 @@
       },
       "sustainability": {
         "notes": "Lightest Google model. Designed for efficiency on TPU. Google 100% renewable match since 2017. Targeting 24/7 carbon-free by 2030.",
-        "inference_energy": 0.93,
+        "inference_energy": 0.92,
         "training_footprint": 0.4,
         "sustainability_score": 0.71,
-        "provider_infrastructure": 0.8
+        "provider_infrastructure": 0.8,
+        "inference_energy_source": {
+          "source": "ecologits",
+          "blend": 0.5,
+          "eco_score": 0.996,
+          "raw_gwp_gco2eq": 0.0102,
+          "eco_model": "gemini-2.5-flash-lite",
+          "snapshot_date": "2026-06-01"
+        }
       }
     },
     "gemini-3-flash": {
@@ -1153,10 +1207,18 @@
       },
       "sustainability": {
         "notes": "Flash models designed for efficiency. TPU infrastructure. Google 100% renewable match since 2017. Published per-query energy: 0.24 Wh median text prompt. Targeting 24/7 carbon-free by 2030 (this has been downgraded on new information about Google using gas powered stations for data centres and moving off 2030 target)",
-        "inference_energy": 0.8,
+        "inference_energy": 0.56,
         "training_footprint": 0.4,
-        "sustainability_score": 0.67,
-        "provider_infrastructure": 0.8
+        "sustainability_score": 0.59,
+        "provider_infrastructure": 0.8,
+        "inference_energy_source": {
+          "source": "ecologits",
+          "blend": 0.5,
+          "eco_score": 0.316,
+          "raw_gwp_gco2eq": 0.4359,
+          "eco_model": "gemini-3-flash-preview",
+          "snapshot_date": "2026-06-01"
+        }
       }
     },
     "gemini-3.1-pro": {
@@ -1218,10 +1280,18 @@
       },
       "sustainability": {
         "notes": "Custom TPUs. Google 100% renewable match since 2017. Published per-query energy: 0.24 Wh median text prompt. Targeting 24/7 carbon-free by 2030. Best mainstream sustainability disclosure.",
-        "inference_energy": 0.3,
+        "inference_energy": 0.32,
         "training_footprint": 0.4,
-        "sustainability_score": 0.5,
-        "provider_infrastructure": 0.8
+        "sustainability_score": 0.51,
+        "provider_infrastructure": 0.8,
+        "inference_energy_source": {
+          "source": "ecologits",
+          "blend": 0.5,
+          "eco_score": 0.032,
+          "raw_gwp_gco2eq": 2.094,
+          "eco_model": "gemini-3.1-pro-preview",
+          "snapshot_date": "2026-06-01"
+        }
       }
     },
     "gpt-5.4": {
@@ -1281,10 +1351,18 @@
       },
       "sustainability": {
         "notes": "CEO stated 0.34 Wh per average ChatGPT query. Claims 100% renewable by 2027 via Microsoft Azure RECs (not direct PPAs). Zero published Scope 1/2/3 emissions as of 2026.",
-        "inference_energy": 0.62,
+        "inference_energy": 0.38,
         "training_footprint": null,
-        "sustainability_score": 0.51,
-        "provider_infrastructure": 0.4
+        "sustainability_score": 0.39,
+        "provider_infrastructure": 0.4,
+        "inference_energy_source": {
+          "source": "ecologits",
+          "blend": 0.5,
+          "eco_score": 0.367,
+          "raw_gwp_gco2eq": 0.3291,
+          "eco_model": "gpt-5.4",
+          "snapshot_date": "2026-06-01"
+        }
       }
     },
     "gpt-5.4-mini": {
@@ -1342,10 +1420,18 @@
       },
       "sustainability": {
         "notes": "Smaller model = more efficient. CEO stated 0.34 Wh per average ChatGPT query. Claims 100% renewable by 2027 via Microsoft Azure RECs (not direct PPAs). Zero published Scope 1/2/3 emissions as of 2026.",
-        "inference_energy": 0.75,
+        "inference_energy": 0.56,
         "training_footprint": null,
-        "sustainability_score": 0.58,
-        "provider_infrastructure": 0.4
+        "sustainability_score": 0.48,
+        "provider_infrastructure": 0.4,
+        "inference_energy_source": {
+          "source": "ecologits",
+          "blend": 0.5,
+          "eco_score": 0.562,
+          "raw_gwp_gco2eq": 0.1122,
+          "eco_model": "gpt-5.4-mini",
+          "snapshot_date": "2026-06-01"
+        }
       }
     },
     "gpt-5.4-nano": {
@@ -1401,10 +1487,18 @@
       },
       "sustainability": {
         "notes": "Smallest OpenAI model = most efficient inference. CEO stated 0.34 Wh per average ChatGPT query. Claims 100% renewable by 2027 via Microsoft Azure RECs (not direct PPAs). Zero published Scope 1/2/3 emissions as of 2026.",
-        "inference_energy": 0.9,
+        "inference_energy": 0.84,
         "training_footprint": null,
-        "sustainability_score": 0.65,
-        "provider_infrastructure": 0.4
+        "sustainability_score": 0.62,
+        "provider_infrastructure": 0.4,
+        "inference_energy_source": {
+          "source": "ecologits",
+          "blend": 0.5,
+          "eco_score": 0.872,
+          "raw_gwp_gco2eq": 0.0203,
+          "eco_model": "gpt-5.4-nano",
+          "snapshot_date": "2026-06-01"
+        }
       }
     },
     "greenpt-green-embedding": {
@@ -1465,7 +1559,10 @@
         "inference_energy": 0.98,
         "training_footprint": null,
         "sustainability_score": 0.95,
-        "provider_infrastructure": 0.95
+        "provider_infrastructure": 0.95,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "embedding_dim": 2560,
       "max_input_tokens": 32000,
@@ -1535,7 +1632,10 @@
         "inference_energy": 1,
         "training_footprint": 0.3,
         "sustainability_score": 0.77,
-        "provider_infrastructure": 1
+        "provider_infrastructure": 1,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": false,
@@ -1623,7 +1723,10 @@
         "inference_energy": 0.8,
         "training_footprint": 0.2,
         "sustainability_score": 0.67,
-        "provider_infrastructure": 1
+        "provider_infrastructure": 1,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": false,
@@ -1777,7 +1880,10 @@
         "inference_energy": 0.85,
         "training_footprint": null,
         "sustainability_score": 0.78,
-        "provider_infrastructure": 0.7
+        "provider_infrastructure": 0.7,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": false,
@@ -1806,7 +1912,7 @@
       "model_class": "chat",
       "pricing": {
         "input_per_1m": 0.017,
-        "output_per_1m": 0.11
+        "output_per_1m": 0.112
       },
       "context_window": 131000,
       "capabilities": [
@@ -1861,7 +1967,10 @@
         "inference_energy": 0.7,
         "training_footprint": 0.7,
         "sustainability_score": 0.65,
-        "provider_infrastructure": 0.55
+        "provider_infrastructure": 0.55,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": false,
@@ -1946,7 +2055,10 @@
         "inference_energy": 0.5,
         "training_footprint": null,
         "sustainability_score": 0.35,
-        "provider_infrastructure": 0.2
+        "provider_infrastructure": 0.2,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": true,
@@ -1972,8 +2084,8 @@
       "tier": "flagship",
       "model_class": "chat",
       "pricing": {
-        "input_per_1m": 0.3827,
-        "output_per_1m": 1.72
+        "input_per_1m": 0.39999999999999997,
+        "output_per_1m": 1.9
       },
       "context_window": 128000,
       "capabilities": [
@@ -2028,7 +2140,10 @@
         "inference_energy": 0.5,
         "training_footprint": null,
         "sustainability_score": 0.35,
-        "provider_infrastructure": 0.2
+        "provider_infrastructure": 0.2,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": true,
@@ -2109,7 +2224,10 @@
         "inference_energy": 0.55,
         "training_footprint": null,
         "sustainability_score": 0.68,
-        "provider_infrastructure": 0.8
+        "provider_infrastructure": 0.8,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": true,
@@ -2145,8 +2263,8 @@
       "tier": "balanced",
       "model_class": "chat",
       "pricing": {
-        "input_per_1m": 0.118,
-        "output_per_1m": 0.9900000000000001
+        "input_per_1m": 0.15,
+        "output_per_1m": 1.15
       },
       "context_window": 1000000,
       "capabilities": [
@@ -2201,7 +2319,10 @@
         "inference_energy": 0.5,
         "training_footprint": null,
         "sustainability_score": 0.35,
-        "provider_infrastructure": 0.2
+        "provider_infrastructure": 0.2,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": true,
@@ -2227,7 +2348,7 @@
       "tier": "flagship",
       "model_class": "chat",
       "pricing": {
-        "input_per_1m": 0.3,
+        "input_per_1m": 0.27899999999999997,
         "output_per_1m": 1.2
       },
       "context_window": 1000000,
@@ -2284,7 +2405,10 @@
         "inference_energy": 0.6,
         "training_footprint": null,
         "sustainability_score": 0.4,
-        "provider_infrastructure": 0.2
+        "provider_infrastructure": 0.2,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": true,
@@ -2420,10 +2544,18 @@
       },
       "sustainability": {
         "notes": "EU-based. Mistral partnered with EcoDataCenter Sweden (renewable). Paris facility on low-carbon nuclear grid. Launched sustainability auditing tool.",
-        "inference_energy": 0.78,
+        "inference_energy": 0.61,
         "training_footprint": null,
-        "sustainability_score": 0.67,
-        "provider_infrastructure": 0.55
+        "sustainability_score": 0.58,
+        "provider_infrastructure": 0.55,
+        "inference_energy_source": {
+          "source": "ecologits",
+          "blend": 0.5,
+          "eco_score": 0.629,
+          "raw_gwp_gco2eq": 0.0774,
+          "eco_model": "mistral-medium",
+          "snapshot_date": "2026-06-01"
+        }
       },
       "local_info": {
         "is_moe": false,
@@ -2511,7 +2643,10 @@
         "inference_energy": 0.5,
         "training_footprint": null,
         "sustainability_score": 0.53,
-        "provider_infrastructure": 0.55
+        "provider_infrastructure": 0.55,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": false,
@@ -2599,7 +2734,10 @@
         "inference_energy": 0.85,
         "training_footprint": null,
         "sustainability_score": 0.78,
-        "provider_infrastructure": 0.7
+        "provider_infrastructure": 0.7,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": true,
@@ -2744,8 +2882,8 @@
       "tier": "open_source_balanced",
       "model_class": "chat",
       "pricing": {
-        "input_per_1m": 0.12,
-        "output_per_1m": 0.39
+        "input_per_1m": 0.36,
+        "output_per_1m": 0.39999999999999997
       },
       "context_window": 128000,
       "capabilities": [
@@ -2796,7 +2934,10 @@
         "inference_energy": 0.5,
         "training_footprint": null,
         "sustainability_score": 0.5,
-        "provider_infrastructure": null
+        "provider_infrastructure": null,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": false,
@@ -2887,7 +3028,10 @@
         "inference_energy": 0.5,
         "training_footprint": null,
         "sustainability_score": 0.5,
-        "provider_infrastructure": null
+        "provider_infrastructure": null,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": true,
@@ -2979,7 +3123,10 @@
         "inference_energy": 0.5,
         "training_footprint": null,
         "sustainability_score": 0.5,
-        "provider_infrastructure": null
+        "provider_infrastructure": null,
+        "inference_energy_source": {
+          "source": "curated"
+        }
       },
       "local_info": {
         "is_moe": true,

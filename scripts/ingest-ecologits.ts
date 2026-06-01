@@ -2,8 +2,9 @@
 //
 // Calls the EcoLogits public REST API (api.ecologits.ai/v1beta/estimations)
 // for each covered Bearing model using a canonical 300-output-token request.
-// Stores GWP midpoints (kgCO2eq) in benchmark_snapshots with lowerIsBetter=true
-// so the cohort-normalised score maps 0→worst, 1→best efficiency.
+// Stores each GWP midpoint (kgCO2eq) in benchmark_snapshots together with an
+// absolute-curve efficiency score (gwpToScore) — cohort-independent, so the
+// score does not change as covered models are added or removed.
 //
 // Models are auto-discovered from the DB (active chat models) rather than a
 // hardcoded seed list. Confirmed aliases in benchmark_aliases take priority;
@@ -25,6 +26,7 @@ import {
   resolveModelName,
   fetchEcoModelList,
   fetchGwpRaw,
+  gwpToScore,
 } from '../src/lib/ecologits-grounding'
 
 const apply = process.argv.includes('--apply')
@@ -159,9 +161,9 @@ async function run() {
       sourceCategory: 'inference_efficiency',
       sourceModelName: item.ecoModelName,
       rawScore: result.gwpMidpoint,
+      normalisedScore: gwpToScore(result.gwpMidpoint),
       voteCount: null,
       snapshotDate: SNAPSHOT_DATE,
-      lowerIsBetter: true,
       signalType: 'sustainability',
     })
     rowMeta.push(item)
@@ -170,16 +172,13 @@ async function run() {
   console.log(`\nFetched: ${rows.length} models | Skipped (GWP error): ${gwpSkipped.length}`)
   if (gwpSkipped.length > 0) console.log(`GWP errors: ${gwpSkipped.join(', ')}`)
 
-  // Display normalised scores locally for verification.
+  // Display absolute-curve scores locally for verification.
   if (rows.length > 0) {
-    const min = Math.min(...rows.map(r => r.rawScore))
-    const max = Math.max(...rows.map(r => r.rawScore))
-    console.log('\nNormalised scores (lower GWP → higher score):')
+    console.log('\nEfficiency scores (absolute gwpToScore curve, lower GWP → higher score):')
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i]
       const meta = rowMeta[i]
-      const norm = max > min ? 1 - (row.rawScore - min) / (max - min) : 1.0
-      console.log(`  ${meta.bearingSlug.padEnd(25)} raw=${(row.rawScore * 1000).toFixed(4)}g  norm=${norm.toFixed(3)}`)
+      console.log(`  ${meta.bearingSlug.padEnd(25)} raw=${(row.rawScore * 1000).toFixed(4)}g  score=${(row.normalisedScore ?? 0).toFixed(3)}`)
     }
   }
 
