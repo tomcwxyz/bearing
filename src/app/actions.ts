@@ -86,9 +86,14 @@ export async function submitTask(formData: FormData) {
       }
     }
 
-    // Auto-route embedding tasks to the embedding flow — they need MTEB quality,
-    // dim, and max-input, not the chat priority-weighting page and factor bars.
-    if (classification.task_type === 'embedding') {
+    // Auto-route single-stage embedding tasks to the embedding flow — they need
+    // MTEB quality, dim, and max-input, not the chat priority page and factor
+    // bars. Embedding-LED PIPELINES (e.g. extract → embedding → qa) must keep
+    // the normal results path: getResults() is the only place that evaluates and
+    // renders multi-stage recommendations, and the embedding results page is
+    // single-model only — shortcutting it would silently drop the other stages.
+    const hasPipelineStages = (classification.pipeline_stages?.length ?? 0) > 0
+    if (classification.task_type === 'embedding' && !hasPipelineStages) {
       await prepareEmbeddingRecommendation(taskId, classification)
       redirect(`/embedding/${taskId}/results`)
     }
@@ -145,8 +150,10 @@ export async function submitClarification(
       }
     }
 
-    // Auto-route embedding tasks to the embedding flow (see submitTask).
-    if (classification.task_type === 'embedding') {
+    // Auto-route single-stage embedding tasks only; embedding-led pipelines keep
+    // the normal results path so getResults() can render every stage (see submitTask).
+    const hasPipelineStages = (classification.pipeline_stages?.length ?? 0) > 0
+    if (classification.task_type === 'embedding' && !hasPipelineStages) {
       await prepareEmbeddingRecommendation(taskId, classification)
       redirect(`/embedding/${taskId}/results`)
     }
