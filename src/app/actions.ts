@@ -658,7 +658,11 @@ export async function getEmbeddingResults(taskId: string) {
       dataSensitivity: task.data_sensitivity ?? 'none',
       latencyTarget: task.latency_target ?? 'batch',
       volume: 'one_off',
-      needsLongContext: task.needs_long_context ?? false,
+      // Always false for embeddings — they gate on max_input_tokens, not the
+      // chat context_window. An auto-routed task may carry needs_long_context=true
+      // from the classifier (long input); applying the 100k chat gate here would
+      // wrongly drop most embedding models. Mirrors scoreAndSaveEmbedding().
+      needsLongContext: false,
       needsMultilingual: task.needs_multilingual ?? false,
       isAgentic: false,
       outputLength: 'short',
