@@ -1,93 +1,70 @@
-# Handoff — 2026-05-29
+# Handoff — 2026-06-01
 
 ## TL;DR
 
-Two features shipped this session:
+Both feature branches from the previous session are now **merged to master**, plus
+a follow-up session of review fixes, an EcoLogits scoring overhaul, an embedding
+UX redesign, docs, and branch cleanup. **master is the only branch** (local + remote).
+Working tree clean. `tsc` clean, 185/186 tests pass (1 skipped).
 
-1. **v0.9 embedding models** — merged to master (PR #22). 41 models (31 chat + 10 embedding), `/embedding` entry point, pipeline routing, MTEB benchmark grounding.
-2. **EcoLogits sustainability grounding** — open PR #23 on `feat/ecologits-sustainability`. Grounds `sustainability.inference_energy` with real GWP data, wired into admin import + weekly cron.
+Registry: **v0.9.0, 41 models (31 chat + 10 embedding), 17 providers.**
 
-## Branches
+## What shipped this session (all on master)
 
-| Branch | State | Notes |
-|---|---|---|
-| `master` | Clean — PR #22 merged | v0.9 embedding + all prior work |
-| `feat/ecologits-sustainability` | 15 commits, PR #23 open | EcoLogits integration, NOT yet merged |
+### 1. EcoLogits — absolute GWP curve + provenance (PR #23, merged `a81091c`)
+Replaced cohort min-max normalisation with a **fixed absolute log curve**
+(`gwpToScore`, `src/lib/ecologits-grounding.ts`): `0.01 gCO₂eq → 1.0`,
+`2.5 gCO₂eq → 0.0`. Scores are now cohort-independent.
+- Every model's `sustainability.inference_energy_source` records provenance:
+  `{source:'ecologits', blend, eco_score, raw_gwp_gco2eq, eco_model, snapshot_date}`
+  or `{source:'curated'}`. Type `InferenceEnergyProvenance` in `registry.ts`.
+- Simplified the pipeline: removed `getCohortStats`; cron route now stores per-model
+  via `fetchEcoLogitsScore(...,{storeInDb:true})` (no two-phase batch); `ingestSnapshot`
+  gained an additive pre-computed `normalisedScore` path (cohort logic untouched for AA).
+- **Resolved P1 review** (single-row ingest collapsing scores to 0) — that was the old
+  cohort code; absolute scoring eliminates the bug class. Do NOT re-add batching.
 
----
+### 2. Embedding UX — auto-route + Models entry point (PR #24, merged `4a6e9a6`)
+- **Auto-routing**: describe an embedding task in the normal flow → `submitTask` /
+  `submitClarification` route to `/embedding/[id]/results`, skipping the chat priority
+  page. Shared `scoreAndSaveEmbedding` + `prepareEmbeddingRecommendation` helpers in
+  `actions.ts`; `submitEmbeddingTask` refactored onto them.
+- Front-page **Embedding tab removed** (`mode` = recommend | validate) + auto-detect hint.
+- Models registry: **Chat/Embedding type filter** + "Find an embedding model" CTA;
+  `/models?type=embedding` deep-link. Embedding cards hide N/A output pricing.
+- **Resolved 2 reviews**: (P1) embedding-led *pipelines* no longer shortcut to the
+  single-model page — gated on `!hasPipelineStages` so `getResults()` renders every
+  stage; (P2) `getEmbeddingResults` hardcodes `needsLongContext: false` so the chat
+  100k context gate never drops embedding models.
 
-## PR #23 — EcoLogits sustainability grounding
+### 3. Docs + cleanup
+- `docs/changelog.md` (`[Unreleased]`) + `docs/user-guide.md` updated for both features.
+- **README fully refreshed** (`71abdc7`) — was v0.5.0-era: now v0.9.0, 41 models,
+  embedding section, EcoLogits/MTEB, Next.js 16, 185 tests, migrations 001–022.
+- **All stale branches deleted** (7 remote, 4 local). Only `master` remains.
 
-### What it does
+## Before deploying
 
-Integrates the [EcoLogits REST API](https://api.ecologits.ai) to ground `sustainability.inference_energy` with real per-request GWP (kgCO2eq) measurements.
-
-**Coverage:** 10 of 31 chat models — Anthropic (haiku/sonnet/opus), OpenAI (gpt-5.4/mini/nano), Google (gemini-3-flash/3.1-pro/2.5-flash-lite), Mistral (mistral-medium-3). DeepSeek, Alibaba, Kimi, MiniMax, GreenPT, xAI, IBM not in EcoLogits.
-
-### Key files
-
-| File | Role |
-|---|---|
-| `src/lib/ecologits-grounding.ts` | Shared utility: provider map, model name resolution, GWP fetch, cohort normalisation, DB write |
-| `scripts/ingest-ecologits.ts` | Batch ingest script — auto-discovers from DB, dry-run by default |
-| `scripts/generate-registry.ts` | Blends ecologits scores into `inference_energy` (ECOLOGITS_BLEND env var, default 0.5) |
-| `src/app/admin/actions.ts` | `estimateModelScores` + `regroundModel` both call EcoLogits automatically |
-| `src/app/api/admin/ecologits-refresh/route.ts` | Protected cron endpoint — `/api/admin/ecologits-refresh` |
-| `vercel.json` | Weekly cron: Monday 03:00 UTC |
-| `src/db/migrations/022_ecologits_signal_type.sql` | Extends `signal_type` CHECK constraint to include `'sustainability'` |
-
-### How it flows
-
-```
-Admin imports model
-  → estimateModelScores() calls fetchEcoLogitsScore()
-  → GWP fetched, normalised against existing cohort, stored in benchmark_snapshots
-  → inference_energy set with teal provenance dot
-
-Weekly cron (Monday 03:00 UTC, Vercel)
-  → GET /api/admin/ecologits-refresh (Bearer $CRON_SECRET)
-  → Phase 1: fetch GWP for all covered models (no writes)
-  → Phase 2: ingestSnapshot(all rows) — correct cohort-wide normalisation
-
-Every Vercel deploy (prebuild)
-  → npx tsx scripts/generate-registry.ts
-  → Reads latest ecologits scores from benchmark_snapshots
-  → Blends into inference_energy → recalculates sustainability_score
-  → bearing-registry.json updated → scoring engine sees fresh data
-```
-
-### Before merging PR #23
-
-1. **Set `CRON_SECRET` env var in Vercel** — any random string. Required for the weekly cron and for manual curl calls to the refresh endpoint.
-2. **Review the two test-plan items** that weren't verified in-session:
-   - Import a new model from Discover tab → verify teal dot appears on inference_energy
-   - Hit `/api/admin/ecologits-refresh` with `Authorization: Bearer $CRON_SECRET` → verify JSON summary
-
-### Known design decisions
-
-- **Single-model import**: `fetchEcoLogitsScore` writes with `upsertSnapshotDirect` (pre-computed normalised score, bypasses `ingestSnapshot` re-normalisation). Score is relative to cohort at time of import; the next cron run re-normalises everything correctly.
-- **`ECOLOGITS_BLEND = 0.5`** by default. Set to `0` to disable blending (ecologits data fetched but not applied to scores). Set to `1` for fully EcoLogits-driven.
-- **Inference-only scope**: EcoLogits excludes training energy and end-of-life. Documented in `sustainability_methodology` in registry JSON and in the rubric.
-
----
+- **Set `CRON_SECRET` in Vercel** — guards `/api/admin/ecologits-refresh` (weekly cron,
+  Mon 03:00 UTC via `vercel.json`). Required before the cron or manual refresh works.
+- Two EcoLogits test-plan items still unverified in-session: teal provenance dot on
+  admin import, and a live hit to the refresh endpoint with the Bearer secret.
 
 ## Database state
 
-Migrations applied to Neon (001–022):
-- 022 — `sustainability` added to `signal_type` CHECK constraint on `benchmark_snapshots`
+Migrations applied to Neon: **001–022** (022 = `sustainability` signal_type).
+`benchmark_snapshots` has 10 `source='ecologits'` rows (`signal_type='sustainability'`),
+now scored on the absolute curve.
 
-41 active models: 31 chat + 10 embedding.
-`benchmark_snapshots` has 10 `source='ecologits'` rows, `signal_type='sustainability'`.
+## Open items (carried forward)
 
-## Tests
-
-183/184 pass (1 skipped — unmeetable-capability test retired in v0.8). `tsc --noEmit` clean.
-
-## Open items
-
-- Deploy to Vercel (both v0.9 and EcoLogits work ready)
-- Set `CRON_SECRET` in Vercel env vars
-- Expand EcoLogits coverage as more providers/models are added to their registry
-- `ECOLOGITS_BLEND` tuning — currently 0.5; worth revisiting once data has been live for a while
-- claude-opus-4.7 not yet in EcoLogits registry (no match at time of implementation)
-- LiveBench licence still pending (`docs/plans/2026-05-04-livebench-licence-request.md`)
+- Deploy to Vercel (everything ready; needs `CRON_SECRET`).
+- `ECOLOGITS_BLEND` tuning — currently 0.5; revisit once data has been live a while.
+- Methodology follow-up: 22 curated (non-EcoLogits) models still use absolute rubric
+  anchors. Grounded + curated now share one axis, but recurating the uncovered models
+  for full consistency is optional future work.
+- claude-opus-4.7 not yet matched in the EcoLogits registry.
+- Expand EcoLogits coverage as their model registry grows.
+- LiveBench licence still pending (`docs/plans/2026-05-04-livebench-licence-request.md`).
+- Minor: `embeddingPriorityFor` / auto-route mapping has no unit test (server-action,
+  needs LLM+DB) — verified manually via Playwright. Could extract a pure helper to test.
