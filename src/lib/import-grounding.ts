@@ -205,7 +205,7 @@ export function normaliseProvider(provider: string): string | null {
 /** Threshold for the grounded `code` capability flag. */
 export const CODE_CAPABILITY_THRESHOLD = 0.5
 
-export type Provenance = 'benchmark' | 'derived' | 'haiku' | 'default'
+export type Provenance = 'benchmark' | 'derived' | 'haiku' | 'default' | 'ecologits'
 
 export interface GroundedField<T> {
   value: T

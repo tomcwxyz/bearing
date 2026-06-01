@@ -1,0 +1,257 @@
+// Shared EcoLogits grounding utilities.
+//
+// Extracted so the batch ingest script (scripts/ingest-ecologits.ts) and the
+// live admin import/regrounding action (src/app/admin/actions.ts) share the
+// same resolution logic rather than diverging.
+//
+// The three pure-resolution helpers (ECOLOGITS_PROVIDER_MAP, normaliseName,
+// resolveModelName, fetchEcoModelList) are used by the ingest script to drive
+// its own per-model logging + dry-run loop.
+//
+// fetchEcoLogitsScore is the all-in-one helper for admin use: resolve → fetch
+// GWP → normalise against current DB cohort → optionally store.
+
+import { neon } from '@neondatabase/serverless'
+import { upsertAlias } from './benchmarks'
+
+function getDb() {
+  const url = process.env.NEON_DATABASE_URL
+  if (!url) throw new Error('NEON_DATABASE_URL is not set')
+  return neon(url)
+}
+
+const ECOLOGITS_API = 'https://api.ecologits.ai/v1beta/estimations'
+const CANONICAL_OUTPUT_TOKENS = 300
+
+// Absolute GWP→efficiency curve. Maps one request's carbon footprint to a 0..1
+// efficiency score on a FIXED logarithmic scale, independent of any cohort.
+//
+// Why absolute, not cohort min-max: a given GWP always yields the same score,
+// so adding or removing a covered model never reshuffles the others, and the
+// grounded score sits on the same interpretable axis as the curated rubric
+// values it blends with (cohort-relative scores were not comparable to curated).
+//
+// Anchors are grams CO2eq for the canonical 300-output-token request:
+//   BEST  0.01 g → 1.0  (best-in-class efficient model today, e.g. a small flash)
+//   WORST 2.5  g → 0.0  (heavy frontier model)
+// Log scale because inference emissions span >2 orders of magnitude (~0.01–2 g);
+// a linear scale would crush every efficient model together near 1.0.
+export const GWP_SCORE_BEST_G = 0.01
+export const GWP_SCORE_WORST_G = 2.5
+
+/**
+ * Convert a raw GWP reading (kgCO2eq, as returned by the EcoLogits API) to a
+ * 0..1 efficiency score: 1 = most efficient (lowest GWP), 0 = least efficient.
+ * Cohort-independent — see GWP_SCORE_BEST_G / GWP_SCORE_WORST_G for the anchors.
+ */
+export function gwpToScore(gwpKg: number): number {
+  const grams = gwpKg * 1000
+  if (!isFinite(grams) || grams <= 0) return 1.0
+  const logBest = Math.log10(GWP_SCORE_BEST_G)
+  const logWorst = Math.log10(GWP_SCORE_WORST_G)
+  const score = (logWorst - Math.log10(grams)) / (logWorst - logBest)
+  return Math.max(0, Math.min(1, score))
+}
+
+// Maps Bearing's `provider` field (from models table) to EcoLogits provider string.
+// Only providers EcoLogits supports are listed. Others → skip.
+export const ECOLOGITS_PROVIDER_MAP: Record<string, string> = {
+  'Anthropic': 'anthropic',
+  'OpenAI': 'openai',
+  'Google': 'google_genai',
+  'Mistral': 'mistralai',
+  'Cohere': 'cohere',
+  'Meta (via hosted providers)': 'huggingface_hub',
+}
+
+/** Normalise a model name for comparison: lowercase + dots→hyphens. */
+export function normaliseName(name: string): string {
+  return name.toLowerCase().replace(/\./g, '-')
+}
+
+/**
+ * Match a Bearing slug to the best EcoLogits model name from a provider list.
+ * Uses exact match → prefix match → reverse-prefix match in descending
+ * confidence order. Returns null if no confident match is found.
+ */
+export function resolveModelName(slug: string, ecoModels: string[]): string | null {
+  const normSlug = normaliseName(slug)
+
+  // 1. Exact match after normalisation.
+  for (const m of ecoModels) {
+    if (normaliseName(m) === normSlug) return m
+  }
+
+  // 2. Bearing slug is a prefix of EcoLogits name (eco adds -preview, date suffix, etc.)
+  //    e.g. 'gemini-3-flash' matches 'gemini-3-flash-preview'
+  const prefixMatches = ecoModels.filter(m => normaliseName(m).startsWith(normSlug))
+  if (prefixMatches.length === 1) return prefixMatches[0]
+  if (prefixMatches.length > 1) {
+    // Pick shortest name (fewest extra characters beyond the slug).
+    return prefixMatches.sort((a, b) => a.length - b.length)[0]
+  }
+
+  // 3. EcoLogits name is a prefix of the Bearing slug — pick longest (most specific).
+  const reverseMatches = ecoModels.filter(m => normSlug.startsWith(normaliseName(m)))
+  if (reverseMatches.length > 0) {
+    return reverseMatches.sort((a, b) => b.length - a.length)[0]
+  }
+
+  return null
+}
+
+/**
+ * GET https://api.ecologits.ai/v1beta/models/{provider}
+ * Returns array of model name strings for that provider.
+ * Returns [] on error (with a console.warn) so callers can skip gracefully.
+ */
+export async function fetchEcoModelList(provider: string): Promise<string[]> {
+  const res = await fetch(`https://api.ecologits.ai/v1beta/models/${provider}`, {
+    signal: AbortSignal.timeout(10_000),
+  })
+  if (!res.ok) {
+    console.warn(`  ⚠ Could not fetch model list for provider '${provider}': ${res.status}`)
+    return []
+  }
+  const data: { models: Array<{ name: string }> } = await res.json()
+  return data.models.map(m => m.name)
+}
+
+interface EstimationResponse {
+  impacts: {
+    gwp: { value: { min: number; max: number }; unit: string }
+    warnings?: Array<{ code: string; message: string }>
+    errors?: null | string
+  }
+}
+
+/**
+ * POST to the EcoLogits estimations API for a single provider/model pair.
+ * Uses a canonical 300-output-token request with WOR electricity mix.
+ * Returns null on any API or body-level error.
+ */
+export async function fetchGwpRaw(
+  provider: string,
+  modelName: string,
+): Promise<{ gwpMidpoint: number; warnings: string[] } | null> {
+  const res = await fetch(ECOLOGITS_API, {
+    signal: AbortSignal.timeout(10_000),
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      provider,
+      model_name: modelName,
+      output_token_count: CANONICAL_OUTPUT_TOKENS,
+      electricity_mix_zone: 'WOR',
+    }),
+  })
+
+  if (!res.ok) {
+    const text = await res.text()
+    console.warn(`  ⚠ API error for ${provider}/${modelName}: ${res.status} ${text.slice(0, 200)}`)
+    return null
+  }
+
+  const data: EstimationResponse = await res.json()
+  if (data.impacts.errors) {
+    console.warn(`  ⚠ Body-level error for ${provider}/${modelName}: ${data.impacts.errors}`)
+    return null
+  }
+  const { min, max } = data.impacts.gwp.value
+  const gwpMidpoint = (min + max) / 2
+  if (!isFinite(gwpMidpoint)) {
+    console.warn(`  ⚠ Non-finite GWP for ${provider}/${modelName}: min=${min}, max=${max}`)
+    return null
+  }
+  return {
+    gwpMidpoint,
+    warnings: (data.impacts.warnings ?? []).map(w => w.code),
+  }
+}
+
+/**
+ * Write a single benchmark_snapshots row with a pre-computed normalised score.
+ *
+ * EcoLogits scores come from the absolute gwpToScore() curve, not cohort min-max,
+ * so the score is final at write time and we store it directly rather than
+ * routing through ingestSnapshot (whose linear cohort scaling would collapse a
+ * single-row batch to 1.0).
+ */
+async function upsertSnapshotDirect(params: {
+  ecoModelName: string
+  bearingSlug: string
+  rawScore: number
+  normalisedScore: number
+  snapshotDate: string
+}): Promise<void> {
+  await getDb()`
+    INSERT INTO benchmark_snapshots (
+      source, source_category, source_model_name, bearing_slug,
+      raw_score, normalised_score, vote_count, snapshot_date, signal_type
+    ) VALUES (
+      'ecologits', 'inference_efficiency',
+      ${params.ecoModelName}, ${params.bearingSlug},
+      ${params.rawScore}, ${params.normalisedScore},
+      NULL, ${params.snapshotDate}, 'sustainability'
+    )
+    ON CONFLICT (source, source_category, source_model_name, snapshot_date)
+    DO UPDATE SET
+      raw_score        = EXCLUDED.raw_score,
+      normalised_score = EXCLUDED.normalised_score,
+      bearing_slug     = EXCLUDED.bearing_slug,
+      signal_type      = EXCLUDED.signal_type,
+      captured_at      = now()
+  `
+}
+
+/**
+ * All-in-one EcoLogits grounding for a single Bearing model.
+ *
+ * 1. Maps Bearing provider → EcoLogits provider (returns null if not covered).
+ * 2. Fetches the EcoLogits model list and resolves the slug → eco model name.
+ * 3. Fetches GWP from the estimations API.
+ * 4. Scores it on the absolute gwpToScore() curve (lower GWP → higher score).
+ * 5. Optionally stores the snapshot + alias in the DB (default: true).
+ *
+ * Returns null if the model is not covered by EcoLogits or the API fails.
+ */
+export async function fetchEcoLogitsScore(
+  slug: string,
+  provider: string,
+  opts: { storeInDb?: boolean } = {},
+): Promise<{ normalisedScore: number; rawGwp: number; ecoProvider: string; ecoModelName: string } | null> {
+  const { storeInDb = true } = opts
+
+  const ecoProvider = ECOLOGITS_PROVIDER_MAP[provider]
+  if (!ecoProvider) return null
+
+  const ecoModels = await fetchEcoModelList(ecoProvider)
+  if (ecoModels.length === 0) return null
+
+  const ecoModelName = resolveModelName(slug, ecoModels)
+  if (!ecoModelName) return null
+
+  const gwpResult = await fetchGwpRaw(ecoProvider, ecoModelName)
+  if (!gwpResult) return null
+
+  const { gwpMidpoint } = gwpResult
+
+  // Score on the absolute curve — cohort-independent, so a single-model import
+  // and a full batch produce identical, comparable scores.
+  const normalisedScore = gwpToScore(gwpMidpoint)
+
+  if (storeInDb) {
+    const snapshotDate = new Date().toISOString().split('T')[0]
+    // upsertAlias must run first so upsertSnapshotDirect can write bearing_slug.
+    await upsertAlias('ecologits', ecoModelName, slug)
+    await upsertSnapshotDirect({
+      ecoModelName,
+      bearingSlug: slug,
+      rawScore: gwpMidpoint,
+      normalisedScore,
+      snapshotDate,
+    })
+  }
+
+  return { normalisedScore, rawGwp: gwpMidpoint, ecoProvider, ecoModelName }
+}

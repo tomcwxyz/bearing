@@ -159,7 +159,7 @@ Click any model card to see its full profile:
 - Capabilities, strengths, and weaknesses
 - Pricing (per million tokens, input and output — embedding models show input-only)
 - Transparency scores (open weights, training data, methodology, licence, provider disclosure)
-- Sustainability data (inference energy, training footprint, provider infrastructure)
+- Sustainability data (inference energy, training footprint, provider infrastructure). For the major hosted models, the inference-energy figure is grounded in real per-request carbon estimates from [EcoLogits](https://ecologits.ai), and a label shows whether each value is measured or a curated estimate
 - Task fitness bars showing how well the model performs across different task types
 - For embedding models: embedding dimension, max input length, Matryoshka support, and MTEB quality score
 

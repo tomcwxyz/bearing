@@ -76,7 +76,7 @@ export default function AdminModelEditPage() {
         let nextCaps = prev.capabilities
         if (g.derived_capabilities.code === true && !nextCaps.includes('code')) nextCaps = [...nextCaps, 'code']
         if (g.derived_capabilities.code === false) nextCaps = nextCaps.filter(c => c !== 'code')
-        return {
+        const newModel = {
           ...prev,
           capabilities: nextCaps,
           task_fitness: { ...prev.task_fitness, ...g.task_fitness },
@@ -88,6 +88,13 @@ export default function AdminModelEditPage() {
             transparency_score: g.transparency.transparency_score,
           },
         }
+        if (g.inference_energy !== null) {
+          newModel.sustainability = {
+            ...newModel.sustainability,
+            inference_energy: g.inference_energy,
+          }
+        }
+        return newModel
       })
       const groundedCount = Object.values(result.provenance ?? {}).filter(p => p === 'benchmark').length
       setFeedback({
@@ -387,7 +394,20 @@ export default function AdminModelEditPage() {
               })}
             />
           ))}
-          {(['inference_energy', 'training_footprint', 'provider_infrastructure'] as const).map((key) => (
+          <Field label="inference energy (optional)">
+            <div className="flex items-center gap-2">
+              <ProvenanceDot provenance={provenance['sustainability.inference_energy']} />
+              <input
+                type="number"
+                step="0.01"
+                value={model.sustainability.inference_energy ?? ''}
+                onChange={(e) => setModel({ ...model, sustainability: { ...model.sustainability, inference_energy: e.target.value === '' ? null : parseFloat(e.target.value) } })}
+                className="input-field flex-1"
+                placeholder="Leave blank if unknown"
+              />
+            </div>
+          </Field>
+          {(['training_footprint', 'provider_infrastructure'] as const).map((key) => (
             <Field key={key} label={key.replace(/_/g, ' ') + ' (optional)'}>
               <input
                 type="number"
@@ -512,6 +532,7 @@ function ProvenanceDot({ provenance }: { provenance?: string }) {
     derived:   { bg: 'bg-amber-400', title: 'Derived deterministically (provider table or rule)' },
     haiku:     { bg: 'bg-navy/30', title: 'Estimated by Haiku' },
     default:   { bg: 'bg-navy/20', title: 'Default — provider not in lookup table' },
+    ecologits: { bg: 'bg-teal', title: 'Grounded by EcoLogits (inference energy measurement)' },
   }
   const entry = map[provenance] ?? map.default
   return (

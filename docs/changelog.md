@@ -6,8 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+
+- **Carbon-grounded sustainability scores** — the inference-energy part of each model's sustainability rating is now grounded in real per-request carbon estimates from [EcoLogits](https://ecologits.ai) for the major hosted models Bearing covers (Anthropic, OpenAI, Google, and Mistral families — 10 models so far). Previously these were editorial estimates; now they reflect measured grams of CO₂ per typical response.
+- **Score provenance you can see** — every model now records whether its inference-energy score comes from EcoLogits data or a curated estimate. Grounded models also expose the underlying carbon figure (grams CO₂eq per response), which model it was measured against, and the date — visible in both the model registry and the public dataset.
+- **Weekly automatic refresh** — covered models' carbon scores refresh on their own each week, so ratings keep tracking real-world efficiency over time. New models imported through the admin panel are grounded automatically on import.
+
 ### Changed
 
+- **Sustainability scoring is now consistent across all models** — carbon scores use a fixed efficiency scale (lower emissions = higher score) instead of ranking covered models only against each other. A model's score no longer shifts just because another model was added or removed, and grounded scores sit on the same scale as the curated ones they're blended with.
 - **Embedding models are now found through the normal flow** — just describe what you're building (for example, "a search index over our support docs for RAG") and Bearing recognises it as embedding work, taking you straight to ranked embedding models. No need to pick a special mode first.
 - **Browse embedding models in the registry** — the model registry gains a **Chat / Embedding** type filter and a "Find an embedding model" link to the guided finder. A hint on the home page points the way for anyone who wants to jump straight there.
 

@@ -15,6 +15,7 @@ import {
   suggestBenchmarkAliases, groundFromAliases, CODE_CAPABILITY_THRESHOLD,
   type AliasSuggestion, type Provenance,
 } from '@/lib/import-grounding'
+import { fetchEcoLogitsScore } from '@/lib/ecologits-grounding'
 import {
   getUsageSummary, getActivityOverTime, getModeBreakdown, getSignupsOverTime,
   getInsightsSummary, getTaskTypeDistribution, getModelLeaderboard,
@@ -292,9 +293,25 @@ export async function estimateModelScores(
       derived_capabilities: { code: derivedCodeCap },
     }
 
+    // Attempt EcoLogits grounding for inference_energy.
+    // Called after Haiku so we can override the Haiku sustainability estimate.
+    const ecoScore = await fetchEcoLogitsScore(
+      model.id.split('/').pop() ?? model.id,  // slug: last segment of OpenRouter id
+      model.provider,
+    ).catch(() => null)
+
+    if (ecoScore) {
+      const haikuSustainability = estimates.sustainability as Record<string, unknown> | undefined ?? {}
+      estimates.sustainability = {
+        ...haikuSustainability,
+        inference_energy: Math.round(ecoScore.normalisedScore * 100) / 100,
+      }
+      provenance['sustainability.inference_energy'] = 'ecologits'
+    }
+
     // Remaining Haiku-only fields get 'haiku' provenance.
     for (const k of ['tier', 'sustainability', 'strengths', 'weaknesses']) {
-      if (k in estimates) provenance[k] = 'haiku'
+      if (k in estimates && !provenance[k]) provenance[k] = 'haiku'
     }
 
     return { success: true, estimates, provenance }
@@ -358,6 +375,7 @@ export async function regroundModel(slug: string): Promise<{
     privacy_score: number
     transparency: { open_weights: 0 | 1; transparency_score: number }
     derived_capabilities: { code: boolean | null }
+    inference_energy: number | null
   }
   provenance?: Record<string, Provenance>
   error?: string
@@ -388,6 +406,11 @@ export async function regroundModel(slug: string): Promise<{
       ? (groundedCode.value >= CODE_CAPABILITY_THRESHOLD)
       : null
 
+    const ecoScore = await fetchEcoLogitsScore(slug, model.provider).catch(() => null)
+    if (ecoScore) {
+      provenance['sustainability.inference_energy'] = 'ecologits'
+    }
+
     return {
       success: true,
       grounded: {
@@ -399,6 +422,7 @@ export async function regroundModel(slug: string): Promise<{
           transparency_score: grounded.baselineTransparency.value,
         },
         derived_capabilities: { code: derivedCode },
+        inference_energy: ecoScore ? Math.round(ecoScore.normalisedScore * 100) / 100 : null,
       },
       provenance,
     }
@@ -425,7 +449,7 @@ export async function suggestAliasesForImport(input: {
   // Embedding aliases are seeded via scripts/ingest-mteb.ts. We still seed an
   // empty bucket so SuggestionsBySource's shape is satisfied.
   const sources: BenchmarkSource[] = ['lmarena', 'livebench', 'artificialanalysis']
-  const result: SuggestionsBySource = { lmarena: [], livebench: [], artificialanalysis: [], mteb: [] }
+  const result: SuggestionsBySource = { lmarena: [], livebench: [], artificialanalysis: [], mteb: [], ecologits: [] }
 
   for (const source of sources) {
     const candidates = await getCandidateSourceModelNames(source)
