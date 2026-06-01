@@ -235,8 +235,19 @@ export default function ModelsList({
             </div>
 
             <div className="mt-3 flex gap-4 font-mono text-sm text-navy/60">
-              <span>${model.pricing.input_per_1m}/1M in</span>
-              <span>${model.pricing.output_per_1m}/1M out</span>
+              {model.model_class === 'embedding' ? (
+                // Embedding APIs bill input tokens only — output pricing is N/A.
+                <span>
+                  {model.pricing.input_per_1m > 0
+                    ? `$${model.pricing.input_per_1m}/1M in`
+                    : 'Free (self-host)'}
+                </span>
+              ) : (
+                <>
+                  <span>${model.pricing.input_per_1m}/1M in</span>
+                  <span>${model.pricing.output_per_1m}/1M out</span>
+                </>
+              )}
             </div>
           </Link>
         ))}
