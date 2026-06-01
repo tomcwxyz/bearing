@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import type { Model, Capability } from '@/lib/registry'
+import type { Model, Capability, ModelClass } from '@/lib/registry'
 
 const capabilityLabels: Record<Capability, string> = {
   vision: 'Vision',
@@ -43,15 +43,30 @@ const CAPABILITY_FILTERS: { value: Capability; label: string }[] = [
   { value: 'video', label: 'Video' },
 ]
 
-export default function ModelsList({ allModels }: { allModels: Model[] }) {
+export default function ModelsList({
+  allModels,
+  initialType = null,
+}: {
+  allModels: Model[]
+  initialType?: ModelClass | null
+}) {
   const providers = useMemo(() => [...new Set(allModels.map((m) => m.provider))].sort(), [allModels])
+  const hasEmbeddingModels = useMemo(
+    () => allModels.some((m) => m.model_class === 'embedding'),
+    [allModels]
+  )
 
   const [search, setSearch] = useState('')
   const [providerFilter, setProviderFilter] = useState<string | null>(null)
   const [capabilityFilter, setCapabilityFilter] = useState<Capability | null>(null)
+  const [typeFilter, setTypeFilter] = useState<ModelClass | null>(initialType)
 
   const filtered = useMemo(() => {
     let models = allModels
+
+    if (typeFilter) {
+      models = models.filter((m) => m.model_class === typeFilter)
+    }
 
     if (search.trim()) {
       const q = search.toLowerCase()
@@ -72,9 +87,9 @@ export default function ModelsList({ allModels }: { allModels: Model[] }) {
     }
 
     return models
-  }, [allModels, search, providerFilter, capabilityFilter])
+  }, [allModels, search, providerFilter, capabilityFilter, typeFilter])
 
-  const hasFilters = search.trim() || providerFilter || capabilityFilter
+  const hasFilters = search.trim() || providerFilter || capabilityFilter || typeFilter
 
   return (
     <>
@@ -92,6 +107,34 @@ export default function ModelsList({ allModels }: { allModels: Model[] }) {
           className="w-full rounded-lg border border-cream-dark bg-white px-4 py-2.5 text-sm text-navy placeholder-grey-blue-light focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
         />
       </div>
+
+      {/* Model-type filter — only shown when the registry actually has both
+          classes, so a chat-only deployment isn't cluttered with a dead toggle. */}
+      {hasEmbeddingModels && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {(['chat', 'embedding'] as ModelClass[]).map((cls) => (
+            <button
+              key={cls}
+              onClick={() => setTypeFilter(typeFilter === cls ? null : cls)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors ${
+                typeFilter === cls
+                  ? 'border-navy bg-navy text-cream'
+                  : 'border-cream-dark text-navy/70 hover:border-teal hover:text-teal'
+              }`}
+            >
+              {cls}
+            </button>
+          ))}
+          {typeFilter === 'embedding' && (
+            <Link
+              href="/embedding"
+              className="ml-1 text-xs font-medium text-teal underline-offset-2 hover:underline"
+            >
+              Not sure which? Find an embedding model →
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* Filter pills */}
       <div className="mt-4 flex flex-wrap gap-2">
@@ -144,6 +187,7 @@ export default function ModelsList({ allModels }: { allModels: Model[] }) {
               setSearch('')
               setProviderFilter(null)
               setCapabilityFilter(null)
+              setTypeFilter(null)
             }}
             className="text-xs text-teal hover:text-teal-light"
           >
@@ -191,8 +235,19 @@ export default function ModelsList({ allModels }: { allModels: Model[] }) {
             </div>
 
             <div className="mt-3 flex gap-4 font-mono text-sm text-navy/60">
-              <span>${model.pricing.input_per_1m}/1M in</span>
-              <span>${model.pricing.output_per_1m}/1M out</span>
+              {model.model_class === 'embedding' ? (
+                // Embedding APIs bill input tokens only — output pricing is N/A.
+                <span>
+                  {model.pricing.input_per_1m > 0
+                    ? `$${model.pricing.input_per_1m}/1M in`
+                    : 'Free (self-host)'}
+                </span>
+              ) : (
+                <>
+                  <span>${model.pricing.input_per_1m}/1M in</span>
+                  <span>${model.pricing.output_per_1m}/1M out</span>
+                </>
+              )}
             </div>
           </Link>
         ))}
@@ -206,6 +261,7 @@ export default function ModelsList({ allModels }: { allModels: Model[] }) {
               setSearch('')
               setProviderFilter(null)
               setCapabilityFilter(null)
+              setTypeFilter(null)
             }}
             className="mt-2 text-sm text-teal hover:text-teal-light"
           >

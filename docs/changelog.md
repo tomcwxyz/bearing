@@ -15,6 +15,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 ### Changed
 
 - **Sustainability scoring is now consistent across all models** — carbon scores use a fixed efficiency scale (lower emissions = higher score) instead of ranking covered models only against each other. A model's score no longer shifts just because another model was added or removed, and grounded scores sit on the same scale as the curated ones they're blended with.
+- **Embedding models are now found through the normal flow** — just describe what you're building (for example, "a search index over our support docs for RAG") and Bearing recognises it as embedding work, taking you straight to ranked embedding models. No need to pick a special mode first.
+- **Browse embedding models in the registry** — the model registry gains a **Chat / Embedding** type filter and a "Find an embedding model" link to the guided finder. A hint on the home page points the way for anyone who wants to jump straight there.
+
+### Removed
+
+- The standalone **Embedding** tab on the home page — replaced by the automatic routing above, so there's one consistent way to describe a task.
 
 ## [0.9.0] — 2026-05-29
 

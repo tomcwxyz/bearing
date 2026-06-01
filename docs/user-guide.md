@@ -80,20 +80,21 @@ In all cases, the full ranked list is shown below so you can explore.
 
 ## Finding an embedding model
 
-If you're building a search index, RAG pipeline, or anything that needs to convert text into vectors, the **Embedding** tab on the home page is the fastest way to find the right model.
+If you're building a search index, RAG pipeline, or anything that needs to convert text into vectors, Bearing will point you to the right embedding model — and you don't need to do anything special to get there.
 
-Embedding models are fundamentally different from chat models — they produce fixed-length vectors rather than text, they're priced on input tokens only, and the key quality signal is MTEB (Massive Text Embedding Benchmark) rather than chat-style evals. Bearing handles all of this separately so you get relevant results.
+Embedding models are fundamentally different from chat models — they produce fixed-length vectors rather than text, they're priced on input tokens only, and the key quality signal is MTEB (Massive Text Embedding Benchmark) rather than chat-style evals. Bearing handles all of this automatically so you get relevant results.
 
-### How it works
+### Two ways to get there
 
-1. Go to the **Embedding** tab on the home page (or visit `/embedding` directly)
-2. Answer five quick questions:
-   - **What's it for?** — retrieval/RAG, semantic similarity, classification, clustering, or deduplication
-   - **How long are the texts?** — short (queries, sentences), medium (paragraphs), or long (full documents)
-   - **Hosting preference** — hosted API or open weights you can run yourself
-   - **Languages** — English only, a handful of languages, or broad multilingual coverage
-   - **Latency** — batch (building an index overnight), interactive (embedding queries at request time), or realtime
-3. Tap **Show me embedding models**
+**Just describe your task.** Type what you're building into the normal box on the home page — for example, "build a search index over our support docs for semantic retrieval." Bearing recognises it as embedding work and takes you straight to ranked embedding models, skipping the chat-style priority questions that don't apply to a vector job.
+
+**Use the guided finder.** If you'd rather answer a few targeted questions, open the model registry, switch to the **Embedding** filter, and tap **Find an embedding model** (or visit `/embedding` directly). You'll answer five quick questions:
+
+- **What's it for?** — retrieval/RAG, semantic similarity, classification, clustering, or deduplication
+- **How long are the texts?** — short (queries, sentences), medium (paragraphs), or long (full documents)
+- **Hosting preference** — hosted API or open weights you can run yourself
+- **Languages** — English only, a handful of languages, or broad multilingual coverage
+- **Latency** — batch (building an index overnight), interactive (embedding queries at request time), or realtime
 
 ### Reading the results
 
@@ -145,6 +146,7 @@ Visit the **Models** page to explore all 41 models in the registry — 31 chat m
 ### Filtering
 
 - **Search** — type a model name, provider, or slug
+- **Type filter** — switch between **Chat** and **Embedding** models. When viewing embedding models, a "Find an embedding model" link takes you to the guided finder
 - **Provider filters** — tap a provider name to see only their models
 - **Capability filters** — tap Vision, Code, Tools, Long context, Reasoning, Audio, or Video to filter by capability
 
