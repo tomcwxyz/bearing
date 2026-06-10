@@ -156,7 +156,7 @@ export default async function EmbeddingResultsPage({
         </div>
 
         <div className="mt-8 rounded-lg border border-teal/20 bg-teal/5 px-4 py-3 text-sm text-navy/80">
-          Embedding models are stateless — there is no "selected model + outcome"
+          Embedding models are stateless — there is no &ldquo;selected model + outcome&rdquo;
           feedback loop the way there is for chat. Pick from the ranking, integrate,
           and re-run if you want to compare under different priorities.
         </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
+import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { submitClarification } from '@/app/actions'
 import { StepProgress } from '@/components/step-progress'
@@ -33,6 +34,10 @@ export default function ClarificationPage() {
   useEffect(() => {
     const raw = sessionStorage.getItem(`clarify-${taskId}`)
     if (!raw) {
+      // sessionStorage is client-only, so this initialisation can't move to a
+      // lazy useState initialiser without breaking SSR — the effect is the
+      // correct place to read it, despite the set-state-in-effect heuristic.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError('No clarification data found. Please start over.')
       return
     }
@@ -107,12 +112,12 @@ export default function ClarificationPage() {
       <div className="flex flex-1 items-center justify-center">
         <div className="max-w-md px-6 text-center">
           <p className="text-lg text-coral">{error}</p>
-          <a
+          <Link
             href="/"
             className="mt-6 inline-block rounded-full bg-navy px-6 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-navy-light"
           >
             Start over
-          </a>
+          </Link>
         </div>
       </div>
     )

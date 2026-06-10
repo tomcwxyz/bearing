@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useTransition, use } from 'react'
+import { useState, useEffect, useTransition, useRef, use } from 'react'
 import Link from 'next/link'
 import { getResults, startComparison, runComparison, checkAuth } from '@/app/actions'
 import { LoadingIndicator } from '@/components/loading-indicator'
@@ -48,20 +48,20 @@ const DEFAULT_PROMPTS: Record<string, string> = {
 export default function ComparePage({ params }: { params: Promise<{ taskId: string }> }) {
   const { taskId } = use(params)
   const [models, setModels] = useState<ScoredModel[]>([])
-  const [taskType, setTaskType] = useState<string>('')
   const [selected, setSelected] = useState<string[]>([])
   const [prompt, setPrompt] = useState('')
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
-  const [loaded, setLoaded] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
-  // Load data on mount
+  // Load data once on mount. A ref guard (not state) so the run-once check
+  // doesn't itself trigger a render / set-state-in-effect.
+  const hasLoaded = useRef(false)
   useEffect(() => {
-    if (loaded) return
-    setLoaded(true)
+    if (hasLoaded.current) return
+    hasLoaded.current = true
     startTransition(async () => {
       const authResult = await checkAuth()
       setIsAuthenticated(authResult.authenticated)
@@ -72,11 +72,10 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
       } else {
         const r = result as unknown as { task: { task_type: string }; models: ScoredModel[] }
         setModels(r.models)
-        setTaskType(r.task.task_type)
         setPrompt(DEFAULT_PROMPTS[r.task.task_type] || DEFAULT_PROMPTS.reasoning)
       }
     })
-  }, [loaded, taskId, startTransition])
+  }, [taskId, startTransition])
 
   function toggleModel(slug: string) {
     setSelected((prev) => {

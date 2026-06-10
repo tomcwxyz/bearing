@@ -315,31 +315,35 @@ export async function getComparison(comparisonId: string) {
 // Models
 // ---------------------------------------------------------------------------
 
-/** Convert a DB row to the Model interface used by the rest of the app. */
-export function modelRowToModel(row: any): Model {
+/**
+ * Convert a raw `models` table row to the Model interface used by the rest of
+ * the app. The driver hands rows back untyped, so we cast each column to its
+ * Model field type (via indexed access) rather than leaning on `any`.
+ */
+export function modelRowToModel(row: Record<string, unknown>): Model {
   return {
-    slug: row.slug,
-    name: row.name,
-    provider: row.provider,
-    tier: row.tier,
+    slug: row.slug as string,
+    name: row.name as string,
+    provider: row.provider as string,
+    tier: row.tier as string,
     // model_class falls back to 'chat' for rows written before migration 021
     // (the column defaults to 'chat' in the schema, so this is belt-and-
     // braces against any code path that constructs a row without it).
-    model_class: row.model_class ?? 'chat',
-    pricing: row.pricing,
-    context_window: row.context_window,
-    capabilities: row.capabilities,
-    strengths: row.strengths,
-    weaknesses: row.weaknesses,
-    task_fitness: row.task_fitness,
-    speed_score: row.speed_score,
-    privacy_score: row.privacy_score,
-    transparency: row.transparency,
-    sustainability: row.sustainability,
-    ...(row.local_info ? { local_info: row.local_info } : {}),
-    ...(row.embedding_dim != null ? { embedding_dim: row.embedding_dim } : {}),
-    ...(row.max_input_tokens != null ? { max_input_tokens: row.max_input_tokens } : {}),
-    ...(row.supports_matryoshka != null ? { supports_matryoshka: row.supports_matryoshka } : {}),
+    model_class: (row.model_class as Model['model_class']) ?? 'chat',
+    pricing: row.pricing as Model['pricing'],
+    context_window: row.context_window as number,
+    capabilities: row.capabilities as Model['capabilities'],
+    strengths: row.strengths as string[],
+    weaknesses: row.weaknesses as string[],
+    task_fitness: row.task_fitness as Model['task_fitness'],
+    speed_score: row.speed_score as number,
+    privacy_score: row.privacy_score as number,
+    transparency: row.transparency as Model['transparency'],
+    sustainability: row.sustainability as Model['sustainability'],
+    ...(row.local_info ? { local_info: row.local_info as Model['local_info'] } : {}),
+    ...(row.embedding_dim != null ? { embedding_dim: row.embedding_dim as number } : {}),
+    ...(row.max_input_tokens != null ? { max_input_tokens: row.max_input_tokens as number } : {}),
+    ...(row.supports_matryoshka != null ? { supports_matryoshka: row.supports_matryoshka as boolean } : {}),
   }
 }
 

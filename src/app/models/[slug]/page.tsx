@@ -252,7 +252,7 @@ export default async function ModelDetailPage({
             </div>
             <p className="mt-3 text-grey-blue italic text-sm">
               Grounded in the MTEB (Massive Text Embedding Benchmark) Overall average
-              published by the model authors. Bearing collapses MTEB's retrieval, STS,
+              published by the model authors. Bearing collapses MTEB&apos;s retrieval, STS,
               classification, and clustering categories into a single quality signal
               because they correlate strongly for embedding models.{' '}
               <Link href="/data" className="text-teal underline underline-offset-2 hover:text-teal-light">

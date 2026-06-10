@@ -22,7 +22,6 @@ import { neon } from '@neondatabase/serverless'
 import { ingestSnapshot, upsertAlias, type SnapshotRow } from '../src/lib/benchmarks'
 import {
   ECOLOGITS_PROVIDER_MAP,
-  normaliseName,
   resolveModelName,
   fetchEcoModelList,
   fetchGwpRaw,
