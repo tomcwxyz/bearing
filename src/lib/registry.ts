@@ -1,4 +1,5 @@
 import registryData from '@/data/bearing-registry.json'
+import type { ModelClass } from './model-class'
 
 export type Factor = 'cost' | 'speed' | 'quality' | 'privacy' | 'sustainability' | 'transparency' | 'capability'
 
@@ -43,12 +44,9 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   embedding: 'embedding (vector search / RAG)',
 }
 
-// Splits the registry into generative chat models (the v0.8 set) and
-// embedding models (v0.9). Scoring uses this as a hard filter — an
-// `embedding` task routes only to `embedding` models, and every other task
-// routes only to `chat` models. New chat models added via the admin
-// flow default to 'chat'.
-export type ModelClass = 'chat' | 'embedding'
+// Model classes live in model-class.ts (client-safe, no registry JSON);
+// re-exported here so server-side callers keep a single import site.
+export { MODEL_CLASSES, isModelClass, type ModelClass } from './model-class'
 
 export type Capability = 'vision' | 'tools' | 'code' | 'long_context' | 'extended_thinking' | 'structured_output' | 'multilingual' | 'audio' | 'video' | 'computer_use'
 

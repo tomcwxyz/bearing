@@ -252,7 +252,12 @@ export function hardFilter(model: Model, input: ScoringInput): HardFilterResult 
   if (!wantsEmbedding && model.model_class === 'embedding') {
     return { ok: false, reason: 'wrong_class' }
   }
-  if (input.needsLongContext && model.context_window < LONG_CONTEXT_THRESHOLD) {
+  // Long context is a chat-only gate: embedding models cap input via
+  // max_input_tokens, not context_window, so applying the 100k threshold to
+  // an embedding task would silently drop most of the embedding registry
+  // (the bug behind 897b47e and a445591). Guard it here so no caller has to
+  // remember to zero the flag when scoring embeddings.
+  if (!wantsEmbedding && input.needsLongContext && model.context_window < LONG_CONTEXT_THRESHOLD) {
     return { ok: false, reason: 'long_context' }
   }
   if (input.dataSensitivity === 'on_prem_required' && !model.local_info) {

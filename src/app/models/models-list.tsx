@@ -2,7 +2,9 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import type { Model, Capability, ModelClass } from '@/lib/registry'
+import type { Model, Capability } from '@/lib/registry'
+import { MODEL_CLASSES, type ModelClass } from '@/lib/model-class'
+import { embeddingPriceLabel } from '@/lib/pricing'
 
 const capabilityLabels: Record<Capability, string> = {
   vision: 'Vision',
@@ -91,6 +93,13 @@ export default function ModelsList({
 
   const hasFilters = search.trim() || providerFilter || capabilityFilter || typeFilter
 
+  const resetFilters = () => {
+    setSearch('')
+    setProviderFilter(null)
+    setCapabilityFilter(null)
+    setTypeFilter(null)
+  }
+
   return (
     <>
       <p className="mt-2 text-navy/60">
@@ -112,7 +121,7 @@ export default function ModelsList({
           classes, so a chat-only deployment isn't cluttered with a dead toggle. */}
       {hasEmbeddingModels && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          {(['chat', 'embedding'] as ModelClass[]).map((cls) => (
+          {MODEL_CLASSES.map((cls) => (
             <button
               key={cls}
               onClick={() => setTypeFilter(typeFilter === cls ? null : cls)}
@@ -183,12 +192,7 @@ export default function ModelsList({
             {filtered.length} model{filtered.length !== 1 ? 's' : ''} found
           </p>
           <button
-            onClick={() => {
-              setSearch('')
-              setProviderFilter(null)
-              setCapabilityFilter(null)
-              setTypeFilter(null)
-            }}
+            onClick={resetFilters}
             className="text-xs text-teal hover:text-teal-light"
           >
             Clear filters
@@ -237,11 +241,7 @@ export default function ModelsList({
             <div className="mt-3 flex gap-4 font-mono text-sm text-navy/60">
               {model.model_class === 'embedding' ? (
                 // Embedding APIs bill input tokens only — output pricing is N/A.
-                <span>
-                  {model.pricing.input_per_1m > 0
-                    ? `$${model.pricing.input_per_1m}/1M in`
-                    : 'Free (self-host)'}
-                </span>
+                <span>{embeddingPriceLabel(model.pricing.input_per_1m, '/1M in')}</span>
               ) : (
                 <>
                   <span>${model.pricing.input_per_1m}/1M in</span>
@@ -257,12 +257,7 @@ export default function ModelsList({
         <div className="mt-12 text-center">
           <p className="text-navy/60">No models match your filters.</p>
           <button
-            onClick={() => {
-              setSearch('')
-              setProviderFilter(null)
-              setCapabilityFilter(null)
-              setTypeFilter(null)
-            }}
+            onClick={resetFilters}
             className="mt-2 text-sm text-teal hover:text-teal-light"
           >
             Clear all filters

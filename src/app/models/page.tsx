@@ -1,4 +1,4 @@
-import { getAllModelsLive, type ModelClass } from '@/lib/registry'
+import { getAllModelsLive, isModelClass, type ModelClass } from '@/lib/registry'
 import ModelsList from './models-list'
 
 export default async function ModelsPage({
@@ -10,8 +10,7 @@ export default async function ModelsPage({
   // Deep link from the home-page hint (/models?type=embedding) pre-selects the
   // model-class filter. Anything else falls back to showing all models.
   const { type } = await searchParams
-  const initialType: ModelClass | null =
-    type === 'embedding' || type === 'chat' ? type : null
+  const initialType: ModelClass | null = isModelClass(type) ? type : null
 
   return (
     <div className="flex flex-1 flex-col items-center px-4 py-12 sm:py-16">
