@@ -13,6 +13,7 @@
 // server action.
 
 import { ingestSnapshot, type SnapshotRow } from '../benchmarks'
+import { autoMatchUnmatched } from './auto-match'
 import { noopLog, type IngestOptions, type IngestResult } from './types'
 
 const AA_URL = 'https://artificialanalysis.ai/api/v2/data/llms/models'
@@ -159,5 +160,7 @@ export async function ingestArtificialAnalysis(opts: IngestOptions = {}): Promis
 
   const { inserted, unmatched } = await ingestSnapshot(rows)
 
-  return { source: 'artificialanalysis', fetched: rows.length, inserted, unmatched, snapshotDate }
+  const { autoMatched, stillUnmatched } = await autoMatchUnmatched('artificialanalysis', unmatched, log)
+
+  return { source: 'artificialanalysis', fetched: rows.length, inserted, autoMatched, unmatched: stillUnmatched, snapshotDate }
 }

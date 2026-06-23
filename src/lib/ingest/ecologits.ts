@@ -68,6 +68,9 @@ export async function ingestEcoLogits(opts: IngestOptions = {}): Promise<EcoLogi
     source: 'ecologits',
     fetched: rows.length,
     inserted: updated.length,
+    // EcoLogits resolves + aliases per model inside fetchEcoLogitsScore, so the
+    // generic post-ingest auto-matcher doesn't apply here.
+    autoMatched: [],
     // For EcoLogits, "unmatched" means no resolvable EcoLogits model name.
     unmatched: skippedNoMatch,
     snapshotDate,

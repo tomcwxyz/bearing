@@ -13,7 +13,9 @@ export interface IngestResult {
   fetched: number
   /** Rows upserted into benchmark_snapshots. */
   inserted: number
-  /** Source model names with no benchmark_aliases entry (stored, slug NULL). */
+  /** Source model names auto-aliased to a model (exact-unique match). */
+  autoMatched: string[]
+  /** Source model names still with no alias after auto-matching (need review). */
   unmatched: string[]
   /** ISO date (YYYY-MM-DD) the snapshot was tagged with. */
   snapshotDate: string

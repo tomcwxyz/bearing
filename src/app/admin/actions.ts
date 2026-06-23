@@ -8,9 +8,10 @@ import { isUserAdmin, getAllModelsFromDb, getAllModelsForAdmin, getModelForAdmin
 import { fetchOpenRouterModels, convertPricing, inferCapabilities, extractProvider, type OpenRouterModel } from '@/lib/openrouter'
 import {
   getBenchmarkSummary, getUnmatchedSourceModels, listAliases, upsertAlias, deleteAlias,
-  getCandidateSourceModelNames, getAliasesForBearingSlug,
+  getCandidateSourceModelNames, getAliasesForBearingSlug, getActiveModelsForMatching,
   type BenchmarkSource, type BenchmarkAlias,
 } from '@/lib/benchmarks'
+import { rankSlugs, type MatchConfidence } from '@/lib/alias-matching'
 import {
   suggestBenchmarkAliases, groundFromAliases, CODE_CAPABILITY_THRESHOLD,
   type AliasSuggestion, type Provenance,
@@ -476,20 +477,47 @@ export async function suggestAliasesForImport(input: {
 // Benchmarks
 // ---------------------------------------------------------------------------
 
+/** A ranked slug guess for an unmatched source model, shown in the admin UI. */
+export interface SlugSuggestion {
+  slug: string
+  confidence: MatchConfidence
+  /** Disambiguator tokens (e.g. "vl", "mini") present in the source name only. */
+  flags: string[]
+}
+
+export interface UnmatchedSourceModel {
+  source: string
+  sourceModelName: string
+  maxVoteCount: number | null
+  /** Top-ranked slug guesses (best first); empty when nothing plausibly matches. */
+  suggestions: SlugSuggestion[]
+}
+
 export interface BenchmarksData {
   summary: { source: string; totalRows: number; matchedRows: number; latestSnapshot: string | null }[]
   aliases: BenchmarkAlias[]
-  unmatched: { source: string; sourceModelName: string; maxVoteCount: number | null }[]
+  unmatched: UnmatchedSourceModel[]
 }
 
 export async function fetchBenchmarksData(): Promise<BenchmarksData> {
   await requireAdmin()
-  const [summary, aliases, unmatched] = await Promise.all([
+  const [summary, aliases, unmatched, models] = await Promise.all([
     getBenchmarkSummary(),
     listAliases(),
     getUnmatchedSourceModels(),
+    getActiveModelsForMatching(),
   ])
-  return { summary, aliases, unmatched }
+
+  // Attach ranked slug suggestions to each unmatched row so the admin confirms a
+  // pre-filled guess instead of hunting a dropdown of every slug.
+  const withSuggestions: UnmatchedSourceModel[] = unmatched.map(u => ({
+    ...u,
+    suggestions: rankSlugs(u.sourceModelName, models)
+      .slice(0, 5)
+      .map(r => ({ slug: r.slug, confidence: r.confidence, flags: r.flags })),
+  }))
+
+  return { summary, aliases, unmatched: withSuggestions }
 }
 
 export async function addBenchmarkAlias(

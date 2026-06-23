@@ -11,8 +11,8 @@ config()
 import { ingestLmArena } from '../src/lib/ingest/lmarena'
 
 async function main() {
-  const { fetched, inserted, unmatched } = await ingestLmArena({ log: console.log })
-  console.log(`\nUpserted ${inserted} of ${fetched} snapshot rows.`)
+  const { fetched, inserted, autoMatched, unmatched } = await ingestLmArena({ log: console.log })
+  console.log(`\nUpserted ${inserted} of ${fetched} snapshot rows. Auto-matched ${autoMatched.length}.`)
   if (unmatched.length > 0) {
     console.log(`\n${unmatched.length} models have no benchmark_aliases entry yet:`)
     for (const u of unmatched.sort()) console.log(`  - ${u}`)

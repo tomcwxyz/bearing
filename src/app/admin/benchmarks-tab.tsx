@@ -8,7 +8,10 @@ import {
   reingestSource,
   type BenchmarksData,
   type ReingestSource,
+  type UnmatchedSourceModel,
+  type SlugSuggestion,
 } from './actions'
+import type { MatchConfidence } from '@/lib/alias-matching'
 
 interface BenchmarksTabProps {
   initialData: BenchmarksData
@@ -77,7 +80,8 @@ export default function BenchmarksTab({ initialData, activeSlugs }: BenchmarksTa
           setFeedback({
             type: 'success',
             message: `${source}: upserted ${r.inserted} of ${r.fetched} rows`
-              + (r.unmatched.length > 0 ? `, ${r.unmatched.length} unmatched` : '')
+              + (r.autoMatched.length > 0 ? `, auto-matched ${r.autoMatched.length}` : '')
+              + (r.unmatched.length > 0 ? `, ${r.unmatched.length} need review` : '')
               + ` (snapshot ${r.snapshotDate})`,
           })
           const next = await fetchBenchmarksData()
@@ -291,15 +295,35 @@ export default function BenchmarksTab({ initialData, activeSlugs }: BenchmarksTa
   )
 }
 
+const CONFIDENCE_BADGE: Record<MatchConfidence, { label: string; className: string }> = {
+  exact: { label: 'exact', className: 'bg-teal/10 text-teal border-teal/30' },
+  strong: { label: 'likely', className: 'bg-navy/5 text-navy/70 border-navy/20' },
+  weak: { label: 'maybe', className: 'bg-coral/5 text-coral/80 border-coral/25' },
+}
+
+function ConfidenceBadge({ suggestion }: { suggestion: SlugSuggestion }) {
+  const badge = CONFIDENCE_BADGE[suggestion.confidence]
+  const title = suggestion.flags.length > 0 ? `differs by: ${suggestion.flags.join(', ')}` : undefined
+  return (
+    <span className={`rounded border px-1.5 py-0.5 text-[10px] ${badge.className}`} title={title}>
+      {badge.label}{suggestion.flags.length > 0 ? ' ⚠' : ''}
+    </span>
+  )
+}
+
 function UnmatchedRow({
   row, activeSlugs, disabled, onMap,
 }: {
-  row: { source: string; sourceModelName: string; maxVoteCount: number | null }
+  row: UnmatchedSourceModel
   activeSlugs: string[]
   disabled: boolean
   onMap: (slug: string) => void
 }) {
-  const [slug, setSlug] = useState('')
+  // Pre-select the top suggestion so the common case is a single click.
+  const [slug, setSlug] = useState(row.suggestions[0]?.slug ?? '')
+  const top = row.suggestions[0]
+  const selectedSuggestion = row.suggestions.find(s => s.slug === slug)
+
   return (
     <tr>
       <td className="py-2 text-navy/70">{row.source}</td>
@@ -318,6 +342,7 @@ function UnmatchedRow({
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
+          {selectedSuggestion && <ConfidenceBadge suggestion={selectedSuggestion} />}
           <button
             onClick={() => onMap(slug)}
             disabled={disabled || !slug}
@@ -326,6 +351,26 @@ function UnmatchedRow({
             Map
           </button>
         </div>
+        {row.suggestions.length === 0 ? (
+          <p className="mt-1 text-[10px] text-navy/40">No suggestion — pick manually.</p>
+        ) : (
+          // Quick-pick chips for the ranked alternatives.
+          <div className="mt-1 flex flex-wrap items-center gap-1">
+            {row.suggestions.map(s => (
+              <button
+                key={s.slug}
+                onClick={() => setSlug(s.slug)}
+                disabled={disabled}
+                className={`rounded px-1.5 py-0.5 text-[10px] font-mono disabled:opacity-40 ${
+                  s.slug === slug ? 'bg-teal/15 text-teal' : 'bg-cream text-navy/60 hover:text-navy'
+                }`}
+                title={s.flags.length > 0 ? `differs by: ${s.flags.join(', ')}` : s.confidence}
+              >
+                {s.slug}{s.slug === top?.slug ? ' ★' : ''}
+              </button>
+            ))}
+          </div>
+        )}
       </td>
     </tr>
   )

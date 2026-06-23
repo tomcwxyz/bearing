@@ -14,6 +14,7 @@
 // both the CLI wrapper (scripts/ingest-lmarena.ts) and an admin server action.
 
 import { ingestSnapshot, type SnapshotRow } from '../benchmarks'
+import { autoMatchUnmatched } from './auto-match'
 import { noopLog, type IngestOptions, type IngestResult } from './types'
 
 const HF_BASE = 'https://datasets-server.huggingface.co/rows'
@@ -119,5 +120,7 @@ export async function ingestLmArena(opts: IngestOptions = {}): Promise<IngestRes
   const { inserted, unmatched } = await ingestSnapshot(all)
   const snapshotDate = all[0]?.snapshotDate ?? new Date().toISOString().slice(0, 10)
 
-  return { source: 'lmarena', fetched: all.length, inserted, unmatched, snapshotDate }
+  const { autoMatched, stillUnmatched } = await autoMatchUnmatched('lmarena', unmatched, log)
+
+  return { source: 'lmarena', fetched: all.length, inserted, autoMatched, unmatched: stillUnmatched, snapshotDate }
 }

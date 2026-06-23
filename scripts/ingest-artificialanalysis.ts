@@ -13,8 +13,8 @@ config()
 import { ingestArtificialAnalysis } from '../src/lib/ingest/artificialanalysis'
 
 async function main() {
-  const { fetched, inserted, unmatched } = await ingestArtificialAnalysis({ log: console.log })
-  console.log(`\nUpserted ${inserted} of ${fetched} snapshot rows.`)
+  const { fetched, inserted, autoMatched, unmatched } = await ingestArtificialAnalysis({ log: console.log })
+  console.log(`\nUpserted ${inserted} of ${fetched} snapshot rows. Auto-matched ${autoMatched.length}.`)
   if (unmatched.length > 0) {
     console.log(`\n${unmatched.length} models have no benchmark_aliases entry yet.`)
     console.log('Run scripts/seed-aa-aliases.ts or use the admin Benchmarks tab.')
