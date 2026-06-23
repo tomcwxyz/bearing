@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - **Carbon-grounded sustainability scores** — the inference-energy part of each model's sustainability rating is now grounded in real per-request carbon estimates from [EcoLogits](https://ecologits.ai) for the major hosted models Bearing covers (Anthropic, OpenAI, Google, and Mistral families — 10 models so far). Previously these were editorial estimates; now they reflect measured grams of CO₂ per typical response.
 - **Score provenance you can see** — every model now records whether its inference-energy score comes from EcoLogits data or a curated estimate. Grounded models also expose the underlying carbon figure (grams CO₂eq per response), which model it was measured against, and the date — visible in both the model registry and the public dataset.
 - **Weekly automatic refresh** — covered models' carbon scores refresh on their own each week, so ratings keep tracking real-world efficiency over time. New models imported through the admin panel are grounded automatically on import.
+- **Live benchmark re-ingest from the admin panel** — the Benchmarks tab now has a per-source **Re-fetch** button for the three live sources (LMArena, Artificial Analysis, EcoLogits) that pulls fresh data and upserts new snapshots, instead of needing a developer to run a script from a laptop. The old "Refresh" button is relabelled **Reload view** to make clear it only re-reads the database. MTEB and LiveBench are shown disabled with the reason why.
 
 ### Changed
 

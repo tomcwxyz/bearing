@@ -255,6 +255,19 @@ If you import a flagship-priced model with no benchmark coverage in any source, 
 
 Open any model's edit page and click **Refresh from benchmarks** in the top right. Bearing re-runs the grounding step against the model's confirmed benchmark aliases and the latest snapshots, then updates the relevant sliders in place. The provenance dots show which fields changed. Speed score is preserved (it's calibrated within tier rather than across the entire 513-model AA cohort) — everything else updates automatically. Click **Save Model** to persist.
 
+### Re-fetching benchmark sources
+
+The **Benchmarks** tab lists every source Bearing tracks. Each row shows the row count, how many rows are matched to a Bearing model, coverage, and the latest snapshot date.
+
+Two distinct actions:
+
+- **Reload view** (top right) only re-reads the database — use it to pick up changes after mapping aliases. It does *not* contact any benchmark source.
+- **Re-fetch** (per row) pulls fresh data live from that source and upserts new snapshots. Available for the three live sources — **lmarena**, **artificialanalysis**, and **ecologits**. A confirmation dialog appears first because it writes to the production database. When it finishes you'll see how many rows were upserted and how many were unmatched (no alias yet).
+
+`mteb` and `livebench` are shown disabled: MTEB is a curated seed (re-curate via `scripts/ingest-mteb.ts`) and LiveBench ingestion is pending a licence.
+
+Re-fetching is safe to repeat — each source ingests its whole cohort and upserts idempotently, so re-running the same day overwrites rather than duplicates. **Artificial Analysis** needs `ARTIFICIAL_ANALYSIS_API_KEY` set in the environment; without it the button returns a clear error rather than failing silently.
+
 ### Syncing pricing
 
 Click **Sync Pricing** on the Discover tab to update pricing for all models from OpenRouter's latest data. You'll see a summary of how many models were updated.
