@@ -266,6 +266,13 @@ Two distinct actions:
 
 `mteb` and `livebench` are shown disabled: MTEB is a curated seed (re-curate via `scripts/ingest-mteb.ts`) and LiveBench ingestion is pending a licence.
 
+#### Alias matching
+
+A source's model name (e.g. "Claude 4.5 Haiku (Reasoning)") has to be mapped to a Bearing model slug (`claude-haiku-4.5`) before its scores count. This is now largely automatic:
+
+- During a **Re-fetch**, any source name that has a single, exact match to an active model is **aliased automatically** (shown as "auto-matched N" in the result). Matching is deliberately strict — anything ambiguous (a version or sibling-variant difference, like a `VL` or `mini` flag) is never auto-applied.
+- Whatever's left appears in the **Unmatched source models** list with **ranked suggestions**: the most likely slug is pre-selected, with a confidence badge (`exact` / `likely` / `maybe`) and quick-pick chips for the alternatives. Confirm with **Map**, or override from the dropdown.
+
 Re-fetching is safe to repeat — each source ingests its whole cohort and upserts idempotently, so re-running the same day overwrites rather than duplicates. **Artificial Analysis** needs `ARTIFICIAL_ANALYSIS_API_KEY` set in the environment; without it the button returns a clear error rather than failing silently.
 
 ### Syncing pricing
