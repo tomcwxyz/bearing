@@ -16,6 +16,10 @@ import {
   type AliasSuggestion, type Provenance,
 } from '@/lib/import-grounding'
 import { fetchEcoLogitsScore } from '@/lib/ecologits-grounding'
+import { ingestLmArena } from '@/lib/ingest/lmarena'
+import { ingestArtificialAnalysis } from '@/lib/ingest/artificialanalysis'
+import { ingestEcoLogits } from '@/lib/ingest/ecologits'
+import type { IngestResult } from '@/lib/ingest/types'
 import {
   getUsageSummary, getActivityOverTime, getModeBreakdown, getSignupsOverTime,
   getInsightsSummary, getTaskTypeDistribution, getModelLeaderboard,
@@ -509,6 +513,41 @@ export async function removeBenchmarkAlias(
     return { success: true }
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : 'Remove alias failed' }
+  }
+}
+
+/** Sources that can be re-fetched live from the admin UI. */
+export type ReingestSource = 'lmarena' | 'artificialanalysis' | 'ecologits'
+
+/**
+ * Re-fetch a benchmark source from its live origin and upsert fresh snapshots.
+ * Admin-session guarded (separate from the CRON_SECRET cron path). Each source
+ * always ingests its whole cohort, so re-running is idempotent and cohort-safe.
+ * Errors (e.g. a missing API key) are returned, not thrown, so a single source
+ * failing doesn't break the others.
+ */
+export async function reingestSource(
+  source: ReingestSource,
+): Promise<{ success: boolean; result?: IngestResult; error?: string }> {
+  await requireAdmin()
+  try {
+    let result: IngestResult
+    switch (source) {
+      case 'lmarena':
+        result = await ingestLmArena()
+        break
+      case 'artificialanalysis':
+        result = await ingestArtificialAnalysis()
+        break
+      case 'ecologits':
+        result = await ingestEcoLogits()
+        break
+      default:
+        return { success: false, error: `Unknown source: ${source}` }
+    }
+    return { success: true, result }
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Re-fetch failed' }
   }
 }
 

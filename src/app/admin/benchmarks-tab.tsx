@@ -5,7 +5,9 @@ import {
   fetchBenchmarksData,
   addBenchmarkAlias,
   removeBenchmarkAlias,
+  reingestSource,
   type BenchmarksData,
+  type ReingestSource,
 } from './actions'
 
 interface BenchmarksTabProps {
@@ -13,11 +15,28 @@ interface BenchmarksTabProps {
   activeSlugs: string[]
 }
 
+// Every benchmark source we know about, in display order. Live sources expose a
+// "Re-fetch" button; mteb/livebench are shown disabled with an explanation so
+// the table documents the full source set rather than only ingested ones.
+const SOURCES: Array<{
+  source: string
+  refetch: ReingestSource | null
+  disabledReason?: string
+}> = [
+  { source: 'lmarena', refetch: 'lmarena' },
+  { source: 'artificialanalysis', refetch: 'artificialanalysis' },
+  { source: 'ecologits', refetch: 'ecologits' },
+  { source: 'mteb', refetch: null, disabledReason: 'Seed data — re-curate via script' },
+  { source: 'livebench', refetch: null, disabledReason: 'Licence pending' },
+]
+
 export default function BenchmarksTab({ initialData, activeSlugs }: BenchmarksTabProps) {
   const [data, setData] = useState<BenchmarksData>(initialData)
   const [search, setSearch] = useState('')
   const [isPending, startTransition] = useTransition()
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  // Which source is mid re-fetch, so only that row's button shows a spinner.
+  const [reingesting, setReingesting] = useState<string | null>(null)
 
   const filteredUnmatched = useMemo(() => {
     if (!search.trim()) return data.unmatched
@@ -39,6 +58,35 @@ export default function BenchmarksTab({ initialData, activeSlugs }: BenchmarksTa
           type: 'error',
           message: err instanceof Error ? err.message : 'Refresh failed',
         })
+      }
+    })
+  }
+
+  function handleReingest(source: ReingestSource) {
+    // Live re-fetch writes to the shared production DB — confirm first.
+    if (!window.confirm(
+      `Re-fetch "${source}" from its live source now?\n\nThis fetches fresh data and upserts snapshots into the production database.`
+    )) return
+    setFeedback(null)
+    setReingesting(source)
+    startTransition(async () => {
+      try {
+        const res = await reingestSource(source)
+        if (res.success && res.result) {
+          const r = res.result
+          setFeedback({
+            type: 'success',
+            message: `${source}: upserted ${r.inserted} of ${r.fetched} rows`
+              + (r.unmatched.length > 0 ? `, ${r.unmatched.length} unmatched` : '')
+              + ` (snapshot ${r.snapshotDate})`,
+          })
+          const next = await fetchBenchmarksData()
+          setData(next)
+        } else {
+          setFeedback({ type: 'error', message: res.error ?? `Re-fetch ${source} failed` })
+        }
+      } finally {
+        setReingesting(null)
       }
     })
   }
@@ -83,39 +131,56 @@ export default function BenchmarksTab({ initialData, activeSlugs }: BenchmarksTa
               External benchmark snapshots blended into the quality factor
             </p>
           </div>
+          {/* Re-reads the DB only — it does NOT fetch from sources (that's the
+              per-row "Re-fetch"). Labelled "Reload view" to avoid the old
+              "Refresh" confusion. */}
           <button onClick={refresh} disabled={isPending} className="btn-secondary text-xs disabled:opacity-50">
-            {isPending ? 'Refreshing...' : 'Refresh'}
+            {isPending && !reingesting ? 'Reloading...' : 'Reload view'}
           </button>
         </div>
-        {data.summary.length === 0 ? (
-          <p className="text-sm text-navy/50">No benchmark snapshots ingested yet.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-navy/70">
-                <th className="py-2 font-medium">Source</th>
-                <th className="py-2 font-medium">Total rows</th>
-                <th className="py-2 font-medium">Matched</th>
-                <th className="py-2 font-medium">Coverage</th>
-                <th className="py-2 font-medium">Latest snapshot</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-cream-dark">
-              {data.summary.map(s => {
-                const coverage = s.totalRows > 0 ? (s.matchedRows / s.totalRows) * 100 : 0
-                return (
-                  <tr key={s.source}>
-                    <td className="py-2 font-medium text-navy">{s.source}</td>
-                    <td className="py-2 text-navy/70">{s.totalRows.toLocaleString()}</td>
-                    <td className="py-2 text-navy/70">{s.matchedRows.toLocaleString()}</td>
-                    <td className="py-2 text-navy/70">{coverage.toFixed(1)}%</td>
-                    <td className="py-2 text-navy/70">{s.latestSnapshot ?? '—'}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-navy/70">
+              <th className="py-2 font-medium">Source</th>
+              <th className="py-2 font-medium">Total rows</th>
+              <th className="py-2 font-medium">Matched</th>
+              <th className="py-2 font-medium">Coverage</th>
+              <th className="py-2 font-medium">Latest snapshot</th>
+              <th className="py-2 font-medium text-right">Live re-fetch</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-cream-dark">
+            {SOURCES.map(({ source, refetch, disabledReason }) => {
+              const s = data.summary.find(row => row.source === source)
+              const coverage = s && s.totalRows > 0 ? (s.matchedRows / s.totalRows) * 100 : 0
+              const busy = reingesting === source
+              return (
+                <tr key={source}>
+                  <td className="py-2 font-medium text-navy">{source}</td>
+                  <td className="py-2 text-navy/70">{s ? s.totalRows.toLocaleString() : '—'}</td>
+                  <td className="py-2 text-navy/70">{s ? s.matchedRows.toLocaleString() : '—'}</td>
+                  <td className="py-2 text-navy/70">{s ? `${coverage.toFixed(1)}%` : '—'}</td>
+                  <td className="py-2 text-navy/70">{s?.latestSnapshot ?? '—'}</td>
+                  <td className="py-2 text-right">
+                    {refetch ? (
+                      <button
+                        onClick={() => handleReingest(refetch)}
+                        disabled={isPending}
+                        className="text-teal hover:text-teal-light text-xs disabled:opacity-40"
+                      >
+                        {busy ? 'Re-fetching…' : 'Re-fetch'}
+                      </button>
+                    ) : (
+                      <span className="text-navy/40 text-xs" title={disabledReason}>
+                        {disabledReason}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </section>
 
       {feedback && (
