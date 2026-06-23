@@ -35,6 +35,21 @@ Implements `docs/plans/2026-06-30-benchmark-reingest-admin.md` (now marked Built
    `mteb`/`livebench` disabled with reasons; **"Refresh" → "Reload view"** (DB-only).
 6. **Docs**: changelog + user-guide "Re-fetching benchmark sources" section.
 
+## Also this session — unified alias matching (PR #26)
+
+Added on top of the re-ingest work (same branch):
+- **`src/lib/alias-matching.ts`** — single shared matcher: tokeniser + scorer
+  with confidence tiers (`exact`/`strong`/`weak`), both directions
+  (`rankSourceNames` / `rankSlugs`), and `autoMatchSlug` (strict).
+- **Unified callers** — `import-grounding.suggestBenchmarkAliases` and EcoLogits
+  `resolveModelName` both delegate to it (characterization tests pin the old
+  EcoLogits outcomes).
+- **Auto-apply on re-fetch** — exact-unique matches aliased automatically
+  (`note='auto-matched'`); ambiguous stays manual. `IngestResult.autoMatched`.
+- **Unmatched UI** — ranked slug suggestions, top guess pre-selected, confidence
+  badges + quick-pick chips. `fetchBenchmarksData` + admin page attach them.
+- 19 new tests; **205/206 pass**; tsc/lint/build green.
+
 ## Open items (carried forward)
 
 - **Merge #25**, then **retarget #26 base to master** and merge.
