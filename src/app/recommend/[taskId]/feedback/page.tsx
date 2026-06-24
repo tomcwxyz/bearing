@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { submitOutcome } from '@/app/actions'
 
@@ -72,12 +73,12 @@ export default function FeedbackPage() {
           <p className="mt-2 text-sm text-grey-blue">
             Your input helps us improve recommendations for everyone.
           </p>
-          <a
+          <Link
             href="/"
             className="mt-6 inline-block rounded-full bg-navy px-6 py-2.5 text-sm font-medium font-display text-cream transition-colors hover:bg-navy-light"
           >
             Back to home
-          </a>
+          </Link>
         </div>
       </div>
     )

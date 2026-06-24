@@ -35,6 +35,10 @@ export default function CompareResultsPage({
     const urlParams = new URLSearchParams(window.location.search)
     const cid = urlParams.get('cid')
     if (!cid) {
+      // window.location / sessionStorage are client-only, so this read belongs
+      // in an effect, not a lazy useState initialiser (which would run during
+      // SSR). The set-state-in-effect heuristic doesn't apply here.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError('No comparison ID found.')
       return
     }

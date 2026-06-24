@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getModelLive, getAllModels, TASK_TYPE_LABELS } from '@/lib/registry'
+import { embeddingPriceLabel } from '@/lib/pricing'
 import type { Capability } from '@/lib/registry'
 
 const capabilityLabels: Record<Capability, string> = {
@@ -119,11 +120,7 @@ export default async function ModelDetailPage({
             <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
               <Stat
                 label="Input / 1M tokens"
-                value={
-                  model.pricing.input_per_1m === 0
-                    ? 'Free (self-host)'
-                    : `$${model.pricing.input_per_1m.toFixed(2)}`
-                }
+                value={embeddingPriceLabel(model.pricing.input_per_1m)}
               />
               <Stat
                 label="Output"
@@ -255,7 +252,7 @@ export default async function ModelDetailPage({
             </div>
             <p className="mt-3 text-grey-blue italic text-sm">
               Grounded in the MTEB (Massive Text Embedding Benchmark) Overall average
-              published by the model authors. Bearing collapses MTEB's retrieval, STS,
+              published by the model authors. Bearing collapses MTEB&apos;s retrieval, STS,
               classification, and clustering categories into a single quality signal
               because they correlate strongly for embedding models.{' '}
               <Link href="/data" className="text-teal underline underline-offset-2 hover:text-teal-light">

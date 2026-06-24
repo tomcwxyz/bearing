@@ -6,11 +6,11 @@ import { createHash } from 'crypto'
 import { neon } from '@neondatabase/serverless'
 
 import { sendMagicLink, getCurrentUser } from '@/lib/auth'
-import { classifyTask, type ClarificationAnswer } from '@/lib/classification'
+import { classifyTask, type ClarificationAnswer, type Classification } from '@/lib/classification'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import Anthropic from '@anthropic-ai/sdk'
-import { scoreModels, scoreModelsDetailed, type ScoredModel, type Exclusion } from '@/lib/scoring'
+import { scoreModels, scoreModelsDetailed, type ScoredModel } from '@/lib/scoring'
 import { getLatestBenchmarkScores } from '@/lib/benchmarks'
 import { generateReasoning } from '@/lib/reasoning'
 import { scorePipeline, type PipelineResult } from '@/lib/pipeline'
@@ -86,17 +86,7 @@ export async function submitTask(formData: FormData) {
       }
     }
 
-    // Auto-route single-stage embedding tasks to the embedding flow — they need
-    // MTEB quality, dim, and max-input, not the chat priority page and factor
-    // bars. Embedding-LED PIPELINES (e.g. extract → embedding → qa) must keep
-    // the normal results path: getResults() is the only place that evaluates and
-    // renders multi-stage recommendations, and the embedding results page is
-    // single-model only — shortcutting it would silently drop the other stages.
-    const hasPipelineStages = (classification.pipeline_stages?.length ?? 0) > 0
-    if (classification.task_type === 'embedding' && !hasPipelineStages) {
-      await prepareEmbeddingRecommendation(taskId, classification)
-      redirect(`/embedding/${taskId}/results`)
-    }
+    await maybeRouteEmbedding(taskId, classification)
 
     redirect(`/recommend/${taskId}/priorities`)
   } catch (error) {
@@ -150,13 +140,7 @@ export async function submitClarification(
       }
     }
 
-    // Auto-route single-stage embedding tasks only; embedding-led pipelines keep
-    // the normal results path so getResults() can render every stage (see submitTask).
-    const hasPipelineStages = (classification.pipeline_stages?.length ?? 0) > 0
-    if (classification.task_type === 'embedding' && !hasPipelineStages) {
-      await prepareEmbeddingRecommendation(taskId, classification)
-      redirect(`/embedding/${taskId}/results`)
-    }
+    await maybeRouteEmbedding(taskId, classification)
 
     redirect(`/recommend/${taskId}/priorities`)
   } catch (error) {
@@ -505,6 +489,25 @@ function embeddingPriorityFor(hosting: EmbeddingFormInput['hosting']): Factor[] 
   return ['quality', 'cost', 'speed', 'capability', 'privacy', 'sustainability', 'transparency']
 }
 
+// hosting ⇄ data_sensitivity encoding. The /embedding form asks about hosting
+// directly; the recommend classifier only knows data sensitivity, so the task
+// row stores a single field. The two directions live side-by-side so the
+// encoding can't drift.
+function hostingToDataSensitivity(hosting: EmbeddingFormInput['hosting']): string {
+  // Encode hosting=open as on_prem_required so the scoring hard filter routes
+  // to embedding models with local_info populated (BGE-M3, Nomic,
+  // GTE-Qwen2-7B). 'hosted' and 'no_preference' both leave it at 'none'.
+  return hosting === 'open' ? 'on_prem_required' : 'none'
+}
+
+function dataSensitivityToHosting(dataSensitivity: string): EmbeddingFormInput['hosting'] {
+  // Lossy inverse: 'none' covers both 'hosted' and 'no_preference' and the
+  // classifier can't tell them apart, so auto-routed tasks get the default
+  // priority order — never the hosted-optimised one. Acceptable until the
+  // classifier learns a hosting-preference signal.
+  return dataSensitivity === 'on_prem_required' ? 'open' : 'no_preference'
+}
+
 // Shared scoring + persistence for an embedding task. Both the dedicated
 // /embedding form (submitEmbeddingTask) and the auto-routed recommend flow
 // (submitTask / submitClarification, when the classifier returns
@@ -514,6 +517,10 @@ function embeddingPriorityFor(hosting: EmbeddingFormInput['hosting']): Factor[] 
 async function scoreAndSaveEmbedding(
   taskId: string,
   scoring: {
+    // Must match the value persisted on the task row: getEmbeddingResults
+    // re-scores from the row, and complexity changes the quality/capability
+    // weights — a mismatch makes the saved rankings diverge from the page.
+    complexity: string
     inputLength: string
     dataSensitivity: string
     latencyTarget: string
@@ -524,7 +531,7 @@ async function scoreAndSaveEmbedding(
   const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
   const { models } = scoreModelsDetailed({
     taskType: 'embedding',
-    complexity: 'simple',
+    complexity: scoring.complexity,
     inputLength: scoring.inputLength,
     needsVision: false,
     needsTools: false,
@@ -533,7 +540,7 @@ async function scoreAndSaveEmbedding(
     dataSensitivity: scoring.dataSensitivity,
     latencyTarget: scoring.latencyTarget,
     volume: 'one_off',
-    needsLongContext: false, // embedding models use max_input_tokens, not context_window — this filter doesn't apply
+    needsLongContext: false, // chat-only gate; hardFilter also skips it for embedding tasks
     needsMultilingual: scoring.needsMultilingual,
     isAgentic: false,
     outputLength: 'short', // vectors are tiny relative to chat output
@@ -562,22 +569,40 @@ async function scoreAndSaveEmbedding(
 async function prepareEmbeddingRecommendation(
   taskId: string,
   classification: {
+    complexity: string
     input_length: string
     data_sensitivity: string
     latency_target: string
     needs_multilingual: boolean
   },
 ): Promise<void> {
-  const hosting = classification.data_sensitivity === 'on_prem_required' ? 'open' : 'no_preference'
-  const priorityOrder = embeddingPriorityFor(hosting)
+  const priorityOrder = embeddingPriorityFor(dataSensitivityToHosting(classification.data_sensitivity))
   await updateTaskPriorities(taskId, priorityOrder)
   await scoreAndSaveEmbedding(taskId, {
+    complexity: classification.complexity,
     inputLength: classification.input_length,
     dataSensitivity: classification.data_sensitivity,
     latencyTarget: classification.latency_target,
     needsMultilingual: classification.needs_multilingual,
     priorityOrder,
   })
+}
+
+// Auto-route single-stage embedding tasks to the embedding flow — they need
+// MTEB quality, dim, and max-input, not the chat priority page and factor
+// bars. Embedding-LED PIPELINES (e.g. extract → embedding → qa) must keep
+// the normal results path: getResults() is the only place that evaluates and
+// renders multi-stage recommendations, and the embedding results page is
+// single-model only — shortcutting it would silently drop the other stages.
+// Shared by submitTask and submitClarification. When the task routes,
+// redirect() throws and this never returns; both callers' catch blocks
+// re-throw it via isRedirectError.
+async function maybeRouteEmbedding(taskId: string, classification: Classification): Promise<void> {
+  const hasPipelineStages = (classification.pipeline_stages?.length ?? 0) > 0
+  if (classification.task_type === 'embedding' && !hasPipelineStages) {
+    await prepareEmbeddingRecommendation(taskId, classification)
+    redirect(`/embedding/${taskId}/results`)
+  }
 }
 
 export async function submitEmbeddingTask(input: EmbeddingFormInput) {
@@ -588,10 +613,7 @@ export async function submitEmbeddingTask(input: EmbeddingFormInput) {
     // and (future) context-window filter resolve correctly.
     const inputLength = input.inputSize === 'long' ? 'very_long' : input.inputSize
 
-    // Encode hosting=open as on_prem_required so the scoring hard filter
-    // routes to embedding models with local_info populated (BGE-M3, Nomic,
-    // GTE-Qwen2-7B). hosting=hosted leaves data_sensitivity at 'none'.
-    const dataSensitivity = input.hosting === 'open' ? 'on_prem_required' : 'none'
+    const dataSensitivity = hostingToDataSensitivity(input.hosting)
 
     const taskId = await createTask({
       taskType: 'embedding',
@@ -619,6 +641,7 @@ export async function submitEmbeddingTask(input: EmbeddingFormInput) {
     // Score + persist recommendations through the shared helper so the form
     // path and the auto-routed recommend path stay byte-for-byte identical.
     await scoreAndSaveEmbedding(taskId, {
+      complexity: 'simple', // matches the task row created above
       inputLength,
       dataSensitivity,
       latencyTarget: input.latency === 'any' ? 'batch' : input.latency,
@@ -658,11 +681,8 @@ export async function getEmbeddingResults(taskId: string) {
       dataSensitivity: task.data_sensitivity ?? 'none',
       latencyTarget: task.latency_target ?? 'batch',
       volume: 'one_off',
-      // Always false for embeddings — they gate on max_input_tokens, not the
-      // chat context_window. An auto-routed task may carry needs_long_context=true
-      // from the classifier (long input); applying the 100k chat gate here would
-      // wrongly drop most embedding models. Mirrors scoreAndSaveEmbedding().
-      needsLongContext: false,
+      needsLongContext: false, // chat-only gate; hardFilter also skips it for embedding tasks
+
       needsMultilingual: task.needs_multilingual ?? false,
       isAgentic: false,
       outputLength: 'short',

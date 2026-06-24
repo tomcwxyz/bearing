@@ -1,19 +1,16 @@
 import Link from 'next/link'
 import { getEmbeddingResults } from '@/app/actions'
 import { getAllModels } from '@/lib/registry'
+import { embeddingPriceLabel } from '@/lib/pricing'
 import type { ScoredModel } from '@/lib/scoring'
 
 // Embedding pricing is input-only — providers bill per 1M input tokens with
 // no output cost. We surface that headline number directly rather than
 // "cost per task" (which depends on chat-style assumptions about output
 // length that don't apply here).
-function pricingPer1M(slug: string): { input: number; isOpenWeight: boolean } | null {
+function pricingPer1M(slug: string): number | null {
   const m = getAllModels().find(x => x.slug === slug)
-  if (!m) return null
-  return {
-    input: m.pricing.input_per_1m,
-    isOpenWeight: m.pricing.input_per_1m === 0,
-  }
+  return m ? m.pricing.input_per_1m : null
 }
 
 function modelMeta(slug: string): {
@@ -84,11 +81,7 @@ function ModelCard({ model, rank }: { model: ScoredModel; rank: number }) {
         <div>
           <span className="text-grey-blue text-xs">Price</span>
           <p className="font-mono text-navy">
-            {pricing?.isOpenWeight
-              ? 'Free (self-host)'
-              : pricing
-              ? `$${pricing.input.toFixed(2)} / 1M tokens`
-              : '—'}
+            {pricing != null ? embeddingPriceLabel(pricing, ' / 1M tokens') : '—'}
           </p>
         </div>
         {meta.capabilities.length > 0 && (
@@ -163,7 +156,7 @@ export default async function EmbeddingResultsPage({
         </div>
 
         <div className="mt-8 rounded-lg border border-teal/20 bg-teal/5 px-4 py-3 text-sm text-navy/80">
-          Embedding models are stateless — there is no "selected model + outcome"
+          Embedding models are stateless — there is no &ldquo;selected model + outcome&rdquo;
           feedback loop the way there is for chat. Pick from the ranking, integrate,
           and re-run if you want to compare under different priorities.
         </div>

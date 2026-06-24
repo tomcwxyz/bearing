@@ -26,9 +26,20 @@ export default function BenchmarksTab({ initialData, activeSlugs }: BenchmarksTa
   }, [data.unmatched, search])
 
   function refresh() {
+    setFeedback(null)
     startTransition(async () => {
-      const next = await fetchBenchmarksData()
-      setData(next)
+      try {
+        const next = await fetchBenchmarksData()
+        setData(next)
+      } catch (err) {
+        // Without this, a failed refresh (e.g. an expired admin session or a
+        // DB hiccup) dies as a silent unhandled rejection — the button just
+        // stops spinning with no explanation. Surface it like the other handlers.
+        setFeedback({
+          type: 'error',
+          message: err instanceof Error ? err.message : 'Refresh failed',
+        })
+      }
     })
   }
 

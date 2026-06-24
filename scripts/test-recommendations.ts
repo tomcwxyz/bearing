@@ -10,6 +10,7 @@
 import { config } from 'dotenv'
 config({ path: '.env.local' })
 
+import { readFileSync, writeFileSync } from 'fs'
 import { classifyTask } from '../src/lib/classification'
 import { scoreModels } from '../src/lib/scoring'
 import { getLatestBenchmarkScores } from '../src/lib/benchmarks'
@@ -25,6 +26,15 @@ interface Prompt {
   text: string
   // human expectation — what a sensible top recommendation looks like
   expect: string
+}
+
+// One prompt's run: the prompt plus its classification and the top-3 scored models.
+type RunResult = Prompt & {
+  classification: Awaited<ReturnType<typeof classifyTask>>
+  top3: Array<{
+    slug: string; name: string; provider: string; tier: string
+    weightedScore: number; estimatedCost: number
+  }>
 }
 
 const PROMPTS: Prompt[] = [
@@ -89,8 +99,7 @@ interface BaselineEntry {
 }
 
 function loadBaseline(path: string): Map<number, BaselineEntry> {
-  const fs = require('fs') as typeof import('fs')
-  const raw = fs.readFileSync(path, 'utf8')
+  const raw = readFileSync(path, 'utf8')
   const parsed = JSON.parse(raw) as BaselineEntry[]
   const map = new Map<number, BaselineEntry>()
   for (const entry of parsed) map.set(entry.id, entry)
@@ -122,7 +131,7 @@ async function main() {
   console.log(`BENCHMARK_BLEND = ${process.env.BENCHMARK_BLEND ?? '0'}`)
   console.log('=' .repeat(100))
 
-  const results: any[] = []
+  const results: RunResult[] = []
 
   for (const p of PROMPTS) {
     try {
@@ -190,8 +199,7 @@ async function main() {
     console.log(`${changed}/${total} prompts changed top-3, ${unchanged} unchanged`)
   } else {
     // Default mode: write JSON snapshot for downstream analysis / future baselines.
-    const fs = await import('fs')
-    fs.writeFileSync('test-recommendations-output.json', JSON.stringify(results, null, 2))
+    writeFileSync('test-recommendations-output.json', JSON.stringify(results, null, 2))
     console.log('\n\nWrote test-recommendations-output.json')
   }
 }

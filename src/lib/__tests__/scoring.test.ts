@@ -728,6 +728,17 @@ describe('hardFilter (Phase 5.1)', () => {
     const result = hardFilter(noVision, { ...baseInput, taskType: 'embedding', needsVision: true })
     expect(result).toEqual({ ok: false, reason: 'wrong_class' })
   })
+
+  it('skips the long-context gate for embedding tasks (gates on max_input_tokens, not context_window)', () => {
+    // Embedding models have small context_window values, so the 100k chat
+    // gate would wrongly drop them if a caller forwards the classifier's
+    // needs_long_context=true (the bug behind 897b47e / a445591). The scorer
+    // must ignore the flag for embedding tasks regardless of the caller.
+    const opus = getModel('claude-opus-4.7')!
+    const smallEmbedding = { ...opus, model_class: 'embedding' as const, context_window: 8_192 }
+    const result = hardFilter(smallEmbedding, { ...baseInput, taskType: 'embedding', needsLongContext: true })
+    expect(result).toEqual({ ok: true })
+  })
 })
 
 describe('scoreModelsDetailed (Phase 5.1)', () => {
