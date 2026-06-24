@@ -26,11 +26,9 @@ const PAREN_NOISE_RE = /\b(reasoning|non-reasoning|nonreasoning|adaptive|low|hig
 /** Date suffixes like "Sep '25" or "Jan 2025". */
 const DATE_RE = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s*['']?\d{2,4}\b/gi
 
-/** Escape a string for safe use inside a `RegExp` (provider names like "xAI",
- *  "01.AI" or "Z.ai" can carry regex metacharacters). */
-function escapeRegExp(input: string): string {
-  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
+/** Leading "Vendor: " label that OpenRouter prepends to display names
+ *  ("Anthropic: Claude Opus 4.8", "MoonshotAI: Kimi K2.7 Code"). */
+const VENDOR_LABEL_RE = /^[^:]*:\s*/
 
 /**
  * Tokens that, when present in a candidate but not in the query, signal a
@@ -174,13 +172,14 @@ export function rankSourceNames(
   options: { minQueryTokens?: number } = {},
 ): RankedSourceName[] {
   const minQueryTokens = options.minQueryTokens ?? 2
-  // OpenRouter display names carry a vendor label ("Anthropic: Claude Opus
-  // 4.8") that no benchmark source repeats, so the leaked provider token would
-  // fail the subset test against every candidate. Strip just that leading
-  // "<provider>:" label — a vendor word that's genuinely part of the model name
-  // ("MiniMax M2.5", "DeepSeek R1") has no colon and is left intact.
-  const label = new RegExp(`^\\s*${escapeRegExp(model.provider)}\\s*:\\s*`, 'i')
-  const modelTokens = tokenise(`${model.slug} ${model.name.replace(label, '')}`)
+  // OpenRouter display names carry a leading "Vendor: " label ("Anthropic:
+  // Claude Opus 4.8", "MoonshotAI: Kimi K2.7 Code") that no benchmark source
+  // repeats, so the leaked vendor token would fail the subset test against
+  // every candidate. Strip the label generically rather than from model.provider
+  // — the two can differ ("Moonshot" vs "MoonshotAI"). A vendor word genuinely
+  // part of the model name ("MiniMax M2.5", "DeepSeek R1") has no colon and so
+  // survives.
+  const modelTokens = tokenise(`${model.slug} ${model.name.replace(VENDOR_LABEL_RE, '')}`)
   if (modelTokens.size < minQueryTokens) return []
 
   const out: RankedSourceName[] = []

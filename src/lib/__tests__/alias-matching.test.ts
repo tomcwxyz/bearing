@@ -87,6 +87,19 @@ describe('rankSourceNames (forward, import form)', () => {
     expect(names).toContain('Claude 4.5 Haiku (Reasoning)')
     expect(names).toContain('Claude 4.5 Haiku (Non-reasoning)')
   })
+
+  it('strips the vendor label even when it differs from provider (MoonshotAI vs Moonshot)', () => {
+    // OpenRouter labels "MoonshotAI:" while the provider field is "Moonshot";
+    // the label strip must not depend on them matching.
+    const orModel: BearingModelMeta = {
+      slug: 'kimi-k2.7-code',
+      name: 'MoonshotAI: Kimi K2.7 Code',
+      provider: 'Moonshot',
+    }
+    const ranked = rankSourceNames(orModel, [{ name: 'Kimi K2.7 Code' }, { name: 'Kimi K2.6' }])
+    expect(ranked[0].name).toBe('Kimi K2.7 Code')
+    expect(ranked[0].confidence).toBe('exact')
+  })
 })
 
 describe('rankSlugs (reverse, unmatched UI)', () => {
