@@ -169,6 +169,27 @@ describe('version-separator tokenisation', () => {
     expect(tokenise('claude-3-5-sonnet').has('3.5')).toBe(true)
   })
 
+  it('does not glue a generation onto a param count ("LFM2-24B" stays 2 + 24b)', () => {
+    // "2-24" must not become "2.24": 24B is a parameter count, not version 2.24.
+    const toks = tokenise('lfm-2-24b-a2b LFM2-24B-A2B')
+    expect(toks.has('2.24b')).toBe(false)
+    expect(toks.has('2')).toBe(true)
+    expect(toks.has('24b')).toBe(true)
+    expect(toks.has('a2b')).toBe(true)
+    // Spaced source form (Artificial Analysis) now matches exactly.
+    const ranked = rankSourceNames(
+      { slug: 'lfm-2-24b-a2b', name: 'LiquidAI: LFM2-24B-A2B', provider: 'Liquid' },
+      [{ name: 'LFM2 24B A2B' }, { name: 'LFM2 8B A1B' }],
+    )
+    expect(ranked[0].name).toBe('LFM2 24B A2B')
+    expect(ranked[0].confidence).toBe('exact')
+  })
+
+  it('still joins a true version whose second half stands alone ("v3-1" → "v3.1")', () => {
+    expect(tokenise('deepseek-v3-1').has('v3.1')).toBe(true)
+    expect(tokenise('claude-opus-4-8').has('4.8')).toBe(true)
+  })
+
   it('auto-matches a hyphenated lmarena name to the dotted slug', () => {
     expect(autoMatchSlug('claude-opus-4-6', lmModels)).toBe('claude-opus-4.6')
   })

@@ -55,9 +55,12 @@ export function normaliseModelName(input: string): string {
     // "claude-3-5-sonnet" → "claude-3.5-sonnet"). Scoped to adjacent 1-2 digit
     // groups bounded by non-digits, so it never glues a date stamp or param
     // suffix to the version ("grok-4-0709", "deepseek-r1-0528" stay split) —
-    // those longer digit runs remain distinct tokens. Runs before the general
-    // hyphen→space step below.
-    .replace(/(?<![\d.])(\d{1,2})[-_](\d{1,2})(?![\d.])/g, '$1.$2')
+    // those longer digit runs remain distinct tokens. The trailing guard also
+    // rejects a second number that's a unit/param count ("LFM2-24B-A2B": "24B"
+    // is 24 billion params, not version 2.24), since a version decimal's second
+    // half stands alone while a param count is immediately followed by a letter.
+    // Runs before the general hyphen→space step below.
+    .replace(/(?<![\d.])(\d{1,2})[-_](\d{1,2})(?![\dA-Za-z.])/g, '$1.$2')
     .replace(/[-_]/g, ' ')
     .replace(/[^a-z0-9. ]+/gi, ' ')
     .replace(/\s+/g, ' ')
