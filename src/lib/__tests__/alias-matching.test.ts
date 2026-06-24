@@ -134,6 +134,66 @@ describe('autoMatchSlug (strict auto-apply)', () => {
   })
 })
 
+// Hyphen-versioned source names (lmarena uses "claude-opus-4-8") must reconcile
+// with the registry's dotted slugs ("claude-opus-4.8") without gluing date or
+// param suffixes onto the version.
+describe('version-separator tokenisation', () => {
+  const lmModels: BearingModelMeta[] = [
+    { slug: 'claude-opus-4.8', name: 'Claude Opus 4.8', provider: 'Anthropic' },
+    { slug: 'claude-opus-4.6', name: 'Claude Opus 4.6', provider: 'Anthropic' },
+    { slug: 'grok-4', name: 'Grok 4', provider: 'xAI' },
+    { slug: 'deepseek-r1', name: 'DeepSeek R1', provider: 'DeepSeek' },
+    { slug: 'deepseek-r1-0528', name: 'DeepSeek R1 0528', provider: 'DeepSeek' },
+  ]
+
+  it('joins an inter-digit version separator into the dotted atom', () => {
+    const toks = tokenise('claude-opus-4-8')
+    expect(toks.has('4.8')).toBe(true)
+    expect(toks.has('8')).toBe(false)
+  })
+
+  it('joins a multi-segment family version ("3-5" → "3.5")', () => {
+    expect(tokenise('claude-3-5-sonnet').has('3.5')).toBe(true)
+  })
+
+  it('auto-matches a hyphenated lmarena name to the dotted slug', () => {
+    expect(autoMatchSlug('claude-opus-4-6', lmModels)).toBe('claude-opus-4.6')
+  })
+
+  it('does not glue a date stamp onto the version (grok-4-0709)', () => {
+    const toks = tokenise('grok-4-0709')
+    expect(toks.has('4')).toBe(true)       // version stays its own token
+    expect(toks.has('0709')).toBe(true)    // date stays separate, not "4.0709"
+    expect(toks.has('4.0709')).toBe(false)
+    // A trailing date makes it non-exact, so it is surfaced but never auto-applied.
+    expect(autoMatchSlug('grok-4-0709', lmModels)).toBeNull()
+  })
+
+  it('keeps a param/date suffix distinct so two real models stay separate', () => {
+    // "0528" is the only token distinguishing these registry models; the join
+    // must not absorb it.
+    expect(tokenise('deepseek-r1-0528').has('0528')).toBe(true)
+    expect(autoMatchSlug('deepseek-r1', lmModels)).toBe('deepseek-r1')
+    expect(autoMatchSlug('deepseek-r1-0528', lmModels)).toBe('deepseek-r1-0528')
+  })
+
+  it('forward import surfaces the hyphenated lmarena variant for a dotted slug', () => {
+    const model: BearingModelMeta = {
+      slug: 'claude-opus-4.8', name: 'Anthropic: Claude Opus 4.8', provider: 'Anthropic',
+    }
+    const ranked = rankSourceNames(model, [
+      { name: 'claude-opus-4-8' },
+      { name: 'claude-opus-4-8-thinking' },
+      { name: 'claude-opus-4-7' },
+    ])
+    expect(ranked[0].name).toBe('claude-opus-4-8')
+    expect(ranked[0].confidence).toBe('exact')
+    const thinking = ranked.find(r => r.name === 'claude-opus-4-8-thinking')
+    expect(thinking?.flags).toContain('thinking')
+    expect(ranked.map(r => r.name)).not.toContain('claude-opus-4-7')
+  })
+})
+
 // Characterization tests for the EcoLogits API-slug matcher. These pin the
 // expected resolution outcomes so the move onto the shared tokeniser is safe.
 describe('resolveModelName (EcoLogits API slugs)', () => {

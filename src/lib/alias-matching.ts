@@ -52,6 +52,14 @@ export function normaliseModelName(input: string): string {
     .replace(/\(([^)]*)\)/g, (_match, inner) => ' ' + inner.replace(PAREN_NOISE_RE, ' ') + ' ')
     .replace(DATE_RE, ' ')
     .replace(PRODUCT_NOISE_RE, ' ')
+    // Join inter-digit version separators so a hyphenated source version matches
+    // the registry's dotted form ("claude-opus-4-8" → "claude-opus-4.8",
+    // "claude-3-5-sonnet" → "claude-3.5-sonnet"). Scoped to adjacent 1-2 digit
+    // groups bounded by non-digits, so it never glues a date stamp or param
+    // suffix to the version ("grok-4-0709", "deepseek-r1-0528" stay split) —
+    // those longer digit runs remain distinct tokens. Runs before the general
+    // hyphen→space step below.
+    .replace(/(?<![\d.])(\d{1,2})[-_](\d{1,2})(?![\d.])/g, '$1.$2')
     .replace(/[-_]/g, ' ')
     .replace(/[^a-z0-9. ]+/gi, ' ')
     .replace(/\s+/g, ' ')
