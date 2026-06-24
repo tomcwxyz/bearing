@@ -322,6 +322,23 @@ describe('aggregateGroundedFields — provider profile', () => {
     expect(aggregateGroundedFields([], 'Moonshot').openWeights.value).toBe(1)
     expect(aggregateGroundedFields([], 'IBM').openWeights.value).toBe(1)
   })
+
+  it('grounds licence_openness: permissive open-weight high, closed low', () => {
+    // Kimi (Moonshot) is MIT — must read as open, not proprietary.
+    const moonshot = aggregateGroundedFields([], 'Moonshot')
+    expect(moonshot.licenceOpenness.value).toBe(0.9)
+    expect(moonshot.licenceOpenness.provenance).toBe('derived')
+    // Closed vendors stay low.
+    expect(aggregateGroundedFields([], 'Anthropic').licenceOpenness.value).toBeLessThanOrEqual(0.2)
+    // Open weights under a restrictive licence (Meta community) sits in the middle.
+    expect(aggregateGroundedFields([], 'Meta').licenceOpenness.value).toBe(0.6)
+  })
+
+  it('unknown providers get a conservative default licence_openness', () => {
+    const g = aggregateGroundedFields([], 'Newco')
+    expect(g.licenceOpenness.value).toBe(0.2)
+    expect(g.licenceOpenness.provenance).toBe('default')
+  })
 })
 
 describe('aggregateGroundedFields — task bucketing', () => {

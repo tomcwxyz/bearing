@@ -233,9 +233,10 @@ export async function estimateModelScores(
     }
     groundedLines.push(`- privacy_score = ${grounded.privacyScore.value} (provider-table lookup)`)
     groundedLines.push(`- transparency.open_weights = ${grounded.openWeights.value} (provider-table lookup)`)
+    groundedLines.push(`- transparency.licence_openness = ${grounded.licenceOpenness.value} (provider-table lookup)`)
     groundedLines.push(`- transparency.transparency_score = ${grounded.baselineTransparency.value} (provider baseline; refine sub-fields but keep this anchor)`)
 
-    const groundedBlock = `\n\n## GROUNDED FIELDS — DO NOT OVERRIDE\nThe following fields are computed from benchmark data. Do not produce estimates for them in your output; they will be merged in deterministically.\n${groundedLines.join('\n')}\n${grounded.evidenceForPrompt.length ? `\nFull evidence:\n${grounded.evidenceForPrompt.map(l => `- ${l}`).join('\n')}` : ''}`
+    const groundedBlock = `\n\n## GROUNDED FIELDS — DO NOT OVERRIDE\nThe following fields are computed from benchmark/provider data. Do not produce estimates for them in your output; they will be merged in deterministically. Keep every other field and all prose (notes, strengths, weaknesses, open_methodology, tier) CONSISTENT with them — e.g. if open_weights = 1 the model is open-weight, so never call it proprietary or closed-source, and set open_methodology to open-weight levels.\n${groundedLines.join('\n')}\n${grounded.evidenceForPrompt.length ? `\nFull evidence:\n${grounded.evidenceForPrompt.map(l => `- ${l}`).join('\n')}` : ''}`
 
     const anthropic = new Anthropic()
     const response = await anthropic.messages.create({
@@ -280,9 +281,11 @@ export async function estimateModelScores(
     const transparency = {
       ...haikuTransparency,
       open_weights: grounded.openWeights.value,
+      licence_openness: grounded.licenceOpenness.value,
       transparency_score: grounded.baselineTransparency.value,
     }
     provenance['transparency.open_weights'] = grounded.openWeights.provenance
+    provenance['transparency.licence_openness'] = grounded.licenceOpenness.provenance
     provenance['transparency.transparency_score'] = grounded.baselineTransparency.provenance
 
     // Derived capability: `code` if grounded task_fitness.code clears the threshold.
@@ -392,7 +395,7 @@ export async function regroundModel(slug: string): Promise<{
     task_fitness: Record<string, number>
     speed_score: number | null
     privacy_score: number
-    transparency: { open_weights: 0 | 1; transparency_score: number }
+    transparency: { open_weights: 0 | 1; licence_openness: number; transparency_score: number }
     derived_capabilities: { code: boolean | null }
     inference_energy: number | null
   }
@@ -418,6 +421,7 @@ export async function regroundModel(slug: string): Promise<{
     if (grounded.speedScore) provenance.speed_score = 'benchmark'
     provenance.privacy_score = grounded.privacyScore.provenance
     provenance['transparency.open_weights'] = grounded.openWeights.provenance
+    provenance['transparency.licence_openness'] = grounded.licenceOpenness.provenance
     provenance['transparency.transparency_score'] = grounded.baselineTransparency.provenance
 
     const groundedCode = grounded.taskFitness.code
@@ -438,6 +442,7 @@ export async function regroundModel(slug: string): Promise<{
         privacy_score: grounded.privacyScore.value,
         transparency: {
           open_weights: grounded.openWeights.value,
+          licence_openness: grounded.licenceOpenness.value,
           transparency_score: grounded.baselineTransparency.value,
         },
         derived_capabilities: { code: derivedCode },
