@@ -1,6 +1,72 @@
 import { describe, it, expect } from 'vitest'
-import { getRegistry, getModel, getAllModels, getModelSlugs, ALL_TASK_TYPES, TASK_TYPE_LABELS } from '../registry'
+import { getRegistry, getModel, getAllModels, getModelSlugs, computeSustainabilityComposite, withSustainabilityComposite, ALL_TASK_TYPES, TASK_TYPE_LABELS } from '../registry'
 import { CATEGORY_TO_TASKS } from '../benchmarks'
+
+describe('computeSustainabilityComposite', () => {
+  it('averages all three non-null sub-dimensions, rounded to 2dp', () => {
+    // (0.9 + 0.4 + 0.5) / 3 = 0.6
+    expect(computeSustainabilityComposite(
+      { inference_energy: 0.9, provider_infrastructure: 0.4, training_footprint: 0.5 }, 0,
+    )).toBe(0.6)
+  })
+
+  it('excludes null sub-dimensions from the mean', () => {
+    // mean of the two present values, not divided by three
+    expect(computeSustainabilityComposite(
+      { inference_energy: 0.9, provider_infrastructure: 0.4, training_footprint: null }, 0,
+    )).toBe(0.65)
+  })
+
+  it('reflects an eco-grounded inference_energy override', () => {
+    // Haiku guessed 0.7 → composite 0.55; eco regrounds inference_energy to 0.9.
+    const before = computeSustainabilityComposite(
+      { inference_energy: 0.7, provider_infrastructure: 0.4, training_footprint: null }, 0.55,
+    )
+    const after = computeSustainabilityComposite(
+      { inference_energy: 0.9, provider_infrastructure: 0.4, training_footprint: null }, 0.55,
+    )
+    expect(before).toBe(0.55)
+    expect(after).toBe(0.65) // composite tracks the override, no longer stale
+  })
+
+  it('falls back to the supplied value when every sub-dimension is null', () => {
+    expect(computeSustainabilityComposite(
+      { inference_energy: null, provider_infrastructure: null, training_footprint: null }, 0.42,
+    )).toBe(0.42)
+  })
+
+  it('rounds to two decimal places', () => {
+    // (0.1 + 0.2) / 2 = 0.15000000000000002 → 0.15
+    expect(computeSustainabilityComposite(
+      { inference_energy: 0.1, provider_infrastructure: 0.2, training_footprint: null }, 0,
+    )).toBe(0.15)
+  })
+})
+
+describe('withSustainabilityComposite', () => {
+  it('recomputes the composite and preserves other fields', () => {
+    const result = withSustainabilityComposite({
+      inference_energy: 0.9,
+      provider_infrastructure: 0.4,
+      training_footprint: 0.5,
+      sustainability_score: 0.55, // stale
+      notes: 'keep me',
+    })
+    expect(result.sustainability_score).toBe(0.6) // recomputed from sub-dims
+    expect(result.notes).toBe('keep me')
+    expect(result.inference_energy).toBe(0.9)
+  })
+
+  it('keeps the existing composite when all sub-dimensions are null', () => {
+    const result = withSustainabilityComposite({
+      inference_energy: null,
+      provider_infrastructure: null,
+      training_footprint: null,
+      sustainability_score: 0.42,
+    })
+    expect(result.sustainability_score).toBe(0.42)
+  })
+})
 
 describe('registry', () => {
   it('loads the registry with metadata', () => {

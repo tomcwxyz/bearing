@@ -8,6 +8,7 @@ config() // also load .env as fallback
 import { neon } from '@neondatabase/serverless'
 import { writeFileSync, readFileSync } from 'fs'
 import { join } from 'path'
+import { computeSustainabilityComposite } from '../src/lib/registry'
 
 async function generate() {
   const databaseUrl = process.env.NEON_DATABASE_URL
@@ -114,12 +115,16 @@ async function generate() {
           ? eco.normalisedScore
           : curated * (1 - ECOLOGITS_BLEND) + eco.normalisedScore * ECOLOGITS_BLEND
 
-        // Recalculate composite from updated sub-dimensions (nulls excluded).
-        const subs = [blended, sustainability.provider_infrastructure, sustainability.training_footprint]
-          .filter((v): v is number => v != null)
-        const composite = subs.length > 0
-          ? subs.reduce((a: number, b: number) => a + b, 0) / subs.length
-          : sustainability.sustainability_score
+        // Recalculate composite from updated sub-dimensions (nulls excluded),
+        // via the shared helper so this and the live import path can't drift.
+        const composite = computeSustainabilityComposite(
+          {
+            inference_energy: blended,
+            provider_infrastructure: sustainability.provider_infrastructure,
+            training_footprint: sustainability.training_footprint,
+          },
+          sustainability.sustainability_score,
+        )
 
         models[slug as string].sustainability = {
           ...sustainability,
@@ -133,7 +138,7 @@ async function generate() {
             ...(eco.ecoModel ? { eco_model: eco.ecoModel } : {}),
             ...(eco.snapshotDate ? { snapshot_date: eco.snapshotDate } : {}),
           },
-          sustainability_score: Math.round(composite * 100) / 100,
+          sustainability_score: composite,
         }
       } else {
         console.warn(`  ⚠ ${slug}: has EcoLogits score but no sustainability object — score dropped`)

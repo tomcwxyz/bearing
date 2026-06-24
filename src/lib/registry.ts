@@ -92,6 +92,52 @@ export interface ModelSustainability {
   notes: string
 }
 
+/**
+ * Recompute the composite sustainability score as the mean of the non-null
+ * sub-dimensions (rounded to 2dp), falling back to the supplied current value
+ * when every sub-dimension is null (nothing to average).
+ *
+ * Single source of truth shared by the offline registry build
+ * (scripts/generate-registry.ts) and the live admin import (estimateModelScores).
+ * Without it, overriding one sub-dimension — e.g. EcoLogits grounding
+ * inference_energy at import — would leave the stored composite stale relative
+ * to the data it summarises.
+ */
+export function computeSustainabilityComposite(
+  subDimensions: Pick<
+    ModelSustainability,
+    'inference_energy' | 'provider_infrastructure' | 'training_footprint'
+  >,
+  fallback: number,
+): number {
+  const subs = [
+    subDimensions.inference_energy,
+    subDimensions.provider_infrastructure,
+    subDimensions.training_footprint,
+  ].filter((value): value is number => value != null)
+  if (subs.length === 0) return fallback
+  const mean = subs.reduce((sum, value) => sum + value, 0) / subs.length
+  return Math.round(mean * 100) / 100
+}
+
+/**
+ * Return a copy of a sustainability object with its composite recomputed from
+ * the current sub-dimensions. Convenience wrapper for admin form handlers that
+ * change one sub-dimension and need the composite to follow, so the displayed
+ * and saved score never drift from the inputs it summarises.
+ */
+export function withSustainabilityComposite<
+  T extends Pick<
+    ModelSustainability,
+    'inference_energy' | 'provider_infrastructure' | 'training_footprint' | 'sustainability_score'
+  >,
+>(sustainability: T): T {
+  return {
+    ...sustainability,
+    sustainability_score: computeSustainabilityComposite(sustainability, sustainability.sustainability_score),
+  }
+}
+
 export interface QuantOption {
   quant: string
   vram_gb: number

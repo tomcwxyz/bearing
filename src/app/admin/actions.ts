@@ -17,6 +17,7 @@ import {
   type AliasSuggestion, type Provenance,
 } from '@/lib/import-grounding'
 import { fetchEcoLogitsScore } from '@/lib/ecologits-grounding'
+import { computeSustainabilityComposite } from '@/lib/registry'
 import { ingestLmArena } from '@/lib/ingest/lmarena'
 import { ingestArtificialAnalysis } from '@/lib/ingest/artificialanalysis'
 import { ingestEcoLogits } from '@/lib/ingest/ecologits'
@@ -307,9 +308,22 @@ export async function estimateModelScores(
 
     if (ecoScore) {
       const haikuSustainability = estimates.sustainability as Record<string, unknown> | undefined ?? {}
+      const inferenceEnergy = Math.round(ecoScore.normalisedScore * 100) / 100
+      // Recompute the composite from the eco-grounded sub-dimension so the stored
+      // score never drifts from the data it summarises (same helper the offline
+      // registry build uses).
+      const sustainabilityScore = computeSustainabilityComposite(
+        {
+          inference_energy: inferenceEnergy,
+          provider_infrastructure: (haikuSustainability.provider_infrastructure as number | null) ?? null,
+          training_footprint: (haikuSustainability.training_footprint as number | null) ?? null,
+        },
+        (haikuSustainability.sustainability_score as number | null) ?? 0,
+      )
       estimates.sustainability = {
         ...haikuSustainability,
-        inference_energy: Math.round(ecoScore.normalisedScore * 100) / 100,
+        inference_energy: inferenceEnergy,
+        sustainability_score: sustainabilityScore,
       }
       provenance['sustainability.inference_energy'] = 'ecologits'
     }

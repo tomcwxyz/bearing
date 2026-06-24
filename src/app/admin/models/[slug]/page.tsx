@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { getModelAdmin, saveModelAdmin, regroundModel } from '@/app/admin/actions'
-import { ALL_TASK_TYPES } from '@/lib/registry'
+import { ALL_TASK_TYPES, withSustainabilityComposite } from '@/lib/registry'
 
 const ALL_CAPABILITIES = [
   'vision', 'tools', 'code', 'long_context', 'extended_thinking',
@@ -89,10 +89,11 @@ export default function AdminModelEditPage() {
           },
         }
         if (g.inference_energy !== null) {
-          newModel.sustainability = {
+          // Recompute the composite so it reflects the regrounded inference_energy.
+          newModel.sustainability = withSustainabilityComposite({
             ...newModel.sustainability,
             inference_energy: g.inference_energy,
-          }
+          })
         }
         return newModel
       })
@@ -401,7 +402,7 @@ export default function AdminModelEditPage() {
                 type="number"
                 step="0.01"
                 value={model.sustainability.inference_energy ?? ''}
-                onChange={(e) => setModel({ ...model, sustainability: { ...model.sustainability, inference_energy: e.target.value === '' ? null : parseFloat(e.target.value) } })}
+                onChange={(e) => setModel({ ...model, sustainability: withSustainabilityComposite({ ...model.sustainability, inference_energy: e.target.value === '' ? null : parseFloat(e.target.value) }) })}
                 className="input-field flex-1"
                 placeholder="Leave blank if unknown"
               />
@@ -415,10 +416,10 @@ export default function AdminModelEditPage() {
                 value={model.sustainability[key] ?? ''}
                 onChange={(e) => setModel({
                   ...model,
-                  sustainability: {
+                  sustainability: withSustainabilityComposite({
                     ...model.sustainability,
                     [key]: e.target.value === '' ? null : parseFloat(e.target.value),
-                  },
+                  }),
                 })}
                 className="input-field"
                 placeholder="Leave blank if unknown"
