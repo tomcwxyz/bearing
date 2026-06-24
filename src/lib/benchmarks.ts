@@ -10,6 +10,7 @@
 
 import { neon } from '@neondatabase/serverless'
 import type { TaskType } from './registry'
+import { autoMatchSlug, type BearingModelMeta } from './alias-matching'
 
 function getDb() {
   const url = process.env.NEON_DATABASE_URL
@@ -452,4 +453,42 @@ export async function deleteAlias(source: BenchmarkSource, sourceModelName: stri
     SET bearing_slug = NULL
     WHERE source = ${source} AND source_model_name = ${sourceModelName}
   `
+}
+
+/** Active registry models in the shape the alias matcher needs. */
+export async function getActiveModelsForMatching(): Promise<BearingModelMeta[]> {
+  const rows = await getDb()`
+    SELECT slug, name, provider FROM models WHERE active = true
+  `
+  return rows.map(r => ({
+    slug: r.slug as string,
+    name: r.name as string,
+    provider: r.provider as string,
+  }))
+}
+
+/**
+ * Auto-create aliases for unmatched source names that have an exact, unique
+ * token-bag match against an active model (strict — see autoMatchSlug). Used by
+ * re-ingest so confident matches don't pile up in the manual Unmatched queue;
+ * anything ambiguous is deliberately left for a human to confirm.
+ *
+ * Returns the source model names that were auto-aliased. Idempotent — re-running
+ * just re-upserts the same alias.
+ */
+export async function autoApplyAliases(
+  source: BenchmarkSource,
+  sourceModelNames: string[],
+  models?: BearingModelMeta[],
+): Promise<string[]> {
+  if (sourceModelNames.length === 0) return []
+  const activeModels = models ?? await getActiveModelsForMatching()
+  const applied: string[] = []
+  for (const name of sourceModelNames) {
+    const slug = autoMatchSlug(name, activeModels)
+    if (!slug) continue
+    await upsertAlias(source, name, slug, 'auto-matched')
+    applied.push(name)
+  }
+  return applied
 }
