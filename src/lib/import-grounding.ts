@@ -101,6 +101,17 @@ const PROVIDER_PROFILE: Record<string, ProviderProfile> = {
   Moonshot: { privacy: 0.5, openWeights: 1, licenceOpenness: 0.9, baselineTransparency: 0.6 },
   IBM: { privacy: 0.85, openWeights: 1, licenceOpenness: 0.9, baselineTransparency: 0.7 },
   GreenPT: { privacy: 0.9, openWeights: 0, licenceOpenness: 0.3, baselineTransparency: 0.6 },
+  // Open-weight providers. licenceOpenness reflects the released models' licence:
+  // permissive OSI (MIT/Apache) ≈ 0.85–0.95; vendor "open" licences with caps
+  // ≈ 0.55–0.8; weights-released-but-non-commercial ≈ 0.3.
+  Liquid: { privacy: 0.8, openWeights: 1, licenceOpenness: 0.55, baselineTransparency: 0.6 },   // LFM2 — on-device; LFM Open License (revenue-capped commercial use)
+  'Z.ai': { privacy: 0.5, openWeights: 1, licenceOpenness: 0.9, baselineTransparency: 0.65 },   // GLM-4.5/4.6 — MIT
+  Cohere: { privacy: 0.6, openWeights: 1, licenceOpenness: 0.3, baselineTransparency: 0.55 },   // Command family weights released CC-BY-NC (non-commercial)
+  Microsoft: { privacy: 0.7, openWeights: 1, licenceOpenness: 0.9, baselineTransparency: 0.6 }, // Phi — MIT
+  NVIDIA: { privacy: 0.6, openWeights: 1, licenceOpenness: 0.8, baselineTransparency: 0.65 },   // Nemotron — NVIDIA Open Model License (commercial OK)
+  AI21: { privacy: 0.6, openWeights: 1, licenceOpenness: 0.7, baselineTransparency: 0.55 },     // Jamba — Jamba Open Model License
+  AllenAI: { privacy: 0.5, openWeights: 1, licenceOpenness: 0.95, baselineTransparency: 0.85 }, // OLMo — Apache 2.0, fully open (data + code + weights)
+  'Nous Research': { privacy: 0.6, openWeights: 1, licenceOpenness: 0.6, baselineTransparency: 0.55 }, // Hermes — fine-tunes inheriting base (Llama community) licence
 }
 
 const DEFAULT_PROFILE: ProviderProfile = { privacy: 0.6, openWeights: 0, licenceOpenness: 0.2, baselineTransparency: 0.4 }
@@ -115,8 +126,13 @@ const DEFAULT_PROFILE: ProviderProfile = { privacy: 0.6, openWeights: 0, licence
  */
 export function normaliseProvider(provider: string): string | null {
   const trimmed = provider.replace(/\s*\([^)]*\)\s*$/, '').trim()
+  // Compare on a punctuation/space-stripped, lowercased form so registry
+  // variants resolve to the same profile ("z-ai" / "Z.ai" → "zai",
+  // "Nous Research" → "nousresearch"). Avoids a separate alias table.
+  const canon = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const target = canon(trimmed)
   for (const key of Object.keys(PROVIDER_PROFILE)) {
-    if (key.toLowerCase() === trimmed.toLowerCase()) return key
+    if (canon(key) === target) return key
   }
   return null
 }

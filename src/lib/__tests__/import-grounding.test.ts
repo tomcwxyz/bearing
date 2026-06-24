@@ -339,6 +339,28 @@ describe('aggregateGroundedFields — provider profile', () => {
     expect(g.licenceOpenness.value).toBe(0.2)
     expect(g.licenceOpenness.provenance).toBe('default')
   })
+
+  it('newly-added open-weight providers ground as open', () => {
+    for (const p of ['Liquid', 'Z.ai', 'Microsoft', 'NVIDIA', 'AI21', 'AllenAI', 'Nous Research']) {
+      const g = aggregateGroundedFields([], p)
+      expect(g.openWeights.value, p).toBe(1)
+      expect(g.openWeights.provenance, p).toBe('derived')
+    }
+    // Cohere ships weights but under a non-commercial licence: open weights, low licence.
+    const cohere = aggregateGroundedFields([], 'Cohere')
+    expect(cohere.openWeights.value).toBe(1)
+    expect(cohere.licenceOpenness.value).toBeLessThanOrEqual(0.3)
+    // OLMo is fully open — highest licence openness.
+    expect(aggregateGroundedFields([], 'AllenAI').licenceOpenness.value).toBeGreaterThanOrEqual(0.9)
+  })
+
+  it('resolves provider name variants to the same profile (punctuation/spacing)', () => {
+    // Registry stores "z-ai"; the profile key is "Z.ai".
+    expect(normaliseProvider('z-ai')).toBe('Z.ai')
+    expect(normaliseProvider('Z.ai')).toBe('Z.ai')
+    expect(aggregateGroundedFields([], 'z-ai').openWeights.value).toBe(1)
+    expect(aggregateGroundedFields([], 'z-ai').openWeights.provenance).toBe('derived')
+  })
 })
 
 describe('aggregateGroundedFields — task bucketing', () => {

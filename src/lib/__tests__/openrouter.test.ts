@@ -34,6 +34,14 @@ describe('extractProvider', () => {
     expect(extractProvider('anthropic/claude-opus-4.6')).toBe('Anthropic')
     expect(extractProvider('openai/gpt-5.4')).toBe('OpenAI')
   })
+  it('maps open-weight provider prefixes to their profile names', () => {
+    expect(extractProvider('liquid/lfm-2-24b-a2b')).toBe('Liquid')
+    expect(extractProvider('z-ai/glm-4.6')).toBe('Z.ai')
+    expect(extractProvider('microsoft/phi-4')).toBe('Microsoft')
+    expect(extractProvider('nvidia/nemotron-3-nano')).toBe('NVIDIA')
+    expect(extractProvider('allenai/olmo-3-32b')).toBe('AllenAI')
+    expect(extractProvider('nousresearch/hermes-4-70b')).toBe('Nous Research')
+  })
   it('returns raw prefix for unknown', () => {
     expect(extractProvider('newco/model-x')).toBe('newco')
   })

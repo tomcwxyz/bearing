@@ -59,6 +59,16 @@ const PROVIDER_MAP: Record<string, string> = {
   'x-ai': 'xAI',
   minimax: 'MiniMax',
   moonshotai: 'Moonshot',
+  // Open-weight providers — map the OpenRouter prefix to the canonical name
+  // used as a PROVIDER_PROFILE key in import-grounding.ts.
+  liquid: 'Liquid',
+  'z-ai': 'Z.ai',
+  cohere: 'Cohere',
+  microsoft: 'Microsoft',
+  nvidia: 'NVIDIA',
+  ai21: 'AI21',
+  allenai: 'AllenAI',
+  nousresearch: 'Nous Research',
 }
 
 /** Extract human-readable provider name from OpenRouter model ID */
