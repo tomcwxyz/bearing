@@ -74,6 +74,19 @@ describe('rankSourceNames (forward, import form)', () => {
     const mini = out.find(s => s.name.includes('mini'))
     expect(mini?.flags).toContain('mini')
   })
+
+  it("ignores the vendor prefix in OpenRouter display names ('Anthropic: …')", () => {
+    // Discover imports carry OpenRouter's "Vendor: Model" name. The leaked
+    // provider token must not block an otherwise-clean match.
+    const orModel: BearingModelMeta = {
+      slug: 'claude-haiku-4.5',
+      name: 'Anthropic: Claude Haiku 4.5',
+      provider: 'Anthropic',
+    }
+    const names = rankSourceNames(orModel, AA_SAMPLE).map(s => s.name)
+    expect(names).toContain('Claude 4.5 Haiku (Reasoning)')
+    expect(names).toContain('Claude 4.5 Haiku (Non-reasoning)')
+  })
 })
 
 describe('rankSlugs (reverse, unmatched UI)', () => {
