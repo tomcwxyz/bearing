@@ -85,6 +85,7 @@ export default function AdminModelEditPage() {
           transparency: {
             ...prev.transparency,
             open_weights: g.transparency.open_weights,
+            licence_openness: g.transparency.licence_openness,
             transparency_score: g.transparency.transparency_score,
           },
         }

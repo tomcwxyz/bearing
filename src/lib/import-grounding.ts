@@ -73,30 +73,37 @@ export function suggestBenchmarkAliases(
  * `baselineTransparency`: rough FMTI-style aggregate. Closed providers cluster
  *   at 0.35–0.45; open-weight providers at 0.6–0.7. Used as the starting
  *   value for `transparency.transparency_score`; Haiku still writes the
- *   sub-fields (open_methodology, licence_openness, …) and notes.
+ *   remaining sub-fields (open_methodology, open_training_data, …) and notes.
+ * `licenceOpenness`: how permissive the model licence is (0 = proprietary,
+ *   1 = fully open / OSI-permissive). Distinct from `openWeights`: a model can
+ *   ship weights under a restrictive licence (Meta's Llama community licence ≈
+ *   0.6) or a permissive one (Kimi/DeepSeek MIT, Granite/Qwen Apache ≈ 0.85–0.9).
+ *   Grounded (forced over Haiku) so an open-weight model is never mislabelled
+ *   proprietary just because Haiku doesn't recognise the family.
  */
 interface ProviderProfile {
   privacy: number
   openWeights: 0 | 1
+  licenceOpenness: number
   baselineTransparency: number
 }
 
 const PROVIDER_PROFILE: Record<string, ProviderProfile> = {
-  Anthropic: { privacy: 0.85, openWeights: 0, baselineTransparency: 0.4 },
-  OpenAI: { privacy: 0.75, openWeights: 0, baselineTransparency: 0.35 },
-  Google: { privacy: 0.7, openWeights: 0, baselineTransparency: 0.45 },
-  Mistral: { privacy: 0.85, openWeights: 0, baselineTransparency: 0.55 },
-  DeepSeek: { privacy: 0.5, openWeights: 1, baselineTransparency: 0.65 },
-  xAI: { privacy: 0.6, openWeights: 0, baselineTransparency: 0.35 },
-  Meta: { privacy: 0.75, openWeights: 1, baselineTransparency: 0.7 },
-  Alibaba: { privacy: 0.5, openWeights: 1, baselineTransparency: 0.65 },
-  MiniMax: { privacy: 0.5, openWeights: 0, baselineTransparency: 0.4 },
-  Moonshot: { privacy: 0.5, openWeights: 1, baselineTransparency: 0.6 },
-  IBM: { privacy: 0.85, openWeights: 1, baselineTransparency: 0.7 },
-  GreenPT: { privacy: 0.9, openWeights: 0, baselineTransparency: 0.6 },
+  Anthropic: { privacy: 0.85, openWeights: 0, licenceOpenness: 0.1, baselineTransparency: 0.4 },
+  OpenAI: { privacy: 0.75, openWeights: 0, licenceOpenness: 0.1, baselineTransparency: 0.35 },
+  Google: { privacy: 0.7, openWeights: 0, licenceOpenness: 0.15, baselineTransparency: 0.45 },
+  Mistral: { privacy: 0.85, openWeights: 0, licenceOpenness: 0.4, baselineTransparency: 0.55 },
+  DeepSeek: { privacy: 0.5, openWeights: 1, licenceOpenness: 0.9, baselineTransparency: 0.65 },
+  xAI: { privacy: 0.6, openWeights: 0, licenceOpenness: 0.2, baselineTransparency: 0.35 },
+  Meta: { privacy: 0.75, openWeights: 1, licenceOpenness: 0.6, baselineTransparency: 0.7 },
+  Alibaba: { privacy: 0.5, openWeights: 1, licenceOpenness: 0.85, baselineTransparency: 0.65 },
+  MiniMax: { privacy: 0.5, openWeights: 0, licenceOpenness: 0.3, baselineTransparency: 0.4 },
+  Moonshot: { privacy: 0.5, openWeights: 1, licenceOpenness: 0.9, baselineTransparency: 0.6 },
+  IBM: { privacy: 0.85, openWeights: 1, licenceOpenness: 0.9, baselineTransparency: 0.7 },
+  GreenPT: { privacy: 0.9, openWeights: 0, licenceOpenness: 0.3, baselineTransparency: 0.6 },
 }
 
-const DEFAULT_PROFILE: ProviderProfile = { privacy: 0.6, openWeights: 0, baselineTransparency: 0.4 }
+const DEFAULT_PROFILE: ProviderProfile = { privacy: 0.6, openWeights: 0, licenceOpenness: 0.2, baselineTransparency: 0.4 }
 
 /**
  * Normalise a registry/OpenRouter provider string into a key matching
@@ -131,6 +138,7 @@ export interface GroundedFields {
   speedScore: GroundedField<number> | null
   privacyScore: GroundedField<number>
   openWeights: GroundedField<0 | 1>
+  licenceOpenness: GroundedField<number>
   baselineTransparency: GroundedField<number>
   /** Verbatim raw evidence to include in the Haiku prompt for downstream context. */
   evidenceForPrompt: string[]
@@ -173,6 +181,7 @@ export function aggregateGroundedFields(
   const provenance: Provenance = normalised ? 'derived' : 'default'
   const privacyScore: GroundedField<number> = { value: profile.privacy, provenance }
   const openWeights: GroundedField<0 | 1> = { value: profile.openWeights, provenance }
+  const licenceOpenness: GroundedField<number> = { value: profile.licenceOpenness, provenance }
   const baselineTransparency: GroundedField<number> = { value: profile.baselineTransparency, provenance }
 
   const taskBuckets = new Map<TaskType, { scores: number[]; evidence: Set<string> }>()
@@ -218,7 +227,7 @@ export function aggregateGroundedFields(
       }
     : null
 
-  return { taskFitness, speedScore, privacyScore, openWeights, baselineTransparency, evidenceForPrompt }
+  return { taskFitness, speedScore, privacyScore, openWeights, licenceOpenness, baselineTransparency, evidenceForPrompt }
 }
 
 /**
