@@ -74,8 +74,10 @@ Return JSON only, no other text.
 
 ## Transparency estimation
 
-- **Open-weight models** (Meta LLaMA, Mistral, Qwen, DeepSeek): open_weights=1, higher transparency_score (0.6-0.9).
-- **Closed-source models** (Anthropic, OpenAI, Google): open_weights=0, moderate transparency_score (0.3-0.5).
+- `open_weights`, `licence_openness`, and `transparency_score` are **grounded** — their values are given to you in the GROUNDED FIELDS block and merged in deterministically. Do not produce your own estimates for them. Treat them as authoritative and make every other transparency field **and all prose** (notes, strengths, weaknesses, tier) consistent with them. Never contradict them.
+- When grounded **`open_weights = 1`** the model ships publicly downloadable weights (open-weight). Do NOT describe it as "proprietary", "closed-source", or "weights unavailable" anywhere. Set `open_methodology` to open-weight levels (0.6-0.9) and `privacy_score` toward the self-hostable range (0.7-0.9).
+- When grounded **`open_weights = 0`** the model is closed-source: the weights are not downloadable; keep `open_methodology` modest.
+- Open-weight families extend well beyond the obvious examples (Meta LLaMA, Mistral, Qwen, DeepSeek) — e.g. Moonshot/Kimi, Z.ai/GLM, MiniMax, IBM Granite ship open weights too. Rely on the grounded `open_weights` flag, not just whether you recognise the provider.
 - Meta publishes training methodology → open_methodology higher. OpenAI publishes less → lower.
 - open_training_data is rarely 1; most providers do not fully disclose training data.
 - Set fmti_company_score to null unless you are confident of the specific FMTI score.
