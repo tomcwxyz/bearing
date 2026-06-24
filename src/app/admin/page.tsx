@@ -8,8 +8,14 @@ import {
 } from '@/lib/dashboard'
 import { fetchOpenRouterModels, convertPricing, inferCapabilities, extractProvider } from '@/lib/openrouter'
 import { getBenchmarkSummary, getUnmatchedSourceModels, listAliases } from '@/lib/benchmarks'
+import { rankSlugs } from '@/lib/alias-matching'
 import AdminTabs from './admin-tabs'
 import type { DiscoverModel } from './types'
+
+// Live benchmark re-ingest (reingestSource server action) runs on this route's
+// function. LMArena paginates 3 subsets with paced sleeps, so the default
+// serverless timeout is too short — give admin actions headroom.
+export const maxDuration = 120
 
 export default async function AdminPage() {
   const user = await getCurrentUser()
@@ -72,6 +78,18 @@ export default async function AdminPage() {
   }
   newModels.sort((a, b) => b.created - a.created)
 
+  // Pre-rank slug suggestions for each unmatched source model (same logic as
+  // fetchBenchmarksData) so the Benchmarks tab shows guesses on first render.
+  const matchModels = models
+    .filter(m => m.active)
+    .map(m => ({ slug: m.slug, name: m.name, provider: m.provider }))
+  const benchmarkUnmatchedWithSuggestions = benchmarkUnmatched.map(u => ({
+    ...u,
+    suggestions: rankSlugs(u.sourceModelName, matchModels)
+      .slice(0, 5)
+      .map(r => ({ slug: r.slug, confidence: r.confidence, flags: r.flags })),
+  }))
+
   return (
     <div className="flex flex-1 flex-col items-center px-4 py-12 sm:py-16">
       <div className="w-full max-w-5xl">
@@ -85,7 +103,7 @@ export default async function AdminPage() {
           initialBenchmarks={{
             summary: benchmarkSummary,
             aliases: benchmarkAliases,
-            unmatched: benchmarkUnmatched,
+            unmatched: benchmarkUnmatchedWithSuggestions,
           }}
           activeSlugs={models.filter(m => m.active).map(m => m.slug).sort()}
         />

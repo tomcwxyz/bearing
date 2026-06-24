@@ -9,7 +9,7 @@ import {
   type SuggestionsBySource,
 } from './actions'
 import type { DiscoverModel } from './types'
-import { ALL_TASK_TYPES } from '@/lib/registry'
+import { ALL_TASK_TYPES, withSustainabilityComposite } from '@/lib/registry'
 
 type SourceKey = keyof SuggestionsBySource
 
@@ -627,10 +627,11 @@ function ImportModal({ model, onClose }: { model: DiscoverModel; onClose: () => 
                   value={formData.sustainability[key] ?? ''}
                   onChange={(e) => setFormData({
                     ...formData,
-                    sustainability: {
+                    // Recompute the composite so it tracks the edited sub-dimension.
+                    sustainability: withSustainabilityComposite({
                       ...formData.sustainability,
                       [key]: e.target.value === '' ? null : parseFloat(e.target.value),
-                    },
+                    }),
                   })}
                   className="input-field"
                   placeholder="Leave blank if unknown"

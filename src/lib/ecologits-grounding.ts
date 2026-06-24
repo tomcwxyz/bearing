@@ -4,15 +4,18 @@
 // live admin import/regrounding action (src/app/admin/actions.ts) share the
 // same resolution logic rather than diverging.
 //
-// The three pure-resolution helpers (ECOLOGITS_PROVIDER_MAP, normaliseName,
-// resolveModelName, fetchEcoModelList) are used by the ingest script to drive
-// its own per-model logging + dry-run loop.
+// The pure-resolution helpers (ECOLOGITS_PROVIDER_MAP, resolveModelName,
+// fetchEcoModelList) are used by the ingest script to drive its own per-model
+// logging + dry-run loop. resolveModelName is re-exported from the shared
+// alias-matching module so all sources tokenise names the same way.
 //
 // fetchEcoLogitsScore is the all-in-one helper for admin use: resolve → fetch
 // GWP → normalise against current DB cohort → optionally store.
 
 import { neon } from '@neondatabase/serverless'
 import { upsertAlias } from './benchmarks'
+// Shared matcher core — re-exported below so existing importers keep working.
+import { resolveModelName } from './alias-matching'
 
 function getDb() {
   const url = process.env.NEON_DATABASE_URL
@@ -64,41 +67,11 @@ export const ECOLOGITS_PROVIDER_MAP: Record<string, string> = {
   'Meta (via hosted providers)': 'huggingface_hub',
 }
 
-/** Normalise a model name for comparison: lowercase + dots→hyphens. */
-export function normaliseName(name: string): string {
-  return name.toLowerCase().replace(/\./g, '-')
-}
-
-/**
- * Match a Bearing slug to the best EcoLogits model name from a provider list.
- * Uses exact match → prefix match → reverse-prefix match in descending
- * confidence order. Returns null if no confident match is found.
- */
-export function resolveModelName(slug: string, ecoModels: string[]): string | null {
-  const normSlug = normaliseName(slug)
-
-  // 1. Exact match after normalisation.
-  for (const m of ecoModels) {
-    if (normaliseName(m) === normSlug) return m
-  }
-
-  // 2. Bearing slug is a prefix of EcoLogits name (eco adds -preview, date suffix, etc.)
-  //    e.g. 'gemini-3-flash' matches 'gemini-3-flash-preview'
-  const prefixMatches = ecoModels.filter(m => normaliseName(m).startsWith(normSlug))
-  if (prefixMatches.length === 1) return prefixMatches[0]
-  if (prefixMatches.length > 1) {
-    // Pick shortest name (fewest extra characters beyond the slug).
-    return prefixMatches.sort((a, b) => a.length - b.length)[0]
-  }
-
-  // 3. EcoLogits name is a prefix of the Bearing slug — pick longest (most specific).
-  const reverseMatches = ecoModels.filter(m => normSlug.startsWith(normaliseName(m)))
-  if (reverseMatches.length > 0) {
-    return reverseMatches.sort((a, b) => b.length - a.length)[0]
-  }
-
-  return null
-}
+// Bearing slug → EcoLogits API model name now lives in the shared matcher
+// (alias-matching.resolveModelName), so EcoLogits resolution uses the same
+// tokeniser as the import form and the admin Unmatched UI. Re-exported here so
+// existing importers (scripts/ingest-ecologits.ts) keep working unchanged.
+export { resolveModelName }
 
 /**
  * GET https://api.ecologits.ai/v1beta/models/{provider}

@@ -8,14 +8,20 @@ import { isUserAdmin, getAllModelsFromDb, getAllModelsForAdmin, getModelForAdmin
 import { fetchOpenRouterModels, convertPricing, inferCapabilities, extractProvider, type OpenRouterModel } from '@/lib/openrouter'
 import {
   getBenchmarkSummary, getUnmatchedSourceModels, listAliases, upsertAlias, deleteAlias,
-  getCandidateSourceModelNames, getAliasesForBearingSlug,
+  getCandidateSourceModelNames, getAliasesForBearingSlug, getActiveModelsForMatching,
   type BenchmarkSource, type BenchmarkAlias,
 } from '@/lib/benchmarks'
+import { rankSlugs, type MatchConfidence } from '@/lib/alias-matching'
 import {
   suggestBenchmarkAliases, groundFromAliases, CODE_CAPABILITY_THRESHOLD,
   type AliasSuggestion, type Provenance,
 } from '@/lib/import-grounding'
 import { fetchEcoLogitsScore } from '@/lib/ecologits-grounding'
+import { computeSustainabilityComposite } from '@/lib/registry'
+import { ingestLmArena } from '@/lib/ingest/lmarena'
+import { ingestArtificialAnalysis } from '@/lib/ingest/artificialanalysis'
+import { ingestEcoLogits } from '@/lib/ingest/ecologits'
+import type { IngestResult } from '@/lib/ingest/types'
 import {
   getUsageSummary, getActivityOverTime, getModeBreakdown, getSignupsOverTime,
   getInsightsSummary, getTaskTypeDistribution, getModelLeaderboard,
@@ -302,9 +308,22 @@ export async function estimateModelScores(
 
     if (ecoScore) {
       const haikuSustainability = estimates.sustainability as Record<string, unknown> | undefined ?? {}
+      const inferenceEnergy = Math.round(ecoScore.normalisedScore * 100) / 100
+      // Recompute the composite from the eco-grounded sub-dimension so the stored
+      // score never drifts from the data it summarises (same helper the offline
+      // registry build uses).
+      const sustainabilityScore = computeSustainabilityComposite(
+        {
+          inference_energy: inferenceEnergy,
+          provider_infrastructure: (haikuSustainability.provider_infrastructure as number | null) ?? null,
+          training_footprint: (haikuSustainability.training_footprint as number | null) ?? null,
+        },
+        (haikuSustainability.sustainability_score as number | null) ?? 0,
+      )
       estimates.sustainability = {
         ...haikuSustainability,
-        inference_energy: Math.round(ecoScore.normalisedScore * 100) / 100,
+        inference_energy: inferenceEnergy,
+        sustainability_score: sustainabilityScore,
       }
       provenance['sustainability.inference_energy'] = 'ecologits'
     }
@@ -472,20 +491,47 @@ export async function suggestAliasesForImport(input: {
 // Benchmarks
 // ---------------------------------------------------------------------------
 
+/** A ranked slug guess for an unmatched source model, shown in the admin UI. */
+export interface SlugSuggestion {
+  slug: string
+  confidence: MatchConfidence
+  /** Disambiguator tokens (e.g. "vl", "mini") present in the source name only. */
+  flags: string[]
+}
+
+export interface UnmatchedSourceModel {
+  source: string
+  sourceModelName: string
+  maxVoteCount: number | null
+  /** Top-ranked slug guesses (best first); empty when nothing plausibly matches. */
+  suggestions: SlugSuggestion[]
+}
+
 export interface BenchmarksData {
   summary: { source: string; totalRows: number; matchedRows: number; latestSnapshot: string | null }[]
   aliases: BenchmarkAlias[]
-  unmatched: { source: string; sourceModelName: string; maxVoteCount: number | null }[]
+  unmatched: UnmatchedSourceModel[]
 }
 
 export async function fetchBenchmarksData(): Promise<BenchmarksData> {
   await requireAdmin()
-  const [summary, aliases, unmatched] = await Promise.all([
+  const [summary, aliases, unmatched, models] = await Promise.all([
     getBenchmarkSummary(),
     listAliases(),
     getUnmatchedSourceModels(),
+    getActiveModelsForMatching(),
   ])
-  return { summary, aliases, unmatched }
+
+  // Attach ranked slug suggestions to each unmatched row so the admin confirms a
+  // pre-filled guess instead of hunting a dropdown of every slug.
+  const withSuggestions: UnmatchedSourceModel[] = unmatched.map(u => ({
+    ...u,
+    suggestions: rankSlugs(u.sourceModelName, models)
+      .slice(0, 5)
+      .map(r => ({ slug: r.slug, confidence: r.confidence, flags: r.flags })),
+  }))
+
+  return { summary, aliases, unmatched: withSuggestions }
 }
 
 export async function addBenchmarkAlias(
@@ -509,6 +555,41 @@ export async function removeBenchmarkAlias(
     return { success: true }
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : 'Remove alias failed' }
+  }
+}
+
+/** Sources that can be re-fetched live from the admin UI. */
+export type ReingestSource = 'lmarena' | 'artificialanalysis' | 'ecologits'
+
+/**
+ * Re-fetch a benchmark source from its live origin and upsert fresh snapshots.
+ * Admin-session guarded (separate from the CRON_SECRET cron path). Each source
+ * always ingests its whole cohort, so re-running is idempotent and cohort-safe.
+ * Errors (e.g. a missing API key) are returned, not thrown, so a single source
+ * failing doesn't break the others.
+ */
+export async function reingestSource(
+  source: ReingestSource,
+): Promise<{ success: boolean; result?: IngestResult; error?: string }> {
+  await requireAdmin()
+  try {
+    let result: IngestResult
+    switch (source) {
+      case 'lmarena':
+        result = await ingestLmArena()
+        break
+      case 'artificialanalysis':
+        result = await ingestArtificialAnalysis()
+        break
+      case 'ecologits':
+        result = await ingestEcoLogits()
+        break
+      default:
+        return { success: false, error: `Unknown source: ${source}` }
+    }
+    return { success: true, result }
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Re-fetch failed' }
   }
 }
 
