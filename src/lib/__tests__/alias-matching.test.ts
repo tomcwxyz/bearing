@@ -190,6 +190,18 @@ describe('version-separator tokenisation', () => {
     expect(tokenise('claude-opus-4-8').has('4.8')).toBe(true)
   })
 
+  it('ignores the OpenRouter free-tier marker', () => {
+    // "(free)" / ":free" is a routing tier, not part of the model identity.
+    expect(tokenise('Google: Gemma 4 26B A4B (free)').has('free')).toBe(false)
+    expect(tokenise('gemma-4-26b-a4b:free').has('free')).toBe(false)
+    const ranked = rankSourceNames(
+      { slug: 'gemma-4-26b-a4b', name: 'Google: Gemma 4 26B A4B (free)', provider: 'Google' },
+      [{ name: 'Gemma 4 26B A4B (Non-reasoning)' }, { name: 'Gemma 4 12B (Non-reasoning)' }],
+    )
+    expect(ranked.map(r => r.name)).toContain('Gemma 4 26B A4B (Non-reasoning)')
+    expect(ranked.map(r => r.name)).not.toContain('Gemma 4 12B (Non-reasoning)')
+  })
+
   it('auto-matches a hyphenated lmarena name to the dotted slug', () => {
     expect(autoMatchSlug('claude-opus-4-6', lmModels)).toBe('claude-opus-4.6')
   })
