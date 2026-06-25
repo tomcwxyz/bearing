@@ -17,8 +17,10 @@
 //   - Sources sometimes join family+version ("Qwen3 235B") where the registry
 //     splits them ("Qwen 3 235B"). We emit both joined and split atoms.
 
-/** Product-suffix noise removed everywhere. */
-const PRODUCT_NOISE_RE = /\b(preview|experimental|exp|instruct|chat|terminus|speciale)\b/gi
+/** Product-suffix noise removed everywhere. `free` is OpenRouter's free-tier
+ *  routing marker (the `:free` variant, shown as "(free)") — a tier, not part
+ *  of the model identity, and never present in a benchmark source's name. */
+const PRODUCT_NOISE_RE = /\b(preview|experimental|exp|instruct|chat|terminus|speciale|free)\b/gi
 
 /** Effort/reasoning markers — only stripped when inside parentheses. */
 const PAREN_NOISE_RE = /\b(reasoning|non-reasoning|nonreasoning|adaptive|low|high|med|medium|max|min|effort|xhigh)\b/gi
