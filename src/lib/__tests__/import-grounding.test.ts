@@ -361,6 +361,29 @@ describe('aggregateGroundedFields — provider profile', () => {
     expect(aggregateGroundedFields([], 'z-ai').openWeights.value).toBe(1)
     expect(aggregateGroundedFields([], 'z-ai').openWeights.provenance).toBe('derived')
   })
+
+  it('overrides open_weights for a closed provider\'s open-weight family', () => {
+    // Google is closed (Gemini) by default...
+    expect(aggregateGroundedFields([], 'Google', 'gemini-3-pro').openWeights.value).toBe(0)
+    // ...but Gemma ships open weights under a permissive licence.
+    const gemma = aggregateGroundedFields([], 'Google', 'gemma-4-26b-a4b')
+    expect(gemma.openWeights.value).toBe(1)
+    expect(gemma.openWeights.provenance).toBe('derived')
+    expect(gemma.licenceOpenness.value).toBe(0.7)
+    // OpenAI gpt-oss is Apache-licensed open weights.
+    const oss = aggregateGroundedFields([], 'OpenAI', 'gpt-oss-120b')
+    expect(oss.openWeights.value).toBe(1)
+    expect(oss.licenceOpenness.value).toBe(0.9)
+    // A closed flagship from the same provider is unaffected.
+    expect(aggregateGroundedFields([], 'OpenAI', 'gpt-5.4').openWeights.value).toBe(0)
+  })
+
+  it('scopes the family override to its provider (no coincidental match)', () => {
+    // "gemma" only flips open-weights when the provider is Google.
+    expect(aggregateGroundedFields([], 'Anthropic', 'gemma-clone-1').openWeights.value).toBe(0)
+    // Without a model id, behaviour is unchanged (provider-level verdict).
+    expect(aggregateGroundedFields([], 'Google').openWeights.value).toBe(0)
+  })
 })
 
 describe('aggregateGroundedFields — task bucketing', () => {

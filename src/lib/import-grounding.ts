@@ -117,6 +117,21 @@ const PROVIDER_PROFILE: Record<string, ProviderProfile> = {
 const DEFAULT_PROFILE: ProviderProfile = { privacy: 0.6, openWeights: 0, licenceOpenness: 0.2, baselineTransparency: 0.4 }
 
 /**
+ * Open-weight model families shipped by an otherwise closed-weight provider.
+ * A provider profile carries one open/closed verdict, but some closed vendors
+ * also publish a separate open-weight line — Google's Gemma (vs closed Gemini),
+ * OpenAI's gpt-oss (vs closed GPT). When a model's identifier matches one of
+ * these patterns, its open_weights + licence_openness are overridden to the
+ * family's values; everything else still comes from the provider profile.
+ * `provider` matches a PROVIDER_PROFILE key so a coincidental name elsewhere
+ * (a non-Google "gemma") can't trigger the override.
+ */
+const OPEN_WEIGHT_FAMILIES: { provider: string; pattern: RegExp; licenceOpenness: number }[] = [
+  { provider: 'Google', pattern: /\bgemma\b/i, licenceOpenness: 0.7 },   // Gemma Terms of Use — open weights, permissive custom licence
+  { provider: 'OpenAI', pattern: /\bgpt-?oss\b/i, licenceOpenness: 0.9 }, // gpt-oss — Apache 2.0
+]
+
+/**
  * Normalise a registry/OpenRouter provider string into a key matching
  * PROVIDER_PROFILE. Strips parenthetical suffixes and case-insensitively
  * matches against known providers.
@@ -191,13 +206,22 @@ export interface SnapshotRowForGrounding {
 export function aggregateGroundedFields(
   rows: SnapshotRowForGrounding[],
   provider: string,
+  modelId?: string,
 ): GroundedFields {
   const normalised = normaliseProvider(provider)
   const profile = normalised ? PROVIDER_PROFILE[normalised] : DEFAULT_PROFILE
   const provenance: Provenance = normalised ? 'derived' : 'default'
+
+  // A closed provider's open-weight family (Gemma, gpt-oss) overrides the
+  // provider-level open/closed verdict for this model only.
+  const override = modelId
+    ? OPEN_WEIGHT_FAMILIES.find(f => normaliseProvider(f.provider) === normalised && f.pattern.test(modelId))
+    : undefined
+  const owProvenance: Provenance = override ? 'derived' : provenance
+
   const privacyScore: GroundedField<number> = { value: profile.privacy, provenance }
-  const openWeights: GroundedField<0 | 1> = { value: profile.openWeights, provenance }
-  const licenceOpenness: GroundedField<number> = { value: profile.licenceOpenness, provenance }
+  const openWeights: GroundedField<0 | 1> = { value: override ? 1 : profile.openWeights, provenance: owProvenance }
+  const licenceOpenness: GroundedField<number> = { value: override ? override.licenceOpenness : profile.licenceOpenness, provenance: owProvenance }
   const baselineTransparency: GroundedField<number> = { value: profile.baselineTransparency, provenance }
 
   const taskBuckets = new Map<TaskType, { scores: number[]; evidence: Set<string> }>()
@@ -254,9 +278,10 @@ export function aggregateGroundedFields(
 export async function groundFromAliases(
   aliases: SelectedAlias[],
   provider: string,
+  modelId?: string,
 ): Promise<GroundedFields> {
   if (aliases.length === 0) {
-    return aggregateGroundedFields([], provider)
+    return aggregateGroundedFields([], provider, modelId)
   }
 
   // Fetch latest snapshot per (source_category, source_model_name) for the
@@ -289,6 +314,6 @@ export async function groundFromAliases(
     }
   }
 
-  return aggregateGroundedFields(allRows, provider)
+  return aggregateGroundedFields(allRows, provider, modelId)
 }
 

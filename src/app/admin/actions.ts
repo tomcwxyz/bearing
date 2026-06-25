@@ -203,7 +203,7 @@ export async function estimateModelScores(
   await requireAdmin()
 
   try {
-    const grounded = await groundFromAliases(selectedAliases, model.provider)
+    const grounded = await groundFromAliases(selectedAliases, model.provider, model.id)
 
     const promptPath = join(process.cwd(), 'src', 'prompts', 'estimate-model.md')
     const systemPrompt = readFileSync(promptPath, 'utf-8')
@@ -409,7 +409,7 @@ export async function regroundModel(slug: string): Promise<{
     if (!model) return { success: false, error: 'Model not found' }
 
     const aliases = await getAliasesForBearingSlug(slug)
-    const grounded = await groundFromAliases(aliases, model.provider)
+    const grounded = await groundFromAliases(aliases, model.provider, slug)
 
     const taskFitness: Record<string, number> = {}
     const provenance: Record<string, Provenance> = {}
