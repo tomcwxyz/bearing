@@ -884,8 +884,15 @@ export async function runComparison(comparisonId: string, formData: FormData) {
     const promptHash = createHash('sha256').update(prompt).digest('hex')
     await updateComparisonPrompt(comparisonId, promptHash)
 
-    // Increment daily count
-    await incrementUserComparisons(user.id)
+    // Only count this against the daily quota when both models produced a
+    // usable response. A failed run (e.g. a file overflowing the context
+    // window) shouldn't burn one of the user's 2 daily comparisons.
+    const bothSucceeded =
+      !resultA.error && !resultB.error &&
+      Boolean(resultA.text?.trim()) && Boolean(resultB.text?.trim())
+    if (bothSucceeded) {
+      await incrementUserComparisons(user.id)
+    }
 
     return {
       responseA: resultA.text,

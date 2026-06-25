@@ -114,7 +114,11 @@ export default function DirectComparePage() {
   const minContextWindow = selectedModels.length > 0
     ? Math.min(...selectedModels.map((m) => m.contextWindow))
     : Infinity
-  const estimatedTokenCount = estimateTokens(prompt)
+  // Include any attached file in the estimate. We only have the byte size on
+  // the client (extraction happens server-side), so ~4 bytes/token is a rough
+  // upper bound — deliberately conservative so large files trigger the warning.
+  const fileTokenEstimate = file ? Math.ceil(file.size / 4) : 0
+  const estimatedTokenCount = estimateTokens(prompt) + fileTokenEstimate
   const promptTooLong = minContextWindow < Infinity && estimatedTokenCount > minContextWindow * 0.8
 
   const filtered = search.trim()
@@ -374,11 +378,11 @@ export default function DirectComparePage() {
         {/* Prompt length warning */}
         {promptTooLong && selected.length === 2 && (
           <div className="mb-4 rounded-lg border border-coral/30 bg-coral/5 p-4">
-            <p className="text-sm text-coral font-semibold mb-1">Prompt may be too long</p>
+            <p className="text-sm text-coral font-semibold mb-1">Input may be too long</p>
             <p className="text-sm text-coral/80">
-              Your prompt is ~{estimatedTokenCount.toLocaleString()} tokens, but the smallest selected model
-              only supports {minContextWindow.toLocaleString()} tokens (including the response).
-              Consider shortening your prompt or choosing a model with a larger context window.
+              Your prompt{file ? ' and attached file' : ''} is ~{estimatedTokenCount.toLocaleString()} tokens, but the
+              smallest selected model only supports {minContextWindow.toLocaleString()} tokens (including the response).
+              Consider {file ? 'a smaller file, ' : ''}shortening your prompt, or choosing a model with a larger context window.
             </p>
           </div>
         )}
