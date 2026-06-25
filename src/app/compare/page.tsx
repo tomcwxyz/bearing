@@ -211,7 +211,7 @@ export default function DirectComparePage() {
         <h1 className="text-3xl font-bold mb-2 font-display text-navy">Compare models</h1>
         <p className="text-navy/70 mb-8">
           Pick any two models, send them the same prompt, and see how they respond.
-          <span className="text-grey-blue text-sm ml-2">(2 comparisons per day)</span>
+          <span className="text-grey-blue text-sm ml-2">(4 comparisons per day)</span>
         </p>
 
         {error && (

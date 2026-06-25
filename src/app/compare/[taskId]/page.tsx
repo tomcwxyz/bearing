@@ -183,7 +183,7 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
         <h2 className="text-2xl font-bold mb-2 font-display text-navy">Compare models</h2>
         <p className="text-navy/70 mb-6">
           Pick two models to test head-to-head with the same prompt.
-          <span className="text-grey-blue text-sm ml-2">(2 comparisons per day)</span>
+          <span className="text-grey-blue text-sm ml-2">(4 comparisons per day)</span>
         </p>
 
         {error && (
