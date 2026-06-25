@@ -84,35 +84,58 @@ export async function fetchOpenRouterModels(): Promise<OpenRouterModel[]> {
   return data.data as OpenRouterModel[]
 }
 
-/** Parse an OpenRouter error body into a user-friendly message. */
-function parseOpenRouterError(status: number, body: string): string {
+/** Parse an error body into a user-friendly message.
+ *
+ * Shared by the OpenRouter and direct-provider (GreenPT, Mistral) callers.
+ * OpenRouter returns JSON (`{ error: { message } }`); GreenPT returns a plain
+ * text body (e.g. "400 You passed 152485 input tokens..."), so we derive the
+ * message from whichever shape arrived before matching on it. */
+export function parseOpenRouterError(status: number, body: string): string {
+  // Prefer the structured message, but fall back to the raw text body so
+  // providers that don't return JSON still get matched below.
+  let msg = body
+  let structured = false
   try {
     const parsed = JSON.parse(body)
-    const msg = parsed?.error?.message ?? ''
-
-    if (msg.includes('maximum context length')) {
-      const ctxMatch = msg.match(/maximum context length is (\d[\d,]*) tokens/)
-      const reqMatch = msg.match(/you requested about (\d[\d,]*) tokens/)
-      const ctxLimit = ctxMatch?.[1] ?? 'unknown'
-      const requested = reqMatch?.[1] ?? 'unknown'
-      return `Prompt too long for this model (limit: ${ctxLimit} tokens, sent: ${requested}). Try a shorter prompt or a model with a larger context window.`
+    if (parsed?.error?.message) {
+      msg = parsed.error.message
+      structured = true
     }
-
-    if (msg.includes('not available') || msg.includes('does not exist')) {
-      return 'This model is currently unavailable on OpenRouter.'
-    }
-
-    if (msg.includes('rate limit') || status === 429) {
-      return 'Rate limited — please wait a moment and try again.'
-    }
-
-    if (msg) return msg
   } catch {
-    // body wasn't JSON — fall through
+    // body wasn't JSON — keep the raw text
   }
 
-  if (status === 429) return 'Rate limited — please wait a moment and try again.'
+  // Context-window overflow. Providers phrase this differently:
+  //  - OpenRouter: "...maximum context length is N tokens... you requested about M tokens"
+  //  - GreenPT:    "You passed M input tokens... the model's context length is only N tokens..."
+  //  - GreenPT (vision/base64 file path): "max_tokens must be at least 1, got -K" — the gateway
+  //    derived a negative generation budget because the input alone already exceeded the window.
+  if (
+    msg.includes('maximum context length') ||
+    msg.includes('context length is only') ||
+    msg.includes('max_tokens must be at least')
+  ) {
+    const ctxMatch = msg.match(/context length is (?:only )?(\d[\d,]*) tokens/)
+    const sentMatch = msg.match(/(?:you requested about|You passed) (\d[\d,]*)/)
+    const limitPart = ctxMatch
+      ? ` (limit: ${ctxMatch[1]} tokens${sentMatch ? `, sent: ${sentMatch[1]}` : ''})`
+      : ''
+    return `Prompt too long for this model${limitPart}. If you attached a file, it likely pushed the input over the model's context window — try a smaller file or prompt, or choose a model with a larger context window.`
+  }
+
+  if (msg.includes('not available') || msg.includes('does not exist')) {
+    return 'This model is currently unavailable.'
+  }
+
+  if (msg.includes('rate limit') || status === 429) {
+    return 'Rate limited — please wait a moment and try again.'
+  }
+
   if (status === 502 || status === 503) return 'Model is temporarily unavailable. Try again shortly.'
+
+  // A structured provider message is safe to surface; avoid dumping raw,
+  // possibly-verbose text bodies that weren't recognised above.
+  if (structured && msg) return msg
   return `Model request failed (HTTP ${status})`
 }
 

@@ -95,8 +95,12 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
   const minContextWindow = selectedModels.length > 0
     ? Math.min(...selectedModels.map((m) => m.contextWindow))
     : Infinity
-  const estimatedTokenCount = estimateTokens(prompt)
-  // Warn if prompt alone uses more than 80% of the smallest context window (leaving room for output)
+  // Include any attached file in the estimate. We only have the byte size on
+  // the client (extraction happens server-side), so ~4 bytes/token is a rough
+  // upper bound — deliberately conservative so large files trigger the warning.
+  const fileTokenEstimate = file ? Math.ceil(file.size / 4) : 0
+  const estimatedTokenCount = estimateTokens(prompt) + fileTokenEstimate
+  // Warn if the input uses more than 80% of the smallest context window (leaving room for output)
   const promptTooLong = minContextWindow < Infinity && estimatedTokenCount > minContextWindow * 0.8
 
   function handleCompare() {
@@ -179,7 +183,7 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
         <h2 className="text-2xl font-bold mb-2 font-display text-navy">Compare models</h2>
         <p className="text-navy/70 mb-6">
           Pick two models to test head-to-head with the same prompt.
-          <span className="text-grey-blue text-sm ml-2">(2 comparisons per day)</span>
+          <span className="text-grey-blue text-sm ml-2">(4 comparisons per day)</span>
         </p>
 
         {error && (
@@ -312,11 +316,11 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
         {/* Prompt length warning */}
         {promptTooLong && selected.length === 2 && (
           <div className="mb-4 rounded-lg border border-coral/30 bg-coral/5 p-4">
-            <p className="text-sm text-coral font-semibold mb-1">Prompt may be too long</p>
+            <p className="text-sm text-coral font-semibold mb-1">Input may be too long</p>
             <p className="text-sm text-coral/80">
-              Your prompt is ~{estimatedTokenCount.toLocaleString()} tokens, but the smallest selected model
-              only supports {minContextWindow.toLocaleString()} tokens (including the response).
-              Consider shortening your prompt or choosing a model with a larger context window.
+              Your prompt{file ? ' and attached file' : ''} is ~{estimatedTokenCount.toLocaleString()} tokens, but the
+              smallest selected model only supports {minContextWindow.toLocaleString()} tokens (including the response).
+              Consider {file ? 'a smaller file, ' : ''}shortening your prompt, or choosing a model with a larger context window.
             </p>
           </div>
         )}

@@ -30,6 +30,7 @@ import {
   getComparison,
   getOpenRouterId,
   getModelFromDb,
+  isUserAdmin,
 } from '@/lib/db'
 import { callModel, callDirectProvider, DIRECT_PROVIDERS } from '@/lib/openrouter'
 import { filterPrompt } from '@/lib/content-filter'
@@ -771,6 +772,9 @@ export async function createDirectCompareTask(): Promise<{ taskId?: string; erro
 // 10. startComparison
 // ---------------------------------------------------------------------------
 
+/** Daily side-by-side comparison allowance per (non-admin) user. */
+const DAILY_COMPARISON_LIMIT = 4
+
 export async function startComparison(
   taskId: string,
   modelASlug: string,
@@ -780,11 +784,14 @@ export async function startComparison(
     const user = await getCurrentUser()
     if (!user) return { error: 'You must be signed in to compare models.' }
 
-    const today = new Date().toISOString().slice(0, 10)
-    const { count, date } = await getUserComparisonCount(user.id)
+    // Admins have no daily cap.
+    if (!(await isUserAdmin(user.id))) {
+      const today = new Date().toISOString().slice(0, 10)
+      const { count, date } = await getUserComparisonCount(user.id)
 
-    if (date === today && count >= 2) {
-      return { error: "You've used your 2 daily comparisons" }
+      if (date === today && count >= DAILY_COMPARISON_LIMIT) {
+        return { error: `You've used your ${DAILY_COMPARISON_LIMIT} daily comparisons` }
+      }
     }
 
     const comparisonId = await createComparison(taskId, user.id, modelASlug, modelBSlug)
@@ -884,8 +891,16 @@ export async function runComparison(comparisonId: string, formData: FormData) {
     const promptHash = createHash('sha256').update(prompt).digest('hex')
     await updateComparisonPrompt(comparisonId, promptHash)
 
-    // Increment daily count
-    await incrementUserComparisons(user.id)
+    // Only count this against the daily quota when both models produced a
+    // usable response. A failed run (e.g. a file overflowing the context
+    // window) shouldn't burn one of the user's daily comparisons. Admins are
+    // uncapped, so don't bother tracking their usage.
+    const bothSucceeded =
+      !resultA.error && !resultB.error &&
+      Boolean(resultA.text?.trim()) && Boolean(resultB.text?.trim())
+    if (bothSucceeded && !(await isUserAdmin(user.id))) {
+      await incrementUserComparisons(user.id)
+    }
 
     return {
       responseA: resultA.text,
