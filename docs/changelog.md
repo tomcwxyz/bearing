@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - **Weekly automatic refresh** — covered models' carbon scores refresh on their own each week, so ratings keep tracking real-world efficiency over time. New models imported through the admin panel are grounded automatically on import.
 - **Live benchmark re-ingest from the admin panel** — the Benchmarks tab now has a per-source **Re-fetch** button for the three live sources (LMArena, Artificial Analysis, EcoLogits) that pulls fresh data and upserts new snapshots, instead of needing a developer to run a script from a laptop. The old "Refresh" button is relabelled **Reload view** to make clear it only re-reads the database. MTEB and LiveBench are shown disabled with the reason why.
 - **Smarter benchmark alias matching** — mapping a source's model name to a Bearing model is now far less manual. Confident, unambiguous matches are **applied automatically** during a re-fetch; anything uncertain lands in the Unmatched list with **ranked slug suggestions** and a confidence badge, so an admin confirms a pre-filled guess in one click instead of scrolling every model. One shared matcher now backs the import form, the admin UI, auto-apply, and EcoLogits resolution.
+- **More open-weight providers recognised on import** — Liquid (LFM2), Z.ai (GLM), Microsoft (Phi), NVIDIA (Nemotron), AI21 (Jamba), AllenAI (OLMo), Nous Research (Hermes), and Cohere now have provider profiles, so models from them are correctly marked as open-weight (with the right licence openness) instead of falling back to a closed-source default.
+- **Licence openness is now grounded, not guessed** — how open a model's licence is now comes from the provider profile, alongside the existing open-weights status. An open-source-licensed model (for example MIT-licensed Kimi or GLM) is scored as open rather than proprietary, even for providers the AI estimator doesn't recognise by name.
+- **Open-weight families from closed providers are recognised** — some closed providers also publish an open-weight line. Google's **Gemma** and OpenAI's **gpt-oss** are now scored as open-weight (with the right licence), while their closed siblings (Gemini, GPT) stay closed.
 
 ### Changed
 
@@ -23,6 +26,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 ### Removed
 
 - The standalone **Embedding** tab on the home page — replaced by the automatic routing above, so there's one consistent way to describe a task.
+
+### Fixed
+
+- **Far fewer "no benchmark matches" on import** — several formatting differences that used to hide real matches are now handled, so importing a model finds its benchmark coverage instead of showing an empty list:
+    - **Vendor labels in the model name** — names like "MoonshotAI: Kimi K2.7 Code" no longer block matching against the benchmark sources.
+    - **Version-number formatting** — a source writing a version with hyphens (such as "claude-opus-4-8") now matches the registry's dotted form ("claude-opus-4.8").
+    - **Generation vs. size** — a model's generation is no longer mistaken for its parameter count (for example "LFM2-24B" is read as the 2nd-generation 24B model, not version 2.24), so families like Liquid's LFM2 now match.
+    - **Free-tier variants** — the "(free)" marker on a free OpenRouter variant (such as "Gemma 4 26B A4B (free)") no longer hides the model's benchmark coverage.
+- **Open-weight models are no longer described as "closed proprietary"** — the import estimator keeps its wording and licence scoring consistent with the model's actual open-weights status, and recognises open-weight families beyond the best-known few.
+- **Sustainability score stays in step with its parts** — when a sub-score such as the carbon-grounded inference-energy is updated (on import or refresh), the overall sustainability figure is recalculated to match, instead of keeping a stale headline number.
+- **Provider name variations resolve correctly** — punctuation or spacing differences in a provider's name (for example "z-ai") no longer cause a model to miss its provider profile and default to closed-source.
 
 ## [0.9.0] — 2026-05-29
 
