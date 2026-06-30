@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { runTrio, checkAuth, requestMagicLink } from '@/app/actions'
+import { runTrio, checkAuth, requestMagicLink, submitRoutedPreference } from '@/app/actions'
 import { LoadingIndicator } from '@/components/loading-indicator'
 
 interface TrioCandidate {
@@ -16,6 +16,7 @@ interface TrioCandidate {
 }
 
 interface TrioResult {
+  routedRunId: string
   candidates: TrioCandidate[]
   verdict: { winnerSlug: string; winnerName: string; reason: string; judgeModel: string } | null
 }
@@ -32,6 +33,16 @@ export function TrioPanel({ taskId }: { taskId: string }) {
   const [showSignIn, setShowSignIn] = useState(false)
   const [email, setEmail] = useState('')
   const [emailSent, setEmailSent] = useState(false)
+
+  const [preferred, setPreferred] = useState<string | null>(null)
+
+  function handlePreference(slug: string) {
+    if (!result || preferred) return
+    setPreferred(slug)
+    startTransition(async () => {
+      await submitRoutedPreference(result.routedRunId, slug, null)
+    })
+  }
 
   function handleRun() {
     if (!prompt.trim()) return
@@ -199,6 +210,46 @@ export function TrioPanel({ taskId }: { taskId: string }) {
                 </div>
               )
             })}
+          </div>
+
+          {/* Human preference — the verdict that pairs with the blind judge. */}
+          <div className="mt-4 rounded-lg border border-cream-dark bg-cream/50 p-4">
+            {preferred ? (
+              <p className="text-sm text-teal">
+                Thanks — recorded your preference for{' '}
+                <strong>
+                  {preferred === 'tie'
+                    ? 'a tie'
+                    : result.candidates.find((c) => c.slug === preferred)?.name ?? preferred}
+                </strong>
+                . This feeds Bearing&apos;s open preference dataset.
+              </p>
+            ) : (
+              <>
+                <p className="mb-2 font-display text-sm font-semibold text-navy">Which answer did you prefer?</p>
+                <div className="flex flex-wrap gap-2">
+                  {result.candidates.filter((c) => !c.error && c.response?.trim()).map((c) => (
+                    <button
+                      key={c.slug}
+                      type="button"
+                      onClick={() => handlePreference(c.slug)}
+                      disabled={isPending}
+                      className="rounded-full border border-navy px-4 py-1.5 text-sm font-medium text-navy transition-colors hover:bg-navy hover:text-cream disabled:opacity-50"
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => handlePreference('tie')}
+                    disabled={isPending}
+                    className="rounded-full border border-cream-dark px-4 py-1.5 text-sm font-medium text-navy/70 transition-colors hover:border-navy disabled:opacity-50"
+                  >
+                    Tie / no preference
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

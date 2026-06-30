@@ -35,6 +35,8 @@ import {
   createRoutedRun,
   addRoutedRunModel,
   setRoutedRunVerdict,
+  setRoutedRunPreference,
+  getRoutedRun,
   getRoutedRunCountToday,
 } from '@/lib/db'
 import { pickRoute } from '@/lib/routing'
@@ -1210,6 +1212,35 @@ export async function runTrio(taskId: string, formData: FormData) {
     }
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Failed to run Trio.' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 12d. submitRoutedPreference — capture the human verdict on a routed run
+// ---------------------------------------------------------------------------
+
+/**
+ * Record which answer the user actually preferred on a routed/Trio run.
+ * `preferred` is a model slug, or 'tie'. This is the human counterpart to the
+ * blind judge's verdict — together they make each Trio an N-way preference row.
+ */
+export async function submitRoutedPreference(
+  routedRunId: string,
+  preferred: string,
+  reason: string | null,
+) {
+  try {
+    const user = await getCurrentUser()
+    if (!user) return { error: 'You must be signed in.' }
+
+    const run = await getRoutedRun(routedRunId)
+    if (!run) return { error: 'Run not found.' }
+    if (run.user_id !== user.id) return { error: 'Not authorized.' }
+
+    await setRoutedRunPreference(routedRunId, preferred, reason)
+    return { success: true }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Failed to submit preference.' }
   }
 }
 
