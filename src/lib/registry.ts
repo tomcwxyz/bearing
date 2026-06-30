@@ -151,17 +151,17 @@ export interface Registry {
 }
 
 export function getRegistry(): Registry {
-  const data = registryData as any
+  const data = registryData as unknown as Registry
   const models: Record<string, Model> = {}
   for (const [slug, model] of Object.entries(data.models)) {
     // Default model_class to 'chat' for rows that pre-date v0.9 — the JSON
     // is regenerated from the DB, but the v0.8 dump won't carry the new
-    // column until the next `scripts/generate-registry.ts` run.
-    const raw = model as Record<string, unknown>
+    // column until the next `scripts/generate-registry.ts` run. (The type
+    // says model_class is always present; the ?? guards the older runtime JSON.)
     models[slug] = {
+      ...model,
       slug,
-      model_class: (raw.model_class as ModelClass) ?? 'chat',
-      ...(raw as Omit<Model, 'slug' | 'model_class'>),
+      model_class: model.model_class ?? 'chat',
     }
   }
   return { ...data, models }
@@ -208,7 +208,8 @@ export async function getModelLive(slug: string): Promise<Model | undefined> {
     // Drafts (active = false) shouldn't be publicly viewable.
     if (fromDb?.active) {
       // Strip the active flag — public Model type doesn't carry it.
-      const { active: _active, ...model } = fromDb
+      // eslint ignoreRestSiblings covers the omitted-via-rest `active` binding.
+      const { active, ...model } = fromDb
       return model
     }
   } catch {

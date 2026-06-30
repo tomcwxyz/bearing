@@ -10,7 +10,7 @@ import { classifyTask, type ClarificationAnswer, type Classification } from '@/l
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import Anthropic from '@anthropic-ai/sdk'
-import { scoreModels, scoreModelsDetailed, type ScoredModel, type Exclusion } from '@/lib/scoring'
+import { scoreModels, scoreModelsDetailed, type ScoredModel } from '@/lib/scoring'
 import { getLatestBenchmarkScores } from '@/lib/benchmarks'
 import { generateReasoning } from '@/lib/reasoning'
 import { scorePipeline, type PipelineResult } from '@/lib/pipeline'
