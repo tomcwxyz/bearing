@@ -34,9 +34,11 @@ import {
   isUserAdmin,
   createRoutedRun,
   addRoutedRunModel,
+  setRoutedRunVerdict,
   getRoutedRunCountToday,
 } from '@/lib/db'
 import { pickRoute } from '@/lib/routing'
+import { judgeResponses, type JudgeCandidate } from '@/lib/judge'
 import { callModel, callDirectProvider, DIRECT_PROVIDERS } from '@/lib/openrouter'
 import { filterPrompt } from '@/lib/content-filter'
 import { validateFile, extractText, fileToBase64DataUrl } from '@/lib/file-parser'
@@ -1062,6 +1064,152 @@ export async function routeAndRun(taskId: string, formData: FormData) {
     }
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Failed to run prompt.' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 12c. runTrio — route to the top 3 models, run all, blind-judge the answers
+// ---------------------------------------------------------------------------
+
+/** Daily allowance of Trio runs per (non-admin) user (3 inferences + 1 judge). */
+const DAILY_TRIO_LIMIT = 3
+
+export async function runTrio(taskId: string, formData: FormData) {
+  try {
+    const user = await getCurrentUser()
+    if (!user) return { error: 'You must be signed in to run a comparison.' }
+
+    const admin = await isUserAdmin(user.id)
+    if (!admin) {
+      const count = await getRoutedRunCountToday(user.id, 'trio')
+      if (count >= DAILY_TRIO_LIMIT) {
+        return { error: `You've used your ${DAILY_TRIO_LIMIT} daily Trio runs.` }
+      }
+    }
+
+    const prompt = formData.get('prompt') as string
+    if (!prompt?.trim()) return { error: 'Prompt is required.' }
+
+    const filterResult = await filterPrompt(prompt)
+    if (!filterResult.safe) {
+      return { error: filterResult.reason || 'Prompt was flagged by content filter.' }
+    }
+
+    const task = await getTask(taskId)
+    if (!task) return { error: 'Task not found.' }
+    const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
+    const ranked = scoreModels(scoringInputFromTask(task, benchmarkScores))
+
+    const orIds = await getOpenRouterIds()
+    const runnable = (slug: string) => orIds.has(slug) || Boolean(DIRECT_PROVIDERS[slug])
+    const route = pickRoute(ranked, { k: 3, runnable })
+    if (route.length < 2) {
+      return { error: 'Not enough runnable models for a Trio on this task.' }
+    }
+
+    // Optional file attachment (same handling as runComparison/routeAndRun).
+    let fileData: { buffer: Buffer; mimeType: string; name: string; extractedText: string } | null = null
+    const uploadedFile = formData.get('file') as File | null
+    if (uploadedFile && uploadedFile.size > 0) {
+      const validation = validateFile(uploadedFile.name, uploadedFile.type, uploadedFile.size)
+      if (!validation.valid) return { error: validation.error }
+      const buffer = Buffer.from(await uploadedFile.arrayBuffer())
+      const extractedText = await extractText(buffer, uploadedFile.type, uploadedFile.name)
+      fileData = { buffer, mimeType: uploadedFile.type, name: uploadedFile.name, extractedText }
+    }
+
+    // Resolve full model rows (vision + footprint) and run all candidates in parallel.
+    const fullModels = await Promise.all(route.map((m) => getModelFromDb(m.slug)))
+    const t0 = Date.now()
+    const outputs = await Promise.all(
+      route.map((m, i) => {
+        const orId = orIds.get(m.slug) ?? null
+        const hasVision = fullModels[i]?.capabilities.includes('vision') ?? false
+        const messages = buildCompareMessages(prompt, fileData, hasVision)
+        return orId ? callModel(orId, messages) : callDirectProvider(m.slug, messages)
+      }),
+    )
+    const latencyMs = Date.now() - t0
+
+    const candidates = route.map((m, i) => ({
+      slug: m.slug,
+      name: m.name,
+      provider: m.provider,
+      routeRank: i + 1,
+      weightedScore: m.weightedScore,
+      factorScores: m.factorScores as Record<string, number>,
+      estCost: m.estimatedCost,
+      estCo2g: fullModels[i]?.sustainability.inference_energy_source?.raw_gwp_gco2eq ?? null,
+      response: outputs[i].text,
+      error: outputs[i].error,
+    }))
+
+    // Blind-judge the answers that actually came back.
+    const judgeable: JudgeCandidate[] = candidates
+      .filter((c) => !c.error && c.response?.trim())
+      .map((c) => ({ id: c.slug, text: c.response! }))
+
+    let verdict: { winnerSlug: string; winnerName: string; reason: string; judgeModel: string } | null = null
+    if (judgeable.length >= 2) {
+      try {
+        const v = await judgeResponses(prompt, judgeable)
+        const winner = candidates.find((c) => c.slug === v.winnerId)
+        verdict = {
+          winnerSlug: v.winnerId,
+          winnerName: winner?.name ?? v.winnerId,
+          reason: v.reason,
+          judgeModel: v.judgeModel,
+        }
+      } catch (err) {
+        // A judge failure shouldn't sink the whole run — the user still sees
+        // the answers and can pick a winner themselves.
+        console.error('Trio judge failed:', err)
+      }
+    }
+
+    // Persist: one routed_run header + one row per candidate, plus the verdict.
+    const promptHash = createHash('sha256').update(prompt).digest('hex')
+    const routedRunId = await createRoutedRun(taskId, user.id, 'trio', promptHash)
+    await Promise.all(
+      candidates.map((c) =>
+        addRoutedRunModel(routedRunId, {
+          modelSlug: c.slug,
+          routeRank: c.routeRank,
+          weightedScore: c.weightedScore,
+          factorScores: c.factorScores,
+          role: 'candidate',
+          responseHash: c.response?.trim()
+            ? createHash('sha256').update(c.response).digest('hex')
+            : null,
+          estCost: c.estCost,
+          estCo2g: c.estCo2g,
+          latencyMs,
+          isError: Boolean(c.error),
+          errorReason: c.error ?? null,
+        }),
+      ),
+    )
+    if (verdict) {
+      await setRoutedRunVerdict(routedRunId, verdict.winnerSlug, verdict.judgeModel)
+    }
+
+    return {
+      routedRunId,
+      candidates: candidates.map((c) => ({
+        slug: c.slug,
+        name: c.name,
+        provider: c.provider,
+        routeRank: c.routeRank,
+        response: c.response,
+        error: c.error,
+        estCost: c.estCost,
+        estCo2g: c.estCo2g,
+      })),
+      verdict,
+      latencyMs,
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Failed to run Trio.' }
   }
 }
 
