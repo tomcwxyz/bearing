@@ -1202,6 +1202,7 @@ export async function runTrio(taskId: string, formData: FormData) {
         name: c.name,
         provider: c.provider,
         routeRank: c.routeRank,
+        role: 'candidate' as const,
         response: c.response,
         error: c.error,
         estCost: c.estCost,
@@ -1212,6 +1213,156 @@ export async function runTrio(taskId: string, formData: FormData) {
     }
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Failed to run Trio.' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 12c-ii. runChallenger — route to #1, then have #2 critique and improve it
+// ---------------------------------------------------------------------------
+
+/** Daily allowance of Challenger runs per (non-admin) user (2 inferences + 1 judge). */
+const DAILY_CHALLENGER_LIMIT = 4
+
+export async function runChallenger(taskId: string, formData: FormData) {
+  try {
+    const user = await getCurrentUser()
+    if (!user) return { error: 'You must be signed in to run a comparison.' }
+
+    const admin = await isUserAdmin(user.id)
+    if (!admin) {
+      const count = await getRoutedRunCountToday(user.id, 'challenger')
+      if (count >= DAILY_CHALLENGER_LIMIT) {
+        return { error: `You've used your ${DAILY_CHALLENGER_LIMIT} daily Challenger runs.` }
+      }
+    }
+
+    const prompt = formData.get('prompt') as string
+    if (!prompt?.trim()) return { error: 'Prompt is required.' }
+
+    const filterResult = await filterPrompt(prompt)
+    if (!filterResult.safe) {
+      return { error: filterResult.reason || 'Prompt was flagged by content filter.' }
+    }
+
+    const task = await getTask(taskId)
+    if (!task) return { error: 'Task not found.' }
+    const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
+    const ranked = scoreModels(scoringInputFromTask(task, benchmarkScores))
+
+    const orIds = await getOpenRouterIds()
+    const runnable = (slug: string) => orIds.has(slug) || Boolean(DIRECT_PROVIDERS[slug])
+    const route = pickRoute(ranked, { k: 2, runnable })
+    if (route.length < 2) {
+      return { error: 'Need at least two runnable models for a Challenger run.' }
+    }
+    const [primary, challenger] = route
+
+    // Optional file attachment.
+    let fileData: { buffer: Buffer; mimeType: string; name: string; extractedText: string } | null = null
+    const uploadedFile = formData.get('file') as File | null
+    if (uploadedFile && uploadedFile.size > 0) {
+      const validation = validateFile(uploadedFile.name, uploadedFile.type, uploadedFile.size)
+      if (!validation.valid) return { error: validation.error }
+      const buffer = Buffer.from(await uploadedFile.arrayBuffer())
+      const extractedText = await extractText(buffer, uploadedFile.type, uploadedFile.name)
+      fileData = { buffer, mimeType: uploadedFile.type, name: uploadedFile.name, extractedText }
+    }
+
+    const [primaryModel, challengerModel] = await Promise.all([
+      getModelFromDb(primary.slug),
+      getModelFromDb(challenger.slug),
+    ])
+
+    // 1. Primary answers the prompt.
+    const primaryOrId = orIds.get(primary.slug) ?? null
+    const primaryMessages = buildCompareMessages(prompt, fileData, primaryModel?.capabilities.includes('vision') ?? false)
+    const t0 = Date.now()
+    const primaryResult = primaryOrId
+      ? await callModel(primaryOrId, primaryMessages)
+      : await callDirectProvider(primary.slug, primaryMessages)
+
+    // 2. Challenger critiques and improves the primary's answer.
+    const challengerInstruction = primaryResult.text?.trim()
+      ? `A user made the following request:\n\n"""${prompt}"""\n\nAnother AI model produced this answer:\n\n"""${primaryResult.text}"""\n\nBriefly note any gaps or errors, then provide your own improved answer to the user's request.`
+      : prompt
+    const challengerOrId = orIds.get(challenger.slug) ?? null
+    const challengerMessages = buildCompareMessages(challengerInstruction, fileData, challengerModel?.capabilities.includes('vision') ?? false)
+    const challengerResult = challengerOrId
+      ? await callModel(challengerOrId, challengerMessages)
+      : await callDirectProvider(challenger.slug, challengerMessages)
+    const latencyMs = Date.now() - t0
+
+    const candidates = [
+      { model: primary, full: primaryModel, role: 'primary' as const, result: primaryResult, rank: 1 },
+      { model: challenger, full: challengerModel, role: 'challenger' as const, result: challengerResult, rank: 2 },
+    ].map((c) => ({
+      slug: c.model.slug,
+      name: c.model.name,
+      provider: c.model.provider,
+      routeRank: c.rank,
+      role: c.role,
+      weightedScore: c.model.weightedScore,
+      factorScores: c.model.factorScores as Record<string, number>,
+      estCost: c.model.estimatedCost,
+      estCo2g: c.full?.sustainability.inference_energy_source?.raw_gwp_gco2eq ?? null,
+      response: c.result.text,
+      error: c.result.error,
+    }))
+
+    // Blind-judge primary's answer vs the challenger's improved answer.
+    const judgeable: JudgeCandidate[] = candidates
+      .filter((c) => !c.error && c.response?.trim())
+      .map((c) => ({ id: c.slug, text: c.response! }))
+    let verdict: { winnerSlug: string; winnerName: string; reason: string; judgeModel: string } | null = null
+    if (judgeable.length >= 2) {
+      try {
+        const v = await judgeResponses(prompt, judgeable)
+        const winner = candidates.find((c) => c.slug === v.winnerId)
+        verdict = { winnerSlug: v.winnerId, winnerName: winner?.name ?? v.winnerId, reason: v.reason, judgeModel: v.judgeModel }
+      } catch (err) {
+        console.error('Challenger judge failed:', err)
+      }
+    }
+
+    const promptHash = createHash('sha256').update(prompt).digest('hex')
+    const routedRunId = await createRoutedRun(taskId, user.id, 'challenger', promptHash)
+    await Promise.all(
+      candidates.map((c) =>
+        addRoutedRunModel(routedRunId, {
+          modelSlug: c.slug,
+          routeRank: c.routeRank,
+          weightedScore: c.weightedScore,
+          factorScores: c.factorScores,
+          role: c.role,
+          responseHash: c.response?.trim() ? createHash('sha256').update(c.response).digest('hex') : null,
+          estCost: c.estCost,
+          estCo2g: c.estCo2g,
+          latencyMs,
+          isError: Boolean(c.error),
+          errorReason: c.error ?? null,
+        }),
+      ),
+    )
+    if (verdict) await setRoutedRunVerdict(routedRunId, verdict.winnerSlug, verdict.judgeModel)
+
+    return {
+      routedRunId,
+      candidates: candidates.map((c) => ({
+        slug: c.slug,
+        name: c.name,
+        provider: c.provider,
+        routeRank: c.routeRank,
+        role: c.role,
+        response: c.response,
+        error: c.error,
+        estCost: c.estCost,
+        estCo2g: c.estCo2g,
+      })),
+      verdict,
+      latencyMs,
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Failed to run Challenger.' }
   }
 }
 

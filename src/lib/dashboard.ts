@@ -37,15 +37,19 @@ export function formatGranularity(input: string): Granularity {
 // Usage summary
 // ---------------------------------------------------------------------------
 
-/** High-level counts: total tasks, users, selections, comparisons. */
+/** High-level counts: total tasks, users, selections, comparisons, routed runs. */
 export async function getUsageSummary() {
   const sql = getDb()
+  // routed_runs arrived in migration 023; to_regclass keeps this query working
+  // against a database that hasn't applied it yet (returns 0 rather than erroring).
   const rows = await sql`
     SELECT
       (SELECT count(*) FROM tasks)       AS total_tasks,
       (SELECT count(*) FROM users)       AS total_users,
       (SELECT count(*) FROM selections)  AS total_selections,
-      (SELECT count(*) FROM comparisons) AS total_comparisons
+      (SELECT count(*) FROM comparisons) AS total_comparisons,
+      (SELECT CASE WHEN to_regclass('public.routed_runs') IS NULL THEN 0
+                   ELSE (SELECT count(*) FROM routed_runs) END) AS total_routed_runs
   `
   const row = rows[0]
   return {
@@ -53,6 +57,7 @@ export async function getUsageSummary() {
     totalUsers: Number(row.total_users),
     totalSelections: Number(row.total_selections),
     totalComparisons: Number(row.total_comparisons),
+    totalRoutedRuns: Number(row.total_routed_runs),
   }
 }
 

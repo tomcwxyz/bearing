@@ -70,11 +70,12 @@ export default function UsageTab({ initialData }: UsageTabProps) {
   return (
     <div className="space-y-6">
       {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
         <SummaryCard value={summary.totalTasks} label="Total tasks" />
         <SummaryCard value={summary.totalUsers} label="Total users" />
         <SummaryCard value={summary.totalSelections} label="Total selections" />
         <SummaryCard value={summary.totalComparisons} label="Total comparisons" />
+        <SummaryCard value={summary.totalRoutedRuns} label="Routed runs" />
       </div>
 
       {/* Granularity toggle */}

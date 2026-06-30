@@ -1,14 +1,17 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { runTrio, checkAuth, requestMagicLink, submitRoutedPreference } from '@/app/actions'
+import { runTrio, runChallenger, checkAuth, requestMagicLink, submitRoutedPreference } from '@/app/actions'
 import { LoadingIndicator } from '@/components/loading-indicator'
+
+type Mode = 'trio' | 'challenger'
 
 interface TrioCandidate {
   slug: string
   name: string
   provider: string
   routeRank: number
+  role: 'candidate' | 'primary' | 'challenger'
   response?: string
   error?: string
   estCost: number
@@ -23,6 +26,7 @@ interface TrioResult {
 
 export function TrioPanel({ taskId }: { taskId: string }) {
   const [open, setOpen] = useState(false)
+  const [mode, setMode] = useState<Mode>('trio')
   const [prompt, setPrompt] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
@@ -56,7 +60,9 @@ export function TrioPanel({ taskId }: { taskId: string }) {
       const formData = new FormData()
       formData.set('prompt', prompt.trim())
       if (file) formData.set('file', file)
-      const res = await runTrio(taskId, formData)
+      const res = mode === 'trio'
+        ? await runTrio(taskId, formData)
+        : await runChallenger(taskId, formData)
       if ('error' in res && res.error && !('candidates' in res)) {
         setError(res.error)
         return
@@ -75,11 +81,19 @@ export function TrioPanel({ taskId }: { taskId: string }) {
     })
   }
 
+  function switchMode(next: Mode) {
+    if (next === mode) return
+    setMode(next)
+    setResult(null)
+    setError(null)
+    setPreferred(null)
+  }
+
   if (!open) {
     return (
       <div className="mt-8 text-center">
         <button type="button" onClick={() => setOpen(true)} className="btn-secondary">
-          Run the top 3 and let a judge pick
+          Run the top models and let a judge pick
         </button>
       </div>
     )
@@ -87,10 +101,29 @@ export function TrioPanel({ taskId }: { taskId: string }) {
 
   return (
     <div className="mt-8 rounded-xl border border-cream-dark bg-white p-5 fade-in">
-      <h3 className="font-display text-lg font-bold text-navy">Trio mode</h3>
+      {/* Mode toggle: Trio (top 3) vs Challenger (top model, reviewed by #2). */}
+      <div className="mb-4 inline-flex rounded-lg border border-cream-dark p-0.5">
+        {(['trio', 'challenger'] as Mode[]).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => switchMode(m)}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              mode === m ? 'bg-navy text-cream' : 'text-navy/60 hover:text-navy'
+            }`}
+          >
+            {m === 'trio' ? 'Trio' : 'Challenger'}
+          </button>
+        ))}
+      </div>
+
+      <h3 className="font-display text-lg font-bold text-navy">
+        {mode === 'trio' ? 'Trio mode' : 'Challenger mode'}
+      </h3>
       <p className="mt-1 mb-3 text-sm text-grey-blue">
-        Bearing sends your prompt to the top 3 ranked models, then a blind judge picks the best answer
-        without knowing which model wrote which.
+        {mode === 'trio'
+          ? 'Bearing sends your prompt to the top 3 ranked models, then a blind judge picks the best answer without knowing which model wrote which.'
+          : 'Bearing routes to the top model, then has the #2 model critique and improve its answer. A blind judge picks the stronger result.'}
       </p>
 
       <textarea
@@ -98,7 +131,7 @@ export function TrioPanel({ taskId }: { taskId: string }) {
         onChange={(e) => setPrompt(e.target.value)}
         rows={4}
         disabled={isPending}
-        placeholder="Enter the prompt to send to all three models..."
+        placeholder={mode === 'trio' ? 'Enter the prompt to send to all three models...' : 'Enter the prompt to route and challenge...'}
         className="w-full rounded-lg border border-cream-dark bg-white p-3 text-sm text-navy resize-y focus:border-teal focus:ring-1 focus:ring-teal focus:outline-none"
       />
 
@@ -165,12 +198,14 @@ export function TrioPanel({ taskId }: { taskId: string }) {
           disabled={isPending || !prompt.trim()}
           className="mt-3 rounded-lg bg-navy px-4 py-2 text-sm font-semibold font-display text-cream transition-colors hover:bg-navy-light disabled:opacity-40"
         >
-          {isPending ? 'Running all three...' : 'Run Trio'}
+          {isPending
+            ? (mode === 'trio' ? 'Running all three...' : 'Routing and challenging...')
+            : (mode === 'trio' ? 'Run Trio' : 'Run Challenger')}
         </button>
       )}
 
       {isPending && !result && (
-        <div className="mt-4"><LoadingIndicator size="sm" label="Running all three and judging..." /></div>
+        <div className="mt-4"><LoadingIndicator size="sm" label="Running and judging..." /></div>
       )}
 
       {result && (
@@ -185,9 +220,10 @@ export function TrioPanel({ taskId }: { taskId: string }) {
             </div>
           )}
 
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className={`grid gap-3 ${result.candidates.length <= 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
             {result.candidates.map((c) => {
               const isWinner = result.verdict?.winnerSlug === c.slug
+              const roleLabel = c.role === 'primary' ? 'Top pick' : c.role === 'challenger' ? 'Challenger' : `#${c.routeRank}`
               return (
                 <div
                   key={c.slug}
@@ -195,7 +231,7 @@ export function TrioPanel({ taskId }: { taskId: string }) {
                 >
                   <div className="mb-1 flex items-center justify-between">
                     <span className="font-display text-sm font-bold text-navy">{c.name}</span>
-                    <span className="text-xs text-navy/40">#{c.routeRank}</span>
+                    <span className="text-xs text-navy/40">{roleLabel}</span>
                   </div>
                   <p className="mb-2 font-mono text-[11px] text-grey-blue">
                     {c.estCo2g != null ? `~${c.estCo2g.toFixed(2)} gCO₂e · ` : ''}~${c.estCost.toFixed(4)}/task
