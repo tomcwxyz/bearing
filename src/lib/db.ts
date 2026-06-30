@@ -482,3 +482,111 @@ export async function isUserAdmin(userId: string): Promise<boolean> {
   const rows = await getDb()`SELECT is_admin FROM users WHERE id = ${userId}`
   return rows.length > 0 && rows[0].is_admin === true
 }
+
+// ---------------------------------------------------------------------------
+// Routed runs (auto-routing & auto-comparison) — see migration 023
+// ---------------------------------------------------------------------------
+
+export interface RoutedRunModelInput {
+  modelSlug: string
+  routeRank: number
+  weightedScore: number | null
+  factorScores: Record<string, number> | null
+  role: 'primary' | 'candidate' | 'challenger'
+  responseHash: string | null
+  estCost: number | null
+  estCo2g: number | null
+  latencyMs: number | null
+  isError: boolean
+  errorReason: string | null
+}
+
+/** Insert a routed-run header row and return its UUID. */
+export async function createRoutedRun(
+  taskId: string,
+  userId: string,
+  mode: 'route' | 'trio' | 'challenger',
+  promptHash: string,
+): Promise<string> {
+  const rows = await getDb()`
+    INSERT INTO routed_runs (task_id, user_id, mode, prompt_hash)
+    VALUES (${taskId}, ${userId}, ${mode}, ${promptHash})
+    RETURNING id
+  `
+  return rows[0].id as string
+}
+
+/** Insert one per-model row for a routed run. */
+export async function addRoutedRunModel(
+  routedRunId: string,
+  m: RoutedRunModelInput,
+): Promise<void> {
+  await getDb()`
+    INSERT INTO routed_run_models (
+      routed_run_id, model_slug, route_rank, weighted_score, factor_scores,
+      role, response_hash, est_cost, est_co2_g, latency_ms, is_error, error_reason
+    ) VALUES (
+      ${routedRunId}, ${m.modelSlug}, ${m.routeRank}, ${m.weightedScore},
+      ${m.factorScores ? JSON.stringify(m.factorScores) : null},
+      ${m.role}, ${m.responseHash}, ${m.estCost}, ${m.estCo2g},
+      ${m.latencyMs}, ${m.isError}, ${m.errorReason}
+    )
+  `
+}
+
+/** Record the blind LLM judge's verdict on a routed run. */
+export async function setRoutedRunVerdict(
+  routedRunId: string,
+  judgedWinner: string,
+  judgeModel: string,
+): Promise<void> {
+  await getDb()`
+    UPDATE routed_runs
+    SET judged_winner = ${judgedWinner}, judge_model = ${judgeModel}
+    WHERE id = ${routedRunId}
+  `
+}
+
+/** Record the user's preference on a routed run. */
+export async function setRoutedRunPreference(
+  routedRunId: string,
+  humanPreferred: string,
+  reason: string | null,
+): Promise<void> {
+  await getDb()`
+    UPDATE routed_runs
+    SET human_preferred = ${humanPreferred}, preference_reason = ${reason}
+    WHERE id = ${routedRunId}
+  `
+}
+
+/** Fetch a routed run header by ID. Returns undefined if not found. */
+export async function getRoutedRun(routedRunId: string) {
+  const rows = await getDb()`
+    SELECT * FROM routed_runs WHERE id = ${routedRunId}
+  `
+  return rows[0] ?? undefined
+}
+
+/**
+ * Count a user's *successful* routed runs of a given mode created today (UTC),
+ * for rate limiting. Only runs with at least one non-error model output count —
+ * a run where every model errored shouldn't burn the user's daily allowance
+ * (mirrors the `bothSucceeded` guard on comparisons).
+ */
+export async function getRoutedRunCountToday(
+  userId: string,
+  mode: 'route' | 'trio' | 'challenger',
+): Promise<number> {
+  const today = new Date().toISOString().slice(0, 10)
+  const rows = await getDb()`
+    SELECT COUNT(DISTINCT r.id)::int AS count
+    FROM routed_runs r
+    JOIN routed_run_models m ON m.routed_run_id = r.id AND m.is_error = false
+    WHERE r.user_id = ${userId}
+      AND r.mode = ${mode}
+      AND r.created_at >= ${today}::date
+      AND r.created_at < (${today}::date + INTERVAL '1 day')
+  `
+  return (rows[0]?.count as number) ?? 0
+}

@@ -29,9 +29,14 @@ import {
   incrementUserComparisons,
   getComparison,
   getOpenRouterId,
+  getOpenRouterIds,
   getModelFromDb,
   isUserAdmin,
+  createRoutedRun,
+  addRoutedRunModel,
+  getRoutedRunCountToday,
 } from '@/lib/db'
+import { pickRoute } from '@/lib/routing'
 import { callModel, callDirectProvider, DIRECT_PROVIDERS } from '@/lib/openrouter'
 import { filterPrompt } from '@/lib/content-filter'
 import { validateFile, extractText, fileToBase64DataUrl } from '@/lib/file-parser'
@@ -168,6 +173,47 @@ export async function submitPriorities(taskId: string, priorityOrder: Factor[], 
 // 4. getResults
 // ---------------------------------------------------------------------------
 
+// Map a persisted task row to the ScoringInput shape. Single source of truth
+// so getResults (advisor) and routeAndRun (runtime) score identically — a
+// routed run must use the same ranking the user was shown.
+type TaskRow = Awaited<ReturnType<typeof getTask>>
+function scoringInputFromTask(
+  task: NonNullable<TaskRow>,
+  benchmarkScores: Map<string, number> | undefined,
+) {
+  const priorityOrder: Factor[] = task.priority_order
+    ? (typeof task.priority_order === 'string'
+        ? JSON.parse(task.priority_order)
+        : task.priority_order)
+    : ['quality', 'cost', 'speed', 'capability', 'privacy', 'sustainability', 'transparency']
+
+  const excludedFactors: string[] = task.excluded_factors
+    ? (typeof task.excluded_factors === 'string'
+        ? JSON.parse(task.excluded_factors)
+        : task.excluded_factors)
+    : []
+
+  return {
+    taskType: task.task_type,
+    complexity: task.complexity,
+    inputLength: task.input_length,
+    needsVision: task.needs_vision,
+    needsTools: task.needs_tools,
+    needsCode: task.needs_code,
+    needsReasoning: task.needs_reasoning ?? false,
+    dataSensitivity: task.data_sensitivity ?? 'none',
+    latencyTarget: task.latency_target ?? 'interactive',
+    volume: task.volume ?? 'one_off',
+    needsLongContext: task.needs_long_context ?? false,
+    needsMultilingual: task.needs_multilingual ?? false,
+    isAgentic: task.is_agentic ?? false,
+    outputLength: task.output_length ?? 'medium',
+    priorityOrder,
+    excludedFactors,
+    benchmarkScores,
+  }
+}
+
 export async function getResults(taskId: string) {
   try {
     const task = await getTask(taskId)
@@ -175,38 +221,10 @@ export async function getResults(taskId: string) {
       return { error: 'Task not found.' }
     }
 
-    const priorityOrder: Factor[] = task.priority_order
-      ? (typeof task.priority_order === 'string'
-          ? JSON.parse(task.priority_order)
-          : task.priority_order)
-      : ['quality', 'cost', 'speed', 'capability', 'privacy', 'sustainability', 'transparency']
-
-    const excludedFactors: string[] = task.excluded_factors
-      ? (typeof task.excluded_factors === 'string'
-          ? JSON.parse(task.excluded_factors)
-          : task.excluded_factors)
-      : []
-
     const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
-    const { models, excluded } = scoreModelsDetailed({
-      taskType: task.task_type,
-      complexity: task.complexity,
-      inputLength: task.input_length,
-      needsVision: task.needs_vision,
-      needsTools: task.needs_tools,
-      needsCode: task.needs_code,
-      needsReasoning: task.needs_reasoning ?? false,
-      dataSensitivity: task.data_sensitivity ?? 'none',
-      latencyTarget: task.latency_target ?? 'interactive',
-      volume: task.volume ?? 'one_off',
-      needsLongContext: task.needs_long_context ?? false,
-      needsMultilingual: task.needs_multilingual ?? false,
-      isAgentic: task.is_agentic ?? false,
-      outputLength: task.output_length ?? 'medium',
-      priorityOrder,
-      excludedFactors,
-      benchmarkScores,
-    })
+    const scoringInput = scoringInputFromTask(task, benchmarkScores)
+    const priorityOrder = scoringInput.priorityOrder
+    const { models, excluded } = scoreModelsDetailed(scoringInput)
 
     const recommendationsForDb = models.map((m, i) => ({
       modelSlug: m.slug,
@@ -934,6 +952,116 @@ export async function submitPreference(
     return { success: true }
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Failed to submit preference.' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 12b. routeAndRun — auto-route to the top-ranked model and run the prompt
+// ---------------------------------------------------------------------------
+
+/** Daily allowance of single auto-routed runs per (non-admin) user. */
+const DAILY_ROUTE_LIMIT = 10
+
+/** gCO2eq per request for a model, when ecologits-grounded; null otherwise. */
+function modelCo2g(model: Awaited<ReturnType<typeof getModelFromDb>>): number | null {
+  return model?.sustainability.inference_energy_source?.raw_gwp_gco2eq ?? null
+}
+
+export async function routeAndRun(taskId: string, formData: FormData) {
+  try {
+    const user = await getCurrentUser()
+    if (!user) return { error: 'You must be signed in to run a prompt.' }
+
+    const admin = await isUserAdmin(user.id)
+    if (!admin) {
+      const count = await getRoutedRunCountToday(user.id, 'route')
+      if (count >= DAILY_ROUTE_LIMIT) {
+        return { error: `You've used your ${DAILY_ROUTE_LIMIT} daily runs.` }
+      }
+    }
+
+    const prompt = formData.get('prompt') as string
+    if (!prompt?.trim()) return { error: 'Prompt is required.' }
+
+    const filterResult = await filterPrompt(prompt)
+    if (!filterResult.safe) {
+      return { error: filterResult.reason || 'Prompt was flagged by content filter.' }
+    }
+
+    // Score with the exact ranking the user was shown for this task.
+    const task = await getTask(taskId)
+    if (!task) return { error: 'Task not found.' }
+    const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
+    const ranked = scoreModels(scoringInputFromTask(task, benchmarkScores))
+
+    // A model is runnable when it has an OpenRouter id or a direct provider —
+    // the same gate runComparison applies. Prefetch ids so pickRoute stays sync.
+    const orIds = await getOpenRouterIds()
+    const runnable = (slug: string) => orIds.has(slug) || Boolean(DIRECT_PROVIDERS[slug])
+    const route = pickRoute(ranked, { k: 1, runnable })
+    if (route.length === 0) {
+      return { error: 'No runnable model is available for this task.' }
+    }
+    const top = route[0]
+
+    // Optional file attachment (same handling as runComparison).
+    let fileData: { buffer: Buffer; mimeType: string; name: string; extractedText: string } | null = null
+    const uploadedFile = formData.get('file') as File | null
+    if (uploadedFile && uploadedFile.size > 0) {
+      const validation = validateFile(uploadedFile.name, uploadedFile.type, uploadedFile.size)
+      if (!validation.valid) return { error: validation.error }
+      const buffer = Buffer.from(await uploadedFile.arrayBuffer())
+      const extractedText = await extractText(buffer, uploadedFile.type, uploadedFile.name)
+      fileData = { buffer, mimeType: uploadedFile.type, name: uploadedFile.name, extractedText }
+    }
+
+    const orId = orIds.get(top.slug) ?? null
+    const fullModel = await getModelFromDb(top.slug)
+    const hasVision = fullModel?.capabilities.includes('vision') ?? false
+    const messages = buildCompareMessages(prompt, fileData, hasVision)
+
+    const t0 = Date.now()
+    const result = orId
+      ? await callModel(orId, messages)
+      : await callDirectProvider(top.slug, messages)
+    const latencyMs = Date.now() - t0
+
+    // Log the run as a dataset row — hashes only, never raw prompt/response.
+    const promptHash = createHash('sha256').update(prompt).digest('hex')
+    const responseHash = result.text?.trim()
+      ? createHash('sha256').update(result.text).digest('hex')
+      : null
+    const estCo2g = modelCo2g(fullModel)
+
+    const routedRunId = await createRoutedRun(taskId, user.id, 'route', promptHash)
+    await addRoutedRunModel(routedRunId, {
+      modelSlug: top.slug,
+      routeRank: 1,
+      weightedScore: top.weightedScore,
+      factorScores: top.factorScores as Record<string, number>,
+      role: 'primary',
+      responseHash,
+      estCost: top.estimatedCost,
+      estCo2g,
+      latencyMs,
+      isError: Boolean(result.error),
+      errorReason: result.error ?? null,
+    })
+
+    return {
+      routedRunId,
+      modelSlug: top.slug,
+      modelName: top.name,
+      provider: top.provider,
+      factorScores: top.factorScores as Record<string, number>,
+      response: result.text,
+      error: result.error,
+      estCost: top.estimatedCost,
+      estCo2g,
+      latencyMs,
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Failed to run prompt.' }
   }
 }
 
