@@ -36,6 +36,19 @@ Pick any two models, send the same prompt, see real outputs side by side. Works 
 
 Two ways in: via recommendations (pre-scored model list) or directly at `/compare` (pick any two models, no classification needed).
 
+### Run it (auto-routing)
+
+*"Just give me the answer from the right model."*
+
+From your recommendations, **Run this prompt** routes to the #1-ranked model for your task and priorities and runs it for you — no copying the suggestion elsewhere. You see which model answered, why it ranked first, and the per-request footprint (grams CO₂e, estimated cost, latency).
+
+Two auto-comparison modes pick the models for you:
+
+- **Trio** — run the top 3 models on one prompt, then a **blind judge** (shown the answers anonymously) picks the best.
+- **Challenger** — route to the top model, then the #2 model critiques and improves it; the blind judge picks the winner.
+
+You record which answer you preferred after each run. The judge verdict and your preference both publish to the open routed-run dataset (`/api/dataset/routed-runs`) — the strongest signal Bearing collects about which models win on real tasks. Prompts and responses are never stored, only hashes.
+
 ### Pipeline recommendations
 
 For multi-stage tasks, Bearing recommends specialist model pipelines — e.g. a vision model for OCR followed by a smaller model for structuring, rather than one expensive model doing everything.
