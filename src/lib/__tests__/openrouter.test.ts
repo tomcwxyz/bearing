@@ -42,6 +42,17 @@ describe('extractProvider', () => {
     expect(extractProvider('allenai/olmo-3-32b')).toBe('AllenAI')
     expect(extractProvider('nousresearch/hermes-4-70b')).toBe('Nous Research')
   })
+  it('maps the wider open-model catalogue prefixes to their profile names', () => {
+    expect(extractProvider('databricks/dbrx-instruct')).toBe('Databricks')
+    expect(extractProvider('bytedance/seed-oss-36b')).toBe('ByteDance')
+    expect(extractProvider('baidu/ernie-4.5-300b-a47b')).toBe('Baidu')
+    expect(extractProvider('tencent/hunyuan-a13b')).toBe('Tencent')
+    expect(extractProvider('01-ai/yi-1.5-34b')).toBe('01.AI')
+    expect(extractProvider('internlm/internlm3-8b')).toBe('Shanghai AI Lab')
+    expect(extractProvider('tiiuae/falcon-h1-34b')).toBe('TII')
+    expect(extractProvider('upstage/solar-pro-2')).toBe('Upstage')
+    expect(extractProvider('nomic/nomic-embed-text-v2-moe')).toBe('Nomic AI')
+  })
   it('returns raw prefix for unknown', () => {
     expect(extractProvider('newco/model-x')).toBe('newco')
   })

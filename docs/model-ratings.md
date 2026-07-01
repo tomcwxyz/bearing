@@ -2,7 +2,7 @@
 
 This page documents the research, sources, and decisions behind every model rating in the Bearing registry. We believe that a recommendation tool should be transparent about its own methodology — so here it all is.
 
-Last updated: 6 May 2026 (Registry v0.7.0)
+Last updated: 1 July 2026 (Registry v0.7.0)
 
 ---
 
@@ -57,6 +57,10 @@ Some scoring fields don't have a published benchmark and depend mostly on the pr
 | `transparency.transparency_score` | Baseline FMTI-style aggregate (sub-fields refined by Haiku with the baseline as anchor) |
 
 Provider names with parenthetical suffixes (e.g. `Alibaba (via hosted providers)`) are normalised to their canonical form before lookup. Unknown providers fall back to a conservative default (privacy 0.6, open_weights 0, baseline transparency 0.4) and the admin can refine per model.
+
+The profile table (`PROVIDER_PROFILE` in `src/lib/import-grounding.ts`) covers around 40 model-producing organisations, drawn from a mid-2026 catalogue of open-model labs. Each carries an `open_weights` verdict (0/1) and a `licence_openness` score set from the lineup's actual release licence — permissive OSI (MIT/Apache) sits at 0.85–0.95, vendor "open" licences with scale/geography caps at 0.55–0.8, weights-released-but-non-commercial (e.g. Cohere Command, LG EXAONE) at ~0.3, and proprietary at 0.1–0.2. Fully-open labs that also publish training data and code (Ai2/OLMo, EleutherAI, Marin, MAP) additionally anchor a higher baseline transparency.
+
+Some providers are **mixed** — a closed flagship alongside a separate open-weight line. These default to closed, and the specific open line is lifted back to open by a family-pattern override (`OPEN_WEIGHT_FAMILIES`): Google's Gemma (vs Gemini), OpenAI's gpt-oss (vs GPT), ByteDance's Seed-OSS/BAGEL (vs Doubao), Baidu's ERNIE 4.5 (vs ERNIE 5.0), and xAI's open older gens Grok-1/2 (vs current Grok). The override changes only `open_weights` and `licence_openness`; every other field still comes from the provider profile.
 
 ### Provenance
 

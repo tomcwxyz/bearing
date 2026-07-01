@@ -112,6 +112,55 @@ const PROVIDER_PROFILE: Record<string, ProviderProfile> = {
   AI21: { privacy: 0.6, openWeights: 1, licenceOpenness: 0.7, baselineTransparency: 0.55 },     // Jamba — Jamba Open Model License
   AllenAI: { privacy: 0.5, openWeights: 1, licenceOpenness: 0.95, baselineTransparency: 0.85 }, // OLMo — Apache 2.0, fully open (data + code + weights)
   'Nous Research': { privacy: 0.6, openWeights: 1, licenceOpenness: 0.6, baselineTransparency: 0.55 }, // Hermes — fine-tunes inheriting base (Llama community) licence
+
+  // --- Wider open-model catalogue (mid-2026 snapshot) ---
+  // Openness tags below follow the source catalogue's scheme: [Fully open] =
+  // weights + data + code, permissive; [Open weights — permissive] = Apache/MIT;
+  // [Open weights — restricted] = weights under a capped/non-commercial licence;
+  // [Mixed] = a closed flagship alongside a separate open line (handled via
+  // OPEN_WEIGHT_FAMILIES so the model-specific open line overrides the default).
+  //
+  // US / Canada / Europe
+  Databricks: { privacy: 0.7, openWeights: 1, licenceOpenness: 0.8, baselineTransparency: 0.6 },     // DBRX — Databricks Open Model License (permissive, MAU-capped)
+  'Stability AI': { privacy: 0.6, openWeights: 1, licenceOpenness: 0.6, baselineTransparency: 0.55 }, // StableLM — Stability community licence
+  EleutherAI: { privacy: 0.6, openWeights: 1, licenceOpenness: 0.95, baselineTransparency: 0.85 },    // GPT-NeoX / Pythia — Apache 2.0, fully open research
+  Marin: { privacy: 0.6, openWeights: 1, licenceOpenness: 0.95, baselineTransparency: 0.85 },         // Stanford — open data-to-weights (fully open)
+  'Essential AI': { privacy: 0.6, openWeights: 1, licenceOpenness: 0.8, baselineTransparency: 0.6 },  // Rnj-1 — open weights
+  Moondream: { privacy: 0.8, openWeights: 1, licenceOpenness: 0.8, baselineTransparency: 0.6 },       // small on-device vision-language
+  'Arcee AI': { privacy: 0.6, openWeights: 1, licenceOpenness: 0.7, baselineTransparency: 0.55 },     // small models + model merges
+  // China — most labs open the base/mid tier and close the flagship. [Mixed]
+  // labs (ByteDance, Baidu) default closed and lift their open line via
+  // OPEN_WEIGHT_FAMILIES; [Open weights — restricted] labs (Tencent) stay open
+  // with a low licence score.
+  Xiaomi: { privacy: 0.5, openWeights: 1, licenceOpenness: 0.7, baselineTransparency: 0.6 },          // MiMo
+  StepFun: { privacy: 0.5, openWeights: 1, licenceOpenness: 0.7, baselineTransparency: 0.55 },        // Step-3 VLM, Step-Audio/Video
+  ByteDance: { privacy: 0.5, openWeights: 0, licenceOpenness: 0.3, baselineTransparency: 0.45 },      // Doubao closed; Seed-OSS / BAGEL open (family override)
+  Baidu: { privacy: 0.5, openWeights: 0, licenceOpenness: 0.3, baselineTransparency: 0.45 },          // ERNIE 5.0 closed; ERNIE 4.5 open Apache (family override)
+  Tencent: { privacy: 0.5, openWeights: 1, licenceOpenness: 0.3, baselineTransparency: 0.45 },        // Hunyuan LLMs open under strict licences; flagship closed
+  '01.AI': { privacy: 0.5, openWeights: 1, licenceOpenness: 0.7, baselineTransparency: 0.6 },         // Yi family
+  Baichuan: { privacy: 0.5, openWeights: 1, licenceOpenness: 0.4, baselineTransparency: 0.5 },        // Baichuan 2 — MAU-capped commercial use
+  Huawei: { privacy: 0.5, openWeights: 1, licenceOpenness: 0.6, baselineTransparency: 0.55 },         // Pangu — trained/served on Ascend silicon
+  'Shanghai AI Lab': { privacy: 0.5, openWeights: 1, licenceOpenness: 0.85, baselineTransparency: 0.65 }, // InternLM / InternVL — permissive
+  OpenBMB: { privacy: 0.5, openWeights: 1, licenceOpenness: 0.7, baselineTransparency: 0.6 },         // MiniCPM / MiniCPM-V/o
+  Skywork: { privacy: 0.5, openWeights: 1, licenceOpenness: 0.7, baselineTransparency: 0.55 },        // Skywork LLMs / R1V / OR1
+  RedNote: { privacy: 0.5, openWeights: 1, licenceOpenness: 0.7, baselineTransparency: 0.55 },        // dots.llm1 / dots.ocr
+  inclusionAI: { privacy: 0.5, openWeights: 1, licenceOpenness: 0.7, baselineTransparency: 0.55 },    // Ant Group — Ling / Ming
+  MAP: { privacy: 0.5, openWeights: 1, licenceOpenness: 0.9, baselineTransparency: 0.8 },             // Multimodal Art Projection — Neo (fully open) / YuE
+  iFlytek: { privacy: 0.5, openWeights: 0, licenceOpenness: 0.3, baselineTransparency: 0.4 },         // Spark — mixed, mostly product/closed
+  BAAI: { privacy: 0.5, openWeights: 1, licenceOpenness: 0.8, baselineTransparency: 0.6 },            // Aquila / Emu / BGE — mostly Apache 2.0
+  // Other regions
+  TII: { privacy: 0.6, openWeights: 1, licenceOpenness: 0.85, baselineTransparency: 0.65 },           // Falcon (UAE) — TII permissive licence
+  'LG AI Research': { privacy: 0.6, openWeights: 1, licenceOpenness: 0.3, baselineTransparency: 0.55 }, // EXAONE (Korea) — non-commercial research licence
+  Upstage: { privacy: 0.6, openWeights: 1, licenceOpenness: 0.7, baselineTransparency: 0.6 },         // SOLAR (Korea) — depth up-scaling
+  'Sarvam AI': { privacy: 0.6, openWeights: 1, licenceOpenness: 0.7, baselineTransparency: 0.6 },     // Indian-language models
+  // Embeddings / reranker labs (registry `embedding` model class)
+  'Nomic AI': { privacy: 0.6, openWeights: 1, licenceOpenness: 0.9, baselineTransparency: 0.65 },     // nomic-embed — Apache 2.0
+  'Jina AI': { privacy: 0.6, openWeights: 1, licenceOpenness: 0.8, baselineTransparency: 0.6 },       // jina-embeddings / reranker
+  Mixedbread: { privacy: 0.6, openWeights: 1, licenceOpenness: 0.9, baselineTransparency: 0.6 },      // mxbai-embed / rerank — Apache 2.0
+  Snowflake: { privacy: 0.7, openWeights: 1, licenceOpenness: 0.9, baselineTransparency: 0.6 },       // Arctic-Embed — Apache 2.0
+  // Closed API providers already present in the registry — listed explicitly so
+  // they read as "derived" (a deliberate closed verdict) rather than "default".
+  'Voyage AI': { privacy: 0.75, openWeights: 0, licenceOpenness: 0.1, baselineTransparency: 0.4 },    // closed API embeddings/rerankers
 }
 
 const DEFAULT_PROFILE: ProviderProfile = { privacy: 0.6, openWeights: 0, licenceOpenness: 0.2, baselineTransparency: 0.4 }
@@ -127,8 +176,11 @@ const DEFAULT_PROFILE: ProviderProfile = { privacy: 0.6, openWeights: 0, licence
  * (a non-Google "gemma") can't trigger the override.
  */
 const OPEN_WEIGHT_FAMILIES: { provider: string; pattern: RegExp; licenceOpenness: number }[] = [
-  { provider: 'Google', pattern: /\bgemma\b/i, licenceOpenness: 0.7 },   // Gemma Terms of Use — open weights, permissive custom licence
-  { provider: 'OpenAI', pattern: /\bgpt-?oss\b/i, licenceOpenness: 0.9 }, // gpt-oss — Apache 2.0
+  { provider: 'Google', pattern: /\bgemma\b/i, licenceOpenness: 0.7 },            // Gemma Terms of Use — open weights, permissive custom licence
+  { provider: 'OpenAI', pattern: /\bgpt-?oss\b/i, licenceOpenness: 0.9 },         // gpt-oss — Apache 2.0
+  { provider: 'ByteDance', pattern: /\bseed-?oss\b|\bbagel\b/i, licenceOpenness: 0.9 }, // Seed-OSS / BAGEL — Apache 2.0 (Doubao stays closed)
+  { provider: 'Baidu', pattern: /\bernie-?4\.5\b/i, licenceOpenness: 0.9 },       // ERNIE 4.5 — Apache 2.0 (ERNIE 5.0 stays closed)
+  { provider: 'xAI', pattern: /\bgrok-?[12]\b/i, licenceOpenness: 0.8 },          // Grok-1 / Grok-2 — older gens open-sourced (current gens closed)
 ]
 
 /**

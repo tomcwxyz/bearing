@@ -69,6 +69,37 @@ const PROVIDER_MAP: Record<string, string> = {
   ai21: 'AI21',
   allenai: 'AllenAI',
   nousresearch: 'Nous Research',
+  // Wider open-model catalogue (mid-2026). Prefixes map to the canonical
+  // PROVIDER_PROFILE keys in import-grounding.ts so imports resolve to a
+  // "derived" open/closed verdict rather than the conservative default.
+  databricks: 'Databricks',
+  stabilityai: 'Stability AI',
+  eleutherai: 'EleutherAI',
+  'essential-ai': 'Essential AI',
+  moondream: 'Moondream',
+  'arcee-ai': 'Arcee AI',
+  xiaomi: 'Xiaomi',
+  stepfun: 'StepFun',
+  bytedance: 'ByteDance',
+  baidu: 'Baidu',
+  tencent: 'Tencent',
+  '01-ai': '01.AI',
+  baichuan: 'Baichuan',
+  huawei: 'Huawei',
+  internlm: 'Shanghai AI Lab',
+  openbmb: 'OpenBMB',
+  skywork: 'Skywork',
+  rednote: 'RedNote',
+  inclusionai: 'inclusionAI',
+  baai: 'BAAI',
+  tiiuae: 'TII',
+  lgai: 'LG AI Research',
+  upstage: 'Upstage',
+  sarvamai: 'Sarvam AI',
+  nomic: 'Nomic AI',
+  'jina-ai': 'Jina AI',
+  mixedbread: 'Mixedbread',
+  snowflake: 'Snowflake',
 }
 
 /** Extract human-readable provider name from OpenRouter model ID */
