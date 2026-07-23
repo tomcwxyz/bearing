@@ -354,6 +354,54 @@ describe('aggregateGroundedFields — provider profile', () => {
     expect(aggregateGroundedFields([], 'AllenAI').licenceOpenness.value).toBeGreaterThanOrEqual(0.9)
   })
 
+  it('grounds the wider catalogue of open-model labs as open', () => {
+    // A representative sample across regions and model classes.
+    for (const p of [
+      'Databricks', 'EleutherAI', 'Marin', 'Xiaomi', 'Tencent', '01.AI',
+      'Huawei', 'Shanghai AI Lab', 'TII', 'Upstage', 'Sarvam AI',
+      'Nomic AI', 'Mixedbread', 'Snowflake', 'BAAI',
+    ]) {
+      const g = aggregateGroundedFields([], p)
+      expect(g.openWeights.value, p).toBe(1)
+      expect(g.openWeights.provenance, p).toBe('derived')
+    }
+    // Fully-open labs carry the highest licence openness.
+    expect(aggregateGroundedFields([], 'EleutherAI').licenceOpenness.value).toBeGreaterThanOrEqual(0.9)
+    expect(aggregateGroundedFields([], 'Marin').licenceOpenness.value).toBeGreaterThanOrEqual(0.9)
+    // Restricted-licence open-weight labs read as open weights, low licence.
+    for (const p of ['Tencent', 'Baichuan', 'LG AI Research']) {
+      const g = aggregateGroundedFields([], p)
+      expect(g.openWeights.value, p).toBe(1)
+      expect(g.licenceOpenness.value, p).toBeLessThanOrEqual(0.4)
+    }
+  })
+
+  it('marks catalogue "mixed" labs closed by default, open for their open line', () => {
+    // ByteDance: Doubao closed by default...
+    expect(aggregateGroundedFields([], 'ByteDance', 'doubao-pro').openWeights.value).toBe(0)
+    // ...but Seed-OSS / BAGEL ship open weights (Apache 2.0).
+    const seed = aggregateGroundedFields([], 'ByteDance', 'seed-oss-36b')
+    expect(seed.openWeights.value).toBe(1)
+    expect(seed.openWeights.provenance).toBe('derived')
+    expect(seed.licenceOpenness.value).toBe(0.9)
+    // Baidu: ERNIE 5.0 closed, ERNIE 4.5 open.
+    expect(aggregateGroundedFields([], 'Baidu', 'ernie-5.0').openWeights.value).toBe(0)
+    const ernie = aggregateGroundedFields([], 'Baidu', 'ernie-4.5-300b-a47b')
+    expect(ernie.openWeights.value).toBe(1)
+    expect(ernie.licenceOpenness.value).toBe(0.9)
+    // xAI: current Grok closed, older Grok-1 / Grok-2 open.
+    expect(aggregateGroundedFields([], 'xAI', 'grok-4').openWeights.value).toBe(0)
+    const grok2 = aggregateGroundedFields([], 'xAI', 'grok-2')
+    expect(grok2.openWeights.value).toBe(1)
+    expect(grok2.licenceOpenness.value).toBe(0.8)
+  })
+
+  it('lists closed API providers explicitly (derived, not default)', () => {
+    const voyage = aggregateGroundedFields([], 'Voyage AI')
+    expect(voyage.openWeights.value).toBe(0)
+    expect(voyage.openWeights.provenance).toBe('derived')
+  })
+
   it('resolves provider name variants to the same profile (punctuation/spacing)', () => {
     // Registry stores "z-ai"; the profile key is "Z.ai".
     expect(normaliseProvider('z-ai')).toBe('Z.ai')
