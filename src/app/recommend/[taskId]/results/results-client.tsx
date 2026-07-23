@@ -8,6 +8,8 @@ import type { PipelineResult } from '@/lib/pipeline'
 import type { LocalInferenceResult } from '@/lib/local-inference'
 import { PipelineSection } from './pipeline-section'
 import { LocalSection } from './local-section'
+import { RunPanel } from './run-panel'
+import { TrioPanel } from './trio-panel'
 
 const FACTOR_LABELS: Record<Factor, string> = {
   cost: 'Cost',
@@ -163,6 +165,13 @@ export function ResultsClient({ taskId, models, reasoning, pipeline, local }: Re
                 {isSelected ? 'Selected' : 'Use this one'}
               </button>
             </div>
+
+            {/* Auto-route: run the user's real prompt on the top-ranked model. */}
+            {isTop && (
+              <div className="mt-4 ml-9">
+                <RunPanel taskId={taskId} topModelName={model.name} />
+              </div>
+            )}
           </div>
         )
       })}
@@ -177,6 +186,8 @@ export function ResultsClient({ taskId, models, reasoning, pipeline, local }: Re
       {local && (
         <LocalSection local={local} />
       )}
+
+      <TrioPanel taskId={taskId} />
 
       {selectionId && (
         <div className="mt-8 rounded-lg border border-teal/30 bg-teal/5 p-6 text-center">

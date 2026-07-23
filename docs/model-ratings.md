@@ -384,7 +384,7 @@ Sources:
 
 We try to be honest about the limits of our data:
 
-- **Quality scores are estimates** — task fitness is our weakest signal. It's informed by benchmarks, but benchmarks don't capture everything. As we collect outcome data from real Bearing users, these scores will improve.
+- **Quality scores are estimates** — task fitness is our weakest signal. It's informed by benchmarks, but benchmarks don't capture everything. As we collect outcome data from real Bearing users, these scores will improve. The strongest signal here is now the routed-run data — Trio and Challenger runs pair a blind LLM-judge verdict with the user's own preference on the same task, giving a per-task win/loss record between specific models that benchmarks can't provide.
 - **Sustainability data is sparse** — most providers don't publish per-query energy consumption. Google and GreenPT are exceptions. For many models, we're making informed estimates from model architecture and provider commitments.
 - **Pricing changes frequently** — we sync from OpenRouter where possible, but some models are priced outside that ecosystem. Check the provider's own pricing page for the latest.
 - **Benchmarks have limitations** — SWE-bench, MMMU, GPQA, and others are useful signals but don't perfectly predict real-world performance on your specific task. That's why Bearing also includes Compare mode for direct testing.

@@ -57,6 +57,21 @@ Tap **Use this one** on the model you want to try. This records your choice (ano
 
 After selecting, you'll see a link to give feedback later — bookmark it if you want to come back after trying the model.
 
+### Step 6: Run it (auto-routing)
+
+You don't have to leave Bearing to try the recommendation. On the top-ranked model, tap **Run this prompt**, enter the prompt you actually want to run (and optionally attach a PDF or CSV), and Bearing routes to the #1 model for your task and priorities and runs it for you.
+
+You'll see the answer along with a short explanation of why that model was chosen (which factor it scored strongest on) and a footprint readout: estimated grams of CO₂e, cost per task, and how long the response took. Running requires a quick sign-in, and there's a small daily allowance.
+
+### Trio and Challenger modes
+
+Below the results you can run a head-to-head **without picking the models yourself**:
+
+- **Trio** sends your prompt to the **top 3** ranked models at once. A blind judge — a separate model that is shown the three answers under anonymous labels, so it can't tell which model wrote which — picks the best one and explains why.
+- **Challenger** routes to the top model, then asks the #2 model to critique and improve that answer. The blind judge then picks the stronger of the two.
+
+After the answers come back, you're asked **which answer you preferred**. Your pick and the judge's verdict both feed Bearing's open dataset — they're the highest-value signal Bearing collects about which models actually win on real tasks. As everywhere in Bearing, only hashes of your prompt and the responses are stored, never the text.
+
 ## Validating your current model
 
 Already using a model? Check if it's the best fit for what you're doing.
@@ -181,6 +196,7 @@ All anonymised data is available for download on the **Data** page.
 
 - **Recommendation data** — task types, priorities, which models were recommended (with `model_class` so you can filter chat vs embedding recommendations), local inference alternatives, and outcomes
 - **Comparison data** — which model was preferred in head-to-head tests
+- **Routed-run data** — every auto-routed run (single route, Trio, or Challenger): the models routed to with their rank and score, the blind judge's verdict, and which answer you preferred. Available at `/api/dataset/routed-runs`.
 
 Available in JSON and CSV formats. The dataset covers every task that reached the recommendation stage, including tasks where no model was ultimately selected. Never includes raw descriptions, prompts, email addresses, or anything that could identify you.
 
