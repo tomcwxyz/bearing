@@ -14,6 +14,7 @@ import {
   setRoutedRunVerdict,
 } from '@/lib/db'
 import { getLatestBenchmarkScores } from '@/lib/benchmarks'
+import { benchmarkEvidence, type BenchmarkEvidence } from '@/lib/benchmark-evidence'
 import { filterPrompt } from '@/lib/content-filter'
 import { extractText, validateFile } from '@/lib/file-parser'
 import { pickInformationRoute } from '@/lib/information-routing'
@@ -22,6 +23,7 @@ import { judgeResponses, type JudgeCandidate } from '@/lib/judge'
 import { callDirectProvider, callModel, DIRECT_PROVIDERS } from '@/lib/openrouter'
 import { getAllModels, type Factor } from '@/lib/registry'
 import { scoreModels } from '@/lib/scoring'
+import { getBenchmarkAggregatesForModels } from '@/db/benchmark-evidence'
 import { getOutcomeEvidenceForModels } from '@/db/outcome-evidence'
 import { saveRoutedSelectionReasons } from '@/db/routed-selection'
 import { buildRunMessages, type RunFileData } from './run-messages'
@@ -91,7 +93,9 @@ async function buildInformationRoute(taskId: string, formData: FormData, k: numb
   const ranked = scoreModels(scoringInputFromTask(task, benchmarkScores))
   const orIds = await getOpenRouterIdsBySlug()
   const runnable = (slug: string) => orIds.has(slug) || Boolean(DIRECT_PROVIDERS[slug])
-  const localSlugs = new Set(getAllModels().filter((model) => Boolean(model.local_info)).map((model) => model.slug))
+  const registryModels = getAllModels()
+  const registryBySlug = new Map(registryModels.map((model) => [model.slug, model]))
+  const localSlugs = new Set(registryModels.filter((model) => Boolean(model.local_info)).map((model) => model.slug))
   const anchorSlug = formData.get('modelSlug') as string | null
 
   let outcomeBySlug: Record<string, ModelOutcomeEvidence> | null = null
@@ -107,6 +111,22 @@ async function buildInformationRoute(taskId: string, formData: FormData, k: numb
     console.warn('[runs] outcome evidence unavailable for experiment selection', error)
   }
 
+  let benchmarkBySlug: Record<string, BenchmarkEvidence> | null = null
+  try {
+    const aggregates = await getBenchmarkAggregatesForModels(ranked.map((model) => model.slug))
+    benchmarkBySlug = Object.fromEntries(ranked.map((model) => [
+      model.slug,
+      benchmarkEvidence({
+        curatedScore: registryBySlug.get(model.slug)?.task_fitness[task.task_type],
+        aggregate: aggregates.get(`${model.slug}::${task.task_type}`),
+      }),
+    ]))
+  } catch (error) {
+    // As with outcome scarcity, benchmark uncertainty is additive experiment
+    // context. Do not fabricate uncertainty when the evidence query fails.
+    console.warn('[runs] benchmark evidence unavailable for experiment selection', error)
+  }
+
   const route = pickInformationRoute(ranked, {
     k,
     anchorSlug,
@@ -114,6 +134,9 @@ async function buildInformationRoute(taskId: string, formData: FormData, k: numb
     isLocal: (slug) => localSlugs.has(slug),
     ...(outcomeBySlug
       ? { outcomeScarcity: (slug: string) => outcomeInformationScarcity(outcomeBySlug?.[slug]) }
+      : {}),
+    ...(benchmarkBySlug
+      ? { benchmarkUncertainty: (slug: string) => benchmarkBySlug?.[slug]?.uncertainty ?? 0 }
       : {}),
   })
 
