@@ -7,6 +7,11 @@ import { describeBearing, deriveBearingPriorities } from '@/lib/bearing-policy'
 import type { ScoredModel, Exclusion, HardFilterReason } from '@/lib/scoring'
 import type { PipelineResult } from '@/lib/pipeline'
 import type { LocalInferenceResult } from '@/lib/local-inference'
+import { getModelVerificationSummaries } from '@/db/model-verification'
+import {
+  recommendationEvidence,
+  type RecommendationEvidence,
+} from '@/lib/recommendation-evidence'
 
 function parsePriorityOrder(value: unknown): Factor[] {
   if (!value) return []
@@ -61,6 +66,23 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
     ? persistedPriorityOrder
     : deriveBearingPriorities(task)
 
+  let evidenceBySlug: Record<string, RecommendationEvidence> = {}
+  try {
+    const verification = await getModelVerificationSummaries()
+    const freshnessBySlug = new Map(verification.map((item) => [item.slug, item]))
+    evidenceBySlug = Object.fromEntries(
+      models.map((model) => [
+        model.slug,
+        recommendationEvidence(freshnessBySlug.get(model.slug)),
+      ]),
+    )
+  } catch (error) {
+    console.warn('[results] model verification evidence unavailable', error)
+    evidenceBySlug = Object.fromEntries(
+      models.map((model) => [model.slug, recommendationEvidence(null)]),
+    )
+  }
+
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto">
@@ -86,6 +108,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
           reasoning={reasoning}
           pipeline={pipeline}
           local={local}
+          evidenceBySlug={evidenceBySlug}
         />
       </div>
     </main>
