@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { evaluateGoldenCorpus } from '@/evaluation/golden-evaluation'
 import { GOLDEN_TASKS } from '@/evaluation/golden-tasks'
+import { baselineFromEvaluations, compareApprovedBaseline } from '@/evaluation/ranking-baseline'
 import { compareShadowRankings, withBenchmarkBlend } from '@/evaluation/shadow-ranking'
 import { ALL_TASK_TYPES } from '../registry'
 
@@ -34,6 +35,43 @@ describe('golden task corpus', () => {
       .map((evaluation) => `${evaluation.id}: ${evaluation.issues.join(', ')}`)
 
     expect(failures).toEqual([])
+  })
+})
+
+describe('approved ranking baseline', () => {
+  it('reports the production snapshot as unchanged against itself', () => {
+    const evaluations = withBenchmarkBlend(0, () => evaluateGoldenCorpus(GOLDEN_TASKS))
+    const baseline = baselineFromEvaluations(evaluations)
+    const report = compareApprovedBaseline(baseline, baseline)
+
+    expect(report.changedTopCount).toBe(0)
+    expect(report.highImpactCount).toBe(0)
+    expect(report.unchangedCount).toBe(GOLDEN_TASKS.length)
+  })
+
+  it('treats a top-five reorder as visible but not automatically high impact', () => {
+    const evaluations = withBenchmarkBlend(0, () => evaluateGoldenCorpus(GOLDEN_TASKS.slice(0, 1)))
+    const approved = baselineFromEvaluations(evaluations)
+    const current = structuredClone(approved)
+    const [first, second] = current.tasks[0].ranking
+    current.tasks[0].ranking[0] = second
+    current.tasks[0].ranking[1] = first
+
+    const report = compareApprovedBaseline(approved, current)
+    expect(report.changedTopCount).toBe(1)
+    expect(report.highImpactCount).toBe(0)
+    expect(report.mediumImpactCount).toBe(1)
+  })
+
+  it('flags a broad eligibility change as high impact', () => {
+    const evaluations = withBenchmarkBlend(0, () => evaluateGoldenCorpus(GOLDEN_TASKS.slice(0, 1)))
+    const approved = baselineFromEvaluations(evaluations)
+    const current = structuredClone(approved)
+    current.tasks[0].eligibleCount -= 4
+
+    const report = compareApprovedBaseline(approved, current)
+    expect(report.highImpactCount).toBe(1)
+    expect(report.changes[0].impact).toBe('high')
   })
 })
 
