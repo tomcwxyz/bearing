@@ -6,6 +6,7 @@ import type { ScoredModel } from '@/lib/scoring'
 import type { Factor } from '@/lib/registry'
 import type { PipelineResult } from '@/lib/pipeline'
 import type { LocalInferenceResult } from '@/lib/local-inference'
+import type { RecommendationEvidence } from '@/lib/recommendation-evidence'
 import { PipelineSection } from './pipeline-section'
 import { LocalSection } from './local-section'
 import { RunSurface } from './run-surface'
@@ -36,10 +37,19 @@ interface ResultsClientProps {
   reasoning: Record<string, string>
   pipeline?: (PipelineResult & { reasoning: string }) | null
   local?: LocalInferenceResult | null
+  evidenceBySlug: Record<string, RecommendationEvidence>
 }
 
 /** Keep the default decision small. The full ranking remains available. */
 const VISIBLE_MODEL_COUNT = 3
+
+const UNKNOWN_EVIDENCE: RecommendationEvidence = {
+  level: 'unknown',
+  label: 'Evidence not verified',
+  detail: 'Bearing has not yet recorded a current catalogue verification for this model.',
+  source: null,
+  verifiedAt: null,
+}
 
 function RecommendationLabel({ rank }: { rank: number }) {
   if (rank === 1) {
@@ -53,6 +63,28 @@ function RecommendationLabel({ rank }: { rank: number }) {
     <span className="rounded-full bg-cream-dark px-2.5 py-1 text-xs font-medium text-navy/60">
       Alternative #{rank}
     </span>
+  )
+}
+
+function EvidenceConfidence({ evidence }: { evidence: RecommendationEvidence }) {
+  const tone = evidence.level === 'high'
+    ? 'border-teal/30 bg-teal/5 text-teal'
+    : evidence.level === 'low'
+      ? 'border-coral/30 bg-coral/5 text-coral'
+      : 'border-cream-dark bg-cream/40 text-navy/60'
+
+  return (
+    <details className={`mb-4 rounded-lg border px-3 py-2 ${tone}`}>
+      <summary className="cursor-pointer text-xs font-semibold font-display">
+        {evidence.label}
+      </summary>
+      <p className="mt-2 text-xs leading-relaxed text-navy/70">
+        {evidence.detail}
+      </p>
+      <p className="mt-1.5 text-[11px] leading-relaxed text-navy/45">
+        This reflects how current Bearing&apos;s catalogue evidence is, not the probability that the model will perform well.
+      </p>
+    </details>
   )
 }
 
@@ -91,7 +123,7 @@ function FactorDetails({ model }: { model: ScoredModel }) {
   )
 }
 
-export function ResultsClient({ taskId, models, reasoning, pipeline, local }: ResultsClientProps) {
+export function ResultsClient({ taskId, models, reasoning, pipeline, local, evidenceBySlug }: ResultsClientProps) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
   const [selectionId, setSelectionId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -125,6 +157,7 @@ export function ResultsClient({ taskId, models, reasoning, pipeline, local }: Re
         const isTop = rank === 1
         const isSelected = selectedSlug === model.slug
         const isDisabled = selectedSlug !== null && !isSelected
+        const evidence = evidenceBySlug[model.slug] ?? UNKNOWN_EVIDENCE
 
         return (
           <div
@@ -154,6 +187,8 @@ export function ResultsClient({ taskId, models, reasoning, pipeline, local }: Re
                 {reasoning[model.slug]}
               </p>
             )}
+
+            <EvidenceConfidence evidence={evidence} />
 
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="font-mono text-sm text-navy/60">
