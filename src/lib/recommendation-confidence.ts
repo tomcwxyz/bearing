@@ -1,3 +1,4 @@
+import type { ModelOutcomeEvidence } from './outcome-evidence'
 import type { RecommendationEvidence } from './recommendation-evidence'
 
 export type RecommendationConfidenceLevel = 'high' | 'medium' | 'low'
@@ -15,6 +16,7 @@ export interface RecommendationConfidenceInput {
   topScore?: number | null
   secondScore?: number | null
   evidence?: RecommendationEvidence | null
+  outcomes?: ModelOutcomeEvidence | null
 }
 
 function scoreSeparation(topScore?: number | null, secondScore?: number | null): number | null {
@@ -27,10 +29,10 @@ function scoreSeparation(topScore?: number | null, secondScore?: number | null):
  * Describe confidence in the recommendation decision, rather than pretending
  * the weighted score is a calibrated probability.
  *
- * This first version uses signals Bearing already has everywhere: classifier
- * confidence, separation between the leading candidates, and freshness of the
- * catalogue evidence behind the top recommendation. Benchmark agreement and
- * outcome support can be added later without changing the UI contract.
+ * Signals are independent evidence channels: classifier confidence, separation
+ * between leading candidates, catalogue freshness and supported human outcome
+ * evidence. Blind-judge outcomes remain visible elsewhere but deliberately do
+ * not change recommendation confidence.
  */
 export function recommendationConfidence(
   input: RecommendationConfidenceInput,
@@ -38,6 +40,7 @@ export function recommendationConfidence(
   const classification = input.classificationConfidence ?? null
   const separation = scoreSeparation(input.topScore, input.secondScore)
   const evidenceLevel = input.evidence?.level ?? 'unknown'
+  const outcomes = input.outcomes ?? null
 
   const classificationLow = classification != null && classification < 0.65
   const classificationStrong = classification != null && classification >= 0.8
@@ -46,11 +49,19 @@ export function recommendationConfidence(
   const weakEvidence = evidenceLevel === 'low'
   const strongEvidence = evidenceLevel === 'high'
 
-  if (classificationLow || veryClose || weakEvidence) {
+  const supportedHumanOutcomes = (outcomes?.humanSupport ?? 0) >= 5
+  const humanOutcomeShare = outcomes?.humanPositiveShare ?? null
+  const outcomeContradiction = supportedHumanOutcomes && humanOutcomeShare != null && humanOutcomeShare < 0.4
+  const outcomeSupportive = supportedHumanOutcomes && humanOutcomeShare != null && humanOutcomeShare >= 0.6
+
+  if (classificationLow || veryClose || weakEvidence || outcomeContradiction) {
     const reasons: string[] = []
     if (classificationLow) reasons.push('the task classification is still somewhat uncertain')
     if (veryClose) reasons.push('the leading models are very close in the ranking')
     if (weakEvidence) reasons.push('the top model has catalogue evidence that needs attention')
+    if (outcomeContradiction) {
+      reasons.push(`human outcome evidence is currently weak for similar work (${outcomes!.humanSupport} signals)`)
+    }
 
     return {
       level: 'low',
@@ -65,7 +76,9 @@ export function recommendationConfidence(
     return {
       level: 'high',
       label: 'Recommendation confidence: high',
-      detail: 'The task classification is strong, the leading recommendation is clearly separated, and its catalogue evidence is current.',
+      detail: outcomeSupportive
+        ? `The task classification is strong, the leading recommendation is clearly separated, its catalogue evidence is current, and ${outcomes!.humanSupport} human outcome signals are supportive.`
+        : 'The task classification is strong, the leading recommendation is clearly separated, and its catalogue evidence is current.',
       shouldChallenge: false,
       scoreSeparation: separation,
     }
@@ -80,6 +93,10 @@ export function recommendationConfidence(
 
   if (evidenceLevel === 'unknown') reasons.push('catalogue evidence has not yet been verified')
   else if (evidenceLevel === 'medium') reasons.push('catalogue evidence is due for refresh')
+
+  if (outcomes && outcomes.humanSupport > 0 && !supportedHumanOutcomes) {
+    reasons.push(`human outcome evidence is still early (${outcomes.humanSupport} signals)`)
+  }
 
   return {
     level: 'medium',
