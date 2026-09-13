@@ -44,6 +44,17 @@ describe('taskRelativeCapabilityScore', () => {
     expect(withThinking).toBe(1)
   })
 
+  it('treats long context as relevant for long inputs', () => {
+    const withoutLongContext = taskRelativeCapabilityScore(model([]), { inputLength: 'long' })
+    const withLongContext = taskRelativeCapabilityScore(
+      model(['long_context']),
+      { inputLength: 'long' },
+    )
+
+    expect(withoutLongContext).toBeCloseTo(0.90, 6)
+    expect(withLongContext).toBe(1)
+  })
+
   it('does not double-reward a capability that is already required', () => {
     const toolsOnly = taskRelativeCapabilityScore(
       model(['tools']),
