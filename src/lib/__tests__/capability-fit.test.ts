@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { taskRelativeCapabilityScore } from '../capability-fit'
+import type { Capability } from '../registry'
 
-function model(capabilities: string[]) {
+function model(capabilities: Capability[]) {
   return { capabilities }
 }
 
