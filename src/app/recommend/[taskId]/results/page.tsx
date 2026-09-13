@@ -2,13 +2,15 @@ import Link from 'next/link'
 import { getResults } from '@/app/actions'
 import { ResultsClient } from './results-client'
 import { StepProgress } from '@/components/step-progress'
-import { TASK_TYPE_LABELS, type Factor } from '@/lib/registry'
+import { TASK_TYPE_LABELS, getModel, type Factor } from '@/lib/registry'
 import { describeBearing, deriveBearingPriorities } from '@/lib/bearing-policy'
 import type { ScoredModel, Exclusion, HardFilterReason } from '@/lib/scoring'
 import type { PipelineResult } from '@/lib/pipeline'
 import type { LocalInferenceResult } from '@/lib/local-inference'
+import { getBenchmarkAggregatesForModels } from '@/db/benchmark-evidence'
 import { getModelVerificationSummaries } from '@/db/model-verification'
 import { getOutcomeEvidenceForModels } from '@/db/outcome-evidence'
+import { benchmarkEvidence, type BenchmarkEvidence } from '@/lib/benchmark-evidence'
 import type { ModelOutcomeEvidence } from '@/lib/outcome-evidence'
 import {
   recommendationEvidence,
@@ -100,12 +102,31 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
     console.warn('[results] outcome evidence unavailable', error)
   }
 
+  let benchmarkBySlug: Record<string, BenchmarkEvidence> = {}
+  try {
+    const aggregates = await getBenchmarkAggregatesForModels(models.map((model) => model.slug))
+    benchmarkBySlug = Object.fromEntries(
+      models.map((model) => [
+        model.slug,
+        benchmarkEvidence({
+          curatedScore: getModel(model.slug)?.task_fitness[task.task_type],
+          aggregate: aggregates.get(`${model.slug}::${task.task_type}`),
+        }),
+      ]),
+    )
+  } catch (error) {
+    // Benchmark disagreement is an evidence layer, not a prerequisite for a
+    // usable recommendation. Fail open without inventing agreement/uncertainty.
+    console.warn('[results] benchmark evidence unavailable', error)
+  }
+
   const decisionConfidence = recommendationConfidence({
     classificationConfidence: task.classification_confidence,
     topScore: models[0]?.weightedScore,
     secondScore: models[1]?.weightedScore,
     evidence: models[0] ? evidenceBySlug[models[0].slug] : null,
     outcomes: models[0] ? outcomeBySlug[models[0].slug] : null,
+    benchmark: models[0] ? benchmarkBySlug[models[0].slug] : null,
   })
 
   return (
@@ -135,6 +156,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
           local={local}
           evidenceBySlug={evidenceBySlug}
           outcomeBySlug={outcomeBySlug}
+          benchmarkBySlug={benchmarkBySlug}
           decisionConfidence={decisionConfidence}
         />
       </div>
