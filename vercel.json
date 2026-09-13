@@ -3,6 +3,10 @@
     {
       "path": "/api/admin/ecologits-refresh",
       "schedule": "0 3 * * 1"
+    },
+    {
+      "path": "/api/admin/catalogue-verify",
+      "schedule": "0 4 * * 1"
     }
   ]
 }
