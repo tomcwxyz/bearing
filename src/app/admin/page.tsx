@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
 import { isUserAdmin, getAllModelsForAdmin, getOpenRouterIds } from '@/lib/db'
+import { getModelVerificationSummaries } from '@/db/model-verification'
 import {
   getUsageSummary, getActivityOverTime, getModeBreakdown, getSignupsOverTime,
   getInsightsSummary, getTaskTypeDistribution, getModelLeaderboard,
@@ -25,13 +26,16 @@ export default async function AdminPage() {
   if (!admin) redirect('/')
 
   const [
-    models,
+    models, verification,
     usageSummary, activity, modes, signups,
     insightsSummary, taskTypes, leaderboard, outcomes, capabilities,
     orModels, existingIds,
     benchmarkSummary, benchmarkAliases, benchmarkUnmatched,
   ] = await Promise.all([
     getAllModelsForAdmin(),
+    // Keep admin usable while migration 026 is being rolled out. Once the
+    // columns exist this returns one lightweight freshness row per model.
+    getModelVerificationSummaries().catch(() => []),
     getUsageSummary(),
     getActivityOverTime('day'),
     getModeBreakdown(),
@@ -97,6 +101,7 @@ export default async function AdminPage() {
 
         <AdminTabs
           models={models}
+          verification={verification}
           initialDiscover={{ newModels, matchedCount }}
           initialUsage={{ summary: usageSummary, activity, modes, signups }}
           initialInsights={{ summary: insightsSummary, taskTypes, leaderboard, outcomes, capabilities }}
