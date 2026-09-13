@@ -1,6 +1,6 @@
 # Bearing 1.0 — reorientation roadmap
 
-**Status:** In progress  
+**Status:** 1.0-alpha.3 in progress  
 **Started:** 2026-09-13  
 **Theme:** Infer → recommend → run → challenge → learn
 
@@ -113,6 +113,8 @@ Add GitHub Actions for:
 
 Do not rely on a successful Vercel deployment as the only repository-level check.
 
+> Implemented as a repository CI workflow. Branch protection still needs to require the check before this is a literal merge gate.
+
 ### P0.5 Documentation truth
 
 - Update README counts/auth/flow from the live implementation rather than old milestone copy.
@@ -132,6 +134,8 @@ Move from repeated full scorecards to:
 
 Alternative selection should be based on useful Pareto-style differences, not merely ranks 2–5.
 
+**Status:** recommendation-shaped presentation is live; Pareto-style alternative selection remains.
+
 ### P1.2 Task-relative capability scoring
 
 Current capability scoring rewards the number of capabilities a model has after required capability gates pass. Replace that with task-relative scoring:
@@ -139,6 +143,8 @@ Current capability scoring rewards the number of capabilities a model has after 
 - required capabilities are hard gates;
 - useful-but-not-required capabilities can add small contextual value;
 - unrelated capabilities (e.g. audio for a text-only task) should not improve the score.
+
+**Status:** implemented 2026-09-13. Required capabilities stay as hard filters; optional reasoning, multilingual and agentic capabilities provide limited task-relative headroom; unrelated capability breadth is neutral.
 
 ### P1.3 Revisit benchmark disagreement handling
 
@@ -260,6 +266,8 @@ src/db/
 
 Remove direct SQL from UI/server-action modules; `submitClarification` is an early target.
 
+> Started: catalogue verification now uses a dedicated DB repository instead of expanding the monolithic `db.ts`.
+
 ### P1.11 Runtime validation for classifier output
 
 The TypeScript interface and Anthropic tool schema must describe the same required fields. Add a runtime schema (prefer an existing dependency if introduced elsewhere; otherwise a small explicit validator) and one canonical task-type/capability definition used by both the prompt and tool schema where practical.
@@ -311,6 +319,8 @@ Introduce confidence based on evidence rather than score magnitude, e.g.:
 
 Low-confidence recommendations should invite a comparison/challenge.
 
+**Status:** first implementation landed 2026-09-13 using classification confidence, top-two relative separation and catalogue freshness. It is deliberately labelled decision evidence rather than a probability. Benchmark agreement and outcome support remain to be added.
+
 ## P2 — freshness automation
 
 ### P2.4 Provider/catalogue adapters
@@ -336,6 +346,8 @@ Initial adapters:
 
 Prefer provider primary sources for canonical capability/status and OpenRouter for routing availability.
 
+**Status:** OpenRouter plus provider-primary adapters for OpenAI, Anthropic, Google and Mistral are implemented with explicit external identifiers and fail-safe semantics. Remaining direct providers can be added as needed.
+
 ### P2.5 Scheduled verification
 
 - daily: endpoint/routability checks for models used to run prompts;
@@ -344,6 +356,8 @@ Prefer provider primary sources for canonical capability/status and OpenRouter f
 - admin report: stale, changed, newly discovered, unavailable.
 
 A failed verification should not silently rewrite editorial scores. Store the observation and require approval for material metadata changes unless the field is safe to automate (availability, endpoint id, published pricing with provenance).
+
+**Status:** weekly catalogue verification, admin freshness reporting and reviewed field-level drift acceptance are implemented. Daily runtime routability canaries are the next freshness slice.
 
 ## P3 — Bearing as a reusable decision layer
 
@@ -370,46 +384,60 @@ This keeps Bearing valuable even when the end user never visits bearing's own UI
 
 ## Suggested release sequence
 
-### 1.0-alpha.1 — take a bearing
+### 1.0-alpha.1 — take a bearing — complete
 
-- automatic priority policy;
-- skip compulsory priorities;
-- Adjust bearing;
-- remove match percentage;
-- simplify visible results;
-- CI.
+- [x] automatic priority policy;
+- [x] skip compulsory priorities;
+- [x] Adjust bearing;
+- [x] remove match percentage;
+- [x] simplify visible results;
+- [x] CI.
 
-### 1.0-alpha.2 — freshness
+### 1.0-alpha.2 — freshness — substantially complete
 
-- verification schema;
-- admin freshness view;
-- first automated catalogue verification;
-- README/methodology freshness reporting.
+- [x] verification schema;
+- [x] admin freshness view;
+- [x] automated catalogue verification;
+- [x] provider-primary verification;
+- [x] reviewed catalogue-drift acceptance;
+- [x] recommendation evidence freshness;
+- [ ] runtime routability canaries;
+- [ ] finish README/methodology freshness reporting cleanup.
 
-### 1.0-alpha.3 — challenge and learn
+### 1.0-alpha.3 — challenge and learn — in progress
 
-- recommendation confidence;
-- contextual Challenger;
-- information-seeking Trio;
-- outcome aggregates.
+- [x] first recommendation confidence layer;
+- [ ] contextual Challenger;
+- [ ] information-seeking Trio;
+- [ ] outcome aggregates;
+- [ ] add benchmark agreement and outcome support to recommendation confidence.
 
 ### 1.0-beta — continuity and calibration
 
-- optional task ownership;
-- inspectable learned preferences;
-- golden corpus + shadow ranking evaluation;
-- outcome evidence surfaced in recommendations.
+- [ ] optional task ownership;
+- [ ] inspectable learned preferences;
+- [ ] golden corpus + shadow ranking evaluation;
+- [ ] outcome evidence surfaced in recommendations.
 
-## Work started in this branch
+## Current implementation checklist
 
-This branch begins **1.0-alpha.1** and the foundations of **1.0-alpha.2**:
-
-- [x] Roadmap written.
-- [ ] Add automatic bearing policy + tests.
-- [ ] Skip compulsory priorities for confident classifications.
-- [ ] Add Adjust bearing from results.
-- [ ] Replace match percentage in the primary results UI.
-- [ ] Reduce default visible model list and move detailed factor bars behind disclosure.
-- [ ] Add model freshness schema/helpers.
-- [ ] Add CI workflow.
-- [ ] Update docs/changelog once behaviour is verified.
+- [x] Roadmap written and reoriented around infer → recommend → run → challenge → learn.
+- [x] Automatic bearing policy + tests.
+- [x] Confident tasks bypass compulsory priority sorting.
+- [x] Adjust bearing remains available from results.
+- [x] Match percentage removed from the primary results UI.
+- [x] Default model list reduced and detailed factors moved behind disclosure.
+- [x] Model freshness schema, helpers and scheduled catalogue verification.
+- [x] Provider-primary catalogue verification.
+- [x] Safe field-level catalogue drift review/accept flow.
+- [x] Catalogue evidence confidence surfaced in recommendations.
+- [x] Task-relative capability scoring.
+- [x] First recommendation decision-confidence layer.
+- [x] CI workflow for typecheck, lint, tests and production build.
+- [ ] Require CI through branch protection rather than convention alone.
+- [ ] Add runtime routability canaries.
+- [ ] Select alternatives by meaningful trade-off rather than raw rank.
+- [ ] Turn Challenger into a contextual response to uncertainty.
+- [ ] Make Trio select challengers for information value.
+- [ ] Build structured outcome aggregates and use them as evidence.
+- [ ] Add golden-task and shadow-ranking evaluation before larger scoring changes.
