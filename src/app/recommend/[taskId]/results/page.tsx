@@ -64,7 +64,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto">
-        <StepProgress current="results" hideClarify />
+        <StepProgress current="results" hideClarify hidePrioritize />
 
         <h2 className="text-2xl font-bold mb-2 font-display text-navy">Your bearing</h2>
         <p className="text-grey-blue">
