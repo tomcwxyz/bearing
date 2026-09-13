@@ -17,10 +17,12 @@ import { getLatestBenchmarkScores } from '@/lib/benchmarks'
 import { filterPrompt } from '@/lib/content-filter'
 import { extractText, validateFile } from '@/lib/file-parser'
 import { pickInformationRoute } from '@/lib/information-routing'
+import { outcomeInformationScarcity, type ModelOutcomeEvidence } from '@/lib/outcome-evidence'
 import { judgeResponses, type JudgeCandidate } from '@/lib/judge'
 import { callDirectProvider, callModel, DIRECT_PROVIDERS } from '@/lib/openrouter'
 import { getAllModels, type Factor } from '@/lib/registry'
 import { scoreModels } from '@/lib/scoring'
+import { getOutcomeEvidenceForModels } from '@/db/outcome-evidence'
 import { saveRoutedSelectionReasons } from '@/db/routed-selection'
 import { buildRunMessages, type RunFileData } from './run-messages'
 
@@ -92,11 +94,27 @@ async function buildInformationRoute(taskId: string, formData: FormData, k: numb
   const localSlugs = new Set(getAllModels().filter((model) => Boolean(model.local_info)).map((model) => model.slug))
   const anchorSlug = formData.get('modelSlug') as string | null
 
+  let outcomeBySlug: Record<string, ModelOutcomeEvidence> | null = null
+  try {
+    outcomeBySlug = await getOutcomeEvidenceForModels({
+      taskType: task.task_type,
+      complexity: task.complexity,
+      modelSlugs: ranked.map((model) => model.slug),
+    })
+  } catch (error) {
+    // Outcome evidence is optional experiment context. A reporting failure must
+    // not block Trio/Challenger or fabricate scarcity for every model.
+    console.warn('[runs] outcome evidence unavailable for experiment selection', error)
+  }
+
   const route = pickInformationRoute(ranked, {
     k,
     anchorSlug,
     runnable,
     isLocal: (slug) => localSlugs.has(slug),
+    ...(outcomeBySlug
+      ? { outcomeScarcity: (slug: string) => outcomeInformationScarcity(outcomeBySlug?.[slug]) }
+      : {}),
   })
 
   return { route, orIds }
