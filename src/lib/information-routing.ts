@@ -9,6 +9,12 @@ export interface InformationRouteOptions {
   runnable: (slug: string) => boolean
   /** Optional local/deployable signal for hosted-vs-local experiments. */
   isLocal?: (slug: string) => boolean
+  /**
+   * 0..1 experiment-value signal where 1 means Bearing has little human
+   * outcome evidence for this model on comparable work. This affects only
+   * experiment selection, never recommendation ranking.
+   */
+  outcomeScarcity?: (slug: string) => number
 }
 
 export interface InformationRouteCandidate {
@@ -53,6 +59,7 @@ function describeSelection(
   candidate: ScoredModel,
   recommendationRank: number,
   isLocal?: (slug: string) => boolean,
+  outcomeScarcity?: (slug: string) => number,
 ): string {
   const reasons: string[] = []
   const scoreGap = relativeDifference(anchor.weightedScore, candidate.weightedScore)
@@ -78,6 +85,7 @@ function describeSelection(
   }
 
   if (factorDistance(anchor, candidate) >= 0.45) reasons.push('different trade-off profile')
+  if ((outcomeScarcity?.(candidate.slug) ?? 0) >= 0.75) reasons.push('little real-world evidence')
 
   if (reasons.length === 0) reasons.push(`strong alternative at recommendation #${recommendationRank}`)
   return reasons.join(' · ')
@@ -89,6 +97,7 @@ function informationValue(
   alreadySelected: ScoredModel[],
   recommendationRank: number,
   isLocal?: (slug: string) => boolean,
+  outcomeScarcity?: (slug: string) => number,
 ): number {
   const scoreGap = relativeDifference(anchor.weightedScore, candidate.weightedScore)
   const closeness = clamp01(1 - scoreGap / 0.20)
@@ -100,18 +109,20 @@ function informationValue(
   const providerNovelty = alreadySelected.length > 0 && alreadySelected.every((m) => m.provider !== candidate.provider)
     ? 1
     : 0
+  const underTested = clamp01(outcomeScarcity?.(candidate.slug) ?? 0)
 
   // Preserve relevance: experimentation should stay near the top of the
   // recommendation set unless a candidate offers a genuinely useful contrast.
   const rankPenalty = clamp01((recommendationRank - 1) / 12) * 0.12
 
   return (
-    closeness * 0.44 +
-    providerDiversity * 0.18 +
-    costDifference * 0.13 +
-    factorContrast * 0.13 +
+    closeness * 0.40 +
+    providerDiversity * 0.17 +
+    costDifference * 0.12 +
+    factorContrast * 0.12 +
     localContrast * 0.07 +
-    providerNovelty * 0.05 -
+    providerNovelty * 0.04 +
+    underTested * 0.08 -
     rankPenalty
   )
 }
@@ -122,8 +133,9 @@ function informationValue(
  *
  * The first model is the user-selected anchor (or top runnable recommendation).
  * Subsequent candidates are chosen greedily for information value: stay close
- * to the recommendation, but prefer provider, cost, factor-profile and
- * local-vs-hosted contrasts that can teach Bearing something useful.
+ * to the recommendation, but prefer provider, cost, factor-profile,
+ * local-vs-hosted and evidence-scarcity contrasts that can teach Bearing
+ * something useful.
  */
 export function pickInformationRoute(
   scored: ScoredModel[],
@@ -162,6 +174,7 @@ export function pickInformationRoute(
           selectedModels.slice(1),
           entry.recommendationRank,
           options.isLocal,
+          options.outcomeScarcity,
         ),
       }))
       .sort((a, b) => b.informationScore - a.informationScore)
@@ -174,6 +187,7 @@ export function pickInformationRoute(
         best.model,
         best.recommendationRank,
         options.isLocal,
+        options.outcomeScarcity,
       ),
     })
   }
