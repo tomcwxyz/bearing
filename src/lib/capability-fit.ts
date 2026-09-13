@@ -10,7 +10,7 @@ export interface CapabilityTaskSignals {
   isAgentic?: boolean
 }
 
-const OPTIONAL_CAPABILITY_HEADROOM = 0.15
+const OPTIONAL_CAPABILITY_HEADROOM = 0.20
 const OPTIONAL_CAPABILITY_BASELINE = 1 - OPTIONAL_CAPABILITY_HEADROOM
 
 /**
@@ -18,8 +18,8 @@ const OPTIONAL_CAPABILITY_BASELINE = 1 - OPTIONAL_CAPABILITY_HEADROOM
  * have already been enforced by the scorer.
  *
  * Required capabilities are gates, not bonus points. Optional task signals can
- * add a small amount of value, but unrelated capabilities (for example audio on
- * a text-only task) never improve the score.
+ * add a bounded amount of value, but unrelated capabilities (for example audio
+ * on a text-only task) never improve the score.
  */
 export function taskRelativeCapabilityScore(
   model: Pick<Model, 'capabilities'>,
