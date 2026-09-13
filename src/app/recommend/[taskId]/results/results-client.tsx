@@ -6,6 +6,7 @@ import type { ScoredModel } from '@/lib/scoring'
 import type { Factor } from '@/lib/registry'
 import type { PipelineResult } from '@/lib/pipeline'
 import type { LocalInferenceResult } from '@/lib/local-inference'
+import type { BenchmarkEvidence } from '@/lib/benchmark-evidence'
 import type { ModelOutcomeEvidence } from '@/lib/outcome-evidence'
 import type { RecommendationEvidence } from '@/lib/recommendation-evidence'
 import type { RecommendationConfidence } from '@/lib/recommendation-confidence'
@@ -41,6 +42,7 @@ interface ResultsClientProps {
   local?: LocalInferenceResult | null
   evidenceBySlug: Record<string, RecommendationEvidence>
   outcomeBySlug: Record<string, ModelOutcomeEvidence>
+  benchmarkBySlug: Record<string, BenchmarkEvidence>
   decisionConfidence: RecommendationConfidence
 }
 
@@ -119,6 +121,30 @@ function EvidenceConfidence({ evidence }: { evidence: RecommendationEvidence }) 
   )
 }
 
+function BenchmarkEvidenceDisclosure({ evidence }: { evidence: BenchmarkEvidence }) {
+  const tone = evidence.agreement === 'strong_disagreement'
+    ? 'border-coral/30 bg-coral/5 text-coral'
+    : evidence.agreement === 'tension'
+      ? 'border-cream-dark bg-cream/50 text-navy/65'
+      : evidence.agreement === 'aligned'
+        ? 'border-teal/25 bg-teal/5 text-teal'
+        : 'border-cream-dark bg-white text-navy/50'
+
+  return (
+    <details className={`mb-3 rounded-lg border px-3 py-2 ${tone}`}>
+      <summary className="cursor-pointer text-xs font-semibold font-display">
+        {evidence.label}
+      </summary>
+      <p className="mt-2 text-xs leading-relaxed text-navy/70">
+        {evidence.detail}
+      </p>
+      <p className="mt-1.5 text-[11px] leading-relaxed text-navy/45">
+        This compares external benchmark evidence with Bearing&apos;s curated task score. It can affect decision confidence and which models Bearing chooses to test, but it does not yet change the production ranking blend.
+      </p>
+    </details>
+  )
+}
+
 function OutcomeEvidence({ evidence }: { evidence: ModelOutcomeEvidence }) {
   const tone = evidence.level === 'supported'
     ? 'border-teal/25 bg-teal/5 text-teal'
@@ -184,6 +210,7 @@ export function ResultsClient({
   local,
   evidenceBySlug,
   outcomeBySlug,
+  benchmarkBySlug,
   decisionConfidence,
 }: ResultsClientProps) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
@@ -222,6 +249,7 @@ export function ResultsClient({
         const isSelected = selectedSlug === model.slug
         const isDisabled = selectedSlug !== null && !isSelected
         const evidence = evidenceBySlug[model.slug] ?? UNKNOWN_EVIDENCE
+        const benchmark = benchmarkBySlug[model.slug]
         const outcomes = outcomeBySlug[model.slug]
 
         return (
@@ -254,6 +282,7 @@ export function ResultsClient({
             )}
 
             <EvidenceConfidence evidence={evidence} />
+            {benchmark && <BenchmarkEvidenceDisclosure evidence={benchmark} />}
             {outcomes && <OutcomeEvidence evidence={outcomes} />}
 
             <div className="flex flex-wrap items-center justify-between gap-3">
