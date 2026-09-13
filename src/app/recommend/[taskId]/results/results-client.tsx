@@ -7,6 +7,7 @@ import type { Factor } from '@/lib/registry'
 import type { PipelineResult } from '@/lib/pipeline'
 import type { LocalInferenceResult } from '@/lib/local-inference'
 import type { RecommendationEvidence } from '@/lib/recommendation-evidence'
+import type { RecommendationConfidence } from '@/lib/recommendation-confidence'
 import { PipelineSection } from './pipeline-section'
 import { LocalSection } from './local-section'
 import { RunSurface } from './run-surface'
@@ -38,6 +39,7 @@ interface ResultsClientProps {
   pipeline?: (PipelineResult & { reasoning: string }) | null
   local?: LocalInferenceResult | null
   evidenceBySlug: Record<string, RecommendationEvidence>
+  decisionConfidence: RecommendationConfidence
 }
 
 /** Keep the default decision small. The full ranking remains available. */
@@ -63,6 +65,33 @@ function RecommendationLabel({ rank }: { rank: number }) {
     <span className="rounded-full bg-cream-dark px-2.5 py-1 text-xs font-medium text-navy/60">
       Alternative #{rank}
     </span>
+  )
+}
+
+function DecisionConfidence({ confidence }: { confidence: RecommendationConfidence }) {
+  const tone = confidence.level === 'high'
+    ? 'border-teal/30 bg-teal/5'
+    : confidence.level === 'low'
+      ? 'border-coral/30 bg-coral/5'
+      : 'border-cream-dark bg-cream/50'
+  const labelTone = confidence.level === 'high'
+    ? 'text-teal'
+    : confidence.level === 'low'
+      ? 'text-coral'
+      : 'text-navy/65'
+
+  return (
+    <div className={`rounded-xl border px-4 py-3 ${tone}`}>
+      <p className={`font-display text-sm font-semibold ${labelTone}`}>
+        {confidence.label}
+      </p>
+      <p className="mt-1 text-sm leading-relaxed text-navy/70">
+        {confidence.detail}
+      </p>
+      <p className="mt-1.5 text-xs leading-relaxed text-navy/45">
+        This describes the strength of the decision evidence, not a probability that the answer will be correct.
+      </p>
+    </div>
   )
 }
 
@@ -123,7 +152,15 @@ function FactorDetails({ model }: { model: ScoredModel }) {
   )
 }
 
-export function ResultsClient({ taskId, models, reasoning, pipeline, local, evidenceBySlug }: ResultsClientProps) {
+export function ResultsClient({
+  taskId,
+  models,
+  reasoning,
+  pipeline,
+  local,
+  evidenceBySlug,
+  decisionConfidence,
+}: ResultsClientProps) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
   const [selectionId, setSelectionId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -151,6 +188,8 @@ export function ResultsClient({ taskId, models, reasoning, pipeline, local, evid
       {error && (
         <p role="alert" className="text-sm text-coral">{error}</p>
       )}
+
+      <DecisionConfidence confidence={decisionConfidence} />
 
       {visibleModels.map((model, index) => {
         const rank = index + 1
