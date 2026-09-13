@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { selectModel } from '@/app/actions'
 import type { ScoredModel } from '@/lib/scoring'
 import type { Factor } from '@/lib/registry'
@@ -10,6 +10,7 @@ import type { BenchmarkEvidence } from '@/lib/benchmark-evidence'
 import type { ModelOutcomeEvidence } from '@/lib/outcome-evidence'
 import type { RecommendationEvidence } from '@/lib/recommendation-evidence'
 import type { RecommendationConfidence } from '@/lib/recommendation-confidence'
+import type { FeaturedAlternative } from '@/lib/tradeoff-alternatives'
 import { PipelineSection } from './pipeline-section'
 import { LocalSection } from './local-section'
 import { RunSurface } from './run-surface'
@@ -43,11 +44,9 @@ interface ResultsClientProps {
   evidenceBySlug: Record<string, RecommendationEvidence>
   outcomeBySlug: Record<string, ModelOutcomeEvidence>
   benchmarkBySlug: Record<string, BenchmarkEvidence>
+  featuredAlternatives: FeaturedAlternative[]
   decisionConfidence: RecommendationConfidence
 }
-
-/** Keep the default decision small. The full ranking remains available. */
-const VISIBLE_MODEL_COUNT = 3
 
 const UNKNOWN_EVIDENCE: RecommendationEvidence = {
   level: 'unknown',
@@ -57,7 +56,13 @@ const UNKNOWN_EVIDENCE: RecommendationEvidence = {
   verifiedAt: null,
 }
 
-function RecommendationLabel({ rank }: { rank: number }) {
+function RecommendationLabel({
+  rank,
+  alternative,
+}: {
+  rank: number
+  alternative?: FeaturedAlternative
+}) {
   if (rank === 1) {
     return (
       <span className="rounded-full bg-coral px-2.5 py-1 text-xs font-semibold text-white">
@@ -65,9 +70,12 @@ function RecommendationLabel({ rank }: { rank: number }) {
       </span>
     )
   }
+
+  if (!alternative) return null
+
   return (
-    <span className="rounded-full bg-cream-dark px-2.5 py-1 text-xs font-medium text-navy/60">
-      Alternative #{rank}
+    <span className="rounded-full bg-cream-dark px-2.5 py-1 text-xs font-medium text-navy/70">
+      {alternative.label}
     </span>
   )
 }
@@ -211,6 +219,7 @@ export function ResultsClient({
   evidenceBySlug,
   outcomeBySlug,
   benchmarkBySlug,
+  featuredAlternatives,
   decisionConfidence,
 }: ResultsClientProps) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
@@ -219,7 +228,25 @@ export function ResultsClient({
   const [error, setError] = useState<string | null>(null)
   const [showAllModels, setShowAllModels] = useState(false)
 
-  const visibleModels = showAllModels ? models : models.slice(0, VISIBLE_MODEL_COUNT)
+  const rankBySlug = useMemo(
+    () => new Map(models.map((model, index) => [model.slug, index + 1])),
+    [models],
+  )
+  const alternativesBySlug = useMemo(
+    () => new Map(featuredAlternatives.map((alternative) => [alternative.slug, alternative])),
+    [featuredAlternatives],
+  )
+
+  const visibleModels = useMemo(() => {
+    if (showAllModels) return models
+    const featuredSlugs = [models[0]?.slug, ...featuredAlternatives.map((alternative) => alternative.slug)]
+      .filter((slug): slug is string => Boolean(slug))
+    const modelBySlug = new Map(models.map((model) => [model.slug, model]))
+    return featuredSlugs
+      .map((slug) => modelBySlug.get(slug))
+      .filter((model): model is ScoredModel => Boolean(model))
+  }, [featuredAlternatives, models, showAllModels])
+
   const hiddenCount = models.length - visibleModels.length
 
   function handleSelect(modelSlug: string, rank: number) {
@@ -244,8 +271,9 @@ export function ResultsClient({
       <DecisionConfidence confidence={decisionConfidence} />
 
       {visibleModels.map((model, index) => {
-        const rank = index + 1
+        const rank = rankBySlug.get(model.slug) ?? index + 1
         const isTop = rank === 1
+        const alternative = alternativesBySlug.get(model.slug)
         const isSelected = selectedSlug === model.slug
         const isDisabled = selectedSlug !== null && !isSelected
         const evidence = evidenceBySlug[model.slug] ?? UNKNOWN_EVIDENCE
@@ -265,7 +293,7 @@ export function ResultsClient({
             <div className="flex items-start justify-between gap-4 mb-3">
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <RecommendationLabel rank={rank} />
+                  <RecommendationLabel rank={rank} alternative={alternative} />
                   <span className="text-xs text-navy/40">{model.provider}</span>
                 </div>
                 <h3 className="font-display text-xl font-bold text-navy">
@@ -274,6 +302,13 @@ export function ResultsClient({
               </div>
               <span className="font-mono text-sm text-navy/35">#{rank}</span>
             </div>
+
+            {alternative && (
+              <div className="mb-4 rounded-lg border border-teal/20 bg-teal/5 px-3 py-2">
+                <p className="text-xs font-semibold font-display text-teal">Why this alternative</p>
+                <p className="mt-1 text-sm leading-relaxed text-navy/70">{alternative.reason}</p>
+              </div>
+            )}
 
             {reasoning[model.slug] && (
               <p className="mb-4 text-navy/75 text-sm leading-relaxed">
@@ -315,7 +350,7 @@ export function ResultsClient({
         )
       })}
 
-      {hiddenCount > 0 && (
+      {hiddenCount > 0 && !showAllModels && (
         <div className="text-center">
           <button
             type="button"
@@ -327,14 +362,14 @@ export function ResultsClient({
         </div>
       )}
 
-      {showAllModels && models.length > VISIBLE_MODEL_COUNT && (
+      {showAllModels && models.length > 1 + featuredAlternatives.length && (
         <div className="text-center">
           <button
             type="button"
             onClick={() => setShowAllModels(false)}
             className="text-sm text-navy/60 underline hover:text-navy"
           >
-            Show fewer
+            Show best fit and trade-off alternatives
           </button>
         </div>
       )}
