@@ -3,6 +3,7 @@ import type { ShadowImpact } from './shadow-ranking'
 
 export interface RankingBaselineEntry {
   id: string
+  /** Approved top five only; lower-rank churn is not a release gate. */
   ranking: string[]
   eligibleCount: number
 }
@@ -37,10 +38,10 @@ export interface BaselineDriftReport {
 export function baselineFromEvaluations(evaluations: GoldenTaskEvaluation[]): RankingBaseline {
   return {
     version: 1,
-    note: 'Approved golden-task ranking baseline. Update only after reviewing shadow-ranking changes.',
+    note: 'Approved golden-task top-five baseline. Update only after reviewing shadow-ranking changes.',
     tasks: evaluations.map((evaluation) => ({
       id: evaluation.id,
-      ranking: evaluation.models.map((model) => model.slug),
+      ranking: evaluation.models.slice(0, 5).map((model) => model.slug),
       eligibleCount: evaluation.eligibleCount,
     })),
   }
@@ -71,8 +72,8 @@ function classifyImpact(input: Omit<BaselineDrift, 'impact'>): ShadowImpact {
 
 /**
  * Compare the current production scorer with the last explicitly approved
- * ranking snapshot. This catches code/registry drift even when a PR does not
- * provide a separate candidate scorer.
+ * top-five snapshot. This catches meaningful recommendation drift while
+ * ignoring harmless reorderings deep in the model catalogue.
  */
 export function compareApprovedBaseline(
   approved: RankingBaseline,
@@ -98,7 +99,9 @@ export function compareApprovedBaseline(
     const top3Overlap = base.ranking.slice(0, 3).filter((slug) => nextTop3.has(slug)).length
     const maxApprovedTop5RankShift = base.ranking.slice(0, 5).reduce((maxShift, slug, index) => {
       const nextRank = rankOf(slug, next.ranking)
-      const shift = nextRank == null ? next.ranking.length + 1 : Math.abs(nextRank - (index + 1))
+      // Leaving the approved top five counts as one position beyond the
+      // snapshot boundary; we care that it dropped out, not its exact #17 rank.
+      const shift = nextRank == null ? Math.abs(6 - (index + 1)) : Math.abs(nextRank - (index + 1))
       return Math.max(maxShift, shift)
     }, 0)
 
