@@ -6,6 +6,7 @@ import type { ScoredModel } from '@/lib/scoring'
 import type { Factor } from '@/lib/registry'
 import type { PipelineResult } from '@/lib/pipeline'
 import type { LocalInferenceResult } from '@/lib/local-inference'
+import type { ModelOutcomeEvidence } from '@/lib/outcome-evidence'
 import type { RecommendationEvidence } from '@/lib/recommendation-evidence'
 import type { RecommendationConfidence } from '@/lib/recommendation-confidence'
 import { PipelineSection } from './pipeline-section'
@@ -39,6 +40,7 @@ interface ResultsClientProps {
   pipeline?: (PipelineResult & { reasoning: string }) | null
   local?: LocalInferenceResult | null
   evidenceBySlug: Record<string, RecommendationEvidence>
+  outcomeBySlug: Record<string, ModelOutcomeEvidence>
   decisionConfidence: RecommendationConfidence
 }
 
@@ -103,7 +105,7 @@ function EvidenceConfidence({ evidence }: { evidence: RecommendationEvidence }) 
       : 'border-cream-dark bg-cream/40 text-navy/60'
 
   return (
-    <details className={`mb-4 rounded-lg border px-3 py-2 ${tone}`}>
+    <details className={`mb-3 rounded-lg border px-3 py-2 ${tone}`}>
       <summary className="cursor-pointer text-xs font-semibold font-display">
         {evidence.label}
       </summary>
@@ -112,6 +114,28 @@ function EvidenceConfidence({ evidence }: { evidence: RecommendationEvidence }) 
       </p>
       <p className="mt-1.5 text-[11px] leading-relaxed text-navy/45">
         This reflects how current Bearing&apos;s catalogue evidence is, not the probability that the model will perform well.
+      </p>
+    </details>
+  )
+}
+
+function OutcomeEvidence({ evidence }: { evidence: ModelOutcomeEvidence }) {
+  const tone = evidence.level === 'supported'
+    ? 'border-teal/25 bg-teal/5 text-teal'
+    : evidence.level === 'early'
+      ? 'border-cream-dark bg-cream/40 text-navy/65'
+      : 'border-cream-dark bg-white text-navy/50'
+
+  return (
+    <details className={`mb-4 rounded-lg border px-3 py-2 ${tone}`}>
+      <summary className="cursor-pointer text-xs font-semibold font-display">
+        {evidence.label}
+      </summary>
+      <p className="mt-2 text-xs leading-relaxed text-navy/70">
+        {evidence.detail}
+      </p>
+      <p className="mt-1.5 text-[11px] leading-relaxed text-navy/45">
+        Human signals combine explicit outcomes and preferences. Blind-judge picks are reported separately and never count as human evidence. This evidence is not yet used to change the ranking.
       </p>
     </details>
   )
@@ -159,6 +183,7 @@ export function ResultsClient({
   pipeline,
   local,
   evidenceBySlug,
+  outcomeBySlug,
   decisionConfidence,
 }: ResultsClientProps) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
@@ -197,6 +222,7 @@ export function ResultsClient({
         const isSelected = selectedSlug === model.slug
         const isDisabled = selectedSlug !== null && !isSelected
         const evidence = evidenceBySlug[model.slug] ?? UNKNOWN_EVIDENCE
+        const outcomes = outcomeBySlug[model.slug]
 
         return (
           <div
@@ -228,6 +254,7 @@ export function ResultsClient({
             )}
 
             <EvidenceConfidence evidence={evidence} />
+            {outcomes && <OutcomeEvidence evidence={outcomes} />}
 
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="font-mono text-sm text-navy/60">
