@@ -12,6 +12,7 @@ import {
   recommendationEvidence,
   type RecommendationEvidence,
 } from '@/lib/recommendation-evidence'
+import { recommendationConfidence } from '@/lib/recommendation-confidence'
 
 function parsePriorityOrder(value: unknown): Factor[] {
   if (!value) return []
@@ -43,6 +44,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
       task_type: string
       priority_order?: unknown
       complexity?: string | null
+      classification_confidence?: number | null
       needs_reasoning?: boolean | null
       needs_vision?: boolean | null
       needs_tools?: boolean | null
@@ -83,6 +85,13 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
     )
   }
 
+  const decisionConfidence = recommendationConfidence({
+    classificationConfidence: task.classification_confidence,
+    topScore: models[0]?.weightedScore,
+    secondScore: models[1]?.weightedScore,
+    evidence: models[0] ? evidenceBySlug[models[0].slug] : null,
+  })
+
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto">
@@ -109,6 +118,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
           pipeline={pipeline}
           local={local}
           evidenceBySlug={evidenceBySlug}
+          decisionConfidence={decisionConfidence}
         />
       </div>
     </main>
