@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "note": "Approved golden-task top-five baseline. Update only after reviewing shadow-ranking changes.",
+  "tasks": [
+    { "id": "summarise-board-pack", "ranking": ["greenpt-greenr", "claude-sonnet-4.6", "qwen3.5-397b", "claude-opus-4.6", "deepseek-v4-pro"], "eligibleCount": 31 },
+    { "id": "summarise-pii-case-notes", "ranking": ["llama-4-maverick", "ibm-granite-3.3", "greenpt-greenr", "claude-sonnet-4.6", "claude-opus-4.6"], "eligibleCount": 31 },
+    { "id": "extract-invoices-vision", "ranking": ["llama-4-maverick", "greenpt-greenl", "mistral-ocr", "qwen3.5-397b", "gpt-5.4-nano"], "eligibleCount": 19 },
+    { "id": "extract-policy-table", "ranking": ["greenpt-greenr", "ibm-granite-3.3", "qwen3.5-397b", "claude-sonnet-4.6", "claude-haiku-4.5"], "eligibleCount": 31 },
+    { "id": "generate-funding-case", "ranking": ["claude-opus-4.6", "claude-sonnet-4.6", "deepseek-v4-pro", "greenpt-greenr", "gpt-5.4"], "eligibleCount": 31 },
+    { "id": "comms-client-email", "ranking": ["ibm-granite-3.3", "llama-4-maverick", "greenpt-greenr", "greenpt-greenl", "qwen-2.5-72b"], "eligibleCount": 31 },
+    { "id": "code-refactor-service", "ranking": ["qwen3.5-397b", "claude-sonnet-4.6", "claude-opus-4.6", "gpt-5.4", "greenpt-greenr"], "eligibleCount": 28 },
+    { "id": "code-agentic-repo-fix", "ranking": ["qwen3.5-397b", "claude-opus-4.6", "claude-sonnet-4.6", "gpt-5.4", "greenpt-greenr"], "eligibleCount": 28 },
+    { "id": "math-proof", "ranking": ["qwen3.5-397b", "claude-opus-4.6", "greenpt-greenr", "claude-sonnet-4.6", "gpt-5.4"], "eligibleCount": 31 },
+    { "id": "reasoning-strategy", "ranking": ["claude-opus-4.6", "qwen3.5-397b", "claude-sonnet-4.6", "gemini-3.1-pro", "gpt-5.4"], "eligibleCount": 31 },
+    { "id": "analyse-finance-regulated", "ranking": ["claude-opus-4.6", "qwen3.5-397b", "claude-sonnet-4.6", "greenpt-greenr", "gpt-5.4"], "eligibleCount": 31 },
+    { "id": "analyse-on-prem", "ranking": ["qwen3.5-397b", "greenpt-greenr", "ibm-granite-3.3", "qwen3-235b-a22b", "llama-4-maverick"], "eligibleCount": 19 },
+    { "id": "research-landscape", "ranking": ["claude-opus-4.6", "qwen3.5-397b", "claude-sonnet-4.6", "greenpt-greenr", "gpt-5.4"], "eligibleCount": 31 },
+    { "id": "research-long-context", "ranking": ["qwen3.5-397b", "claude-opus-4.6", "greenpt-greenr", "claude-sonnet-4.6", "gpt-5.4"], "eligibleCount": 31 },
+    { "id": "qa-fast-helpdesk", "ranking": ["gemini-2.5-flash-lite", "devstral", "gpt-5.4-nano", "gemini-3-flash", "claude-haiku-4.5"], "eligibleCount": 6 },
+    { "id": "qa-complex-domain", "ranking": ["claude-opus-4.6", "claude-sonnet-4.6", "qwen3.5-397b", "deepseek-v4-pro", "greenpt-greenr"], "eligibleCount": 31 },
+    { "id": "translate-multilingual", "ranking": ["llama-4-maverick", "qwen-2.5-72b", "ibm-granite-3.3", "greenpt-greenl", "greenpt-greenr"], "eligibleCount": 31 },
+    { "id": "conversation-live-assistant", "ranking": ["gemini-2.5-flash-lite", "gpt-5.4-nano", "devstral", "gemini-3-flash", "claude-haiku-4.5"], "eligibleCount": 6 },
+    { "id": "conversation-sensitive", "ranking": ["greenpt-greenr", "claude-sonnet-4.6", "claude-opus-4.6", "qwen3.5-397b", "claude-haiku-4.5"], "eligibleCount": 31 },
+    { "id": "embedding-rag-index", "ranking": ["gte-qwen2-7b", "bge-m3", "nomic-embed-v2-moe", "openai-embed-3-small", "voyage-3-lite"], "eligibleCount": 10 },
+    { "id": "embedding-multilingual", "ranking": ["gte-qwen2-7b", "bge-m3", "nomic-embed-v2-moe", "greenpt-green-embedding", "cohere-embed-v4"], "eligibleCount": 10 },
+    { "id": "summarise-batch-million", "ranking": ["ibm-granite-3.3", "llama-4-maverick", "gemini-2.5-flash-lite", "greenpt-greenl", "deepseek-v3.1"], "eligibleCount": 31 },
+    { "id": "extract-regulated-health", "ranking": ["ibm-granite-3.3", "llama-4-maverick", "greenpt-greenl", "greenpt-greenr", "qwen3.5-397b"], "eligibleCount": 31 },
+    { "id": "generate-multilingual-campaign", "ranking": ["ibm-granite-3.3", "llama-4-maverick", "greenpt-greenr", "qwen-2.5-72b", "greenpt-greenl"], "eligibleCount": 31 }
+  ]
+}
