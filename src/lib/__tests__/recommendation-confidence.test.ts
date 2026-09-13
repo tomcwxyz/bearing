@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { summariseOutcomeEvidence } from '../outcome-evidence'
 import { recommendationConfidence } from '../recommendation-confidence'
 
 const highEvidence = {
@@ -18,7 +19,7 @@ const lowEvidence = {
 }
 
 describe('recommendationConfidence', () => {
-  it('reports high confidence only when classification, separation and evidence are all strong', () => {
+  it('reports high confidence when classification, separation and evidence are all strong', () => {
     const result = recommendationConfidence({
       classificationConfidence: 0.92,
       topScore: 0.82,
@@ -65,5 +66,48 @@ describe('recommendationConfidence', () => {
 
     expect(result.level).toBe('medium')
     expect(result.detail).toContain('not yet been verified')
+  })
+
+  it('lowers confidence when a supported human outcome sample contradicts the recommendation', () => {
+    const outcomes = summariseOutcomeEvidence({
+      humanPositive: 1,
+      humanNegative: 4,
+      humanTies: 0,
+      judgePositive: 8,
+      judgeNegative: 0,
+    }, 'task_type+complexity')
+
+    const result = recommendationConfidence({
+      classificationConfidence: 0.92,
+      topScore: 0.84,
+      secondScore: 0.7,
+      evidence: highEvidence,
+      outcomes,
+    })
+
+    expect(result.level).toBe('low')
+    expect(result.shouldChallenge).toBe(true)
+    expect(result.detail).toContain('human outcome evidence')
+  })
+
+  it('can cite supportive human outcomes without allowing machine judge support to masquerade as human evidence', () => {
+    const outcomes = summariseOutcomeEvidence({
+      humanPositive: 4,
+      humanNegative: 1,
+      humanTies: 0,
+      judgePositive: 0,
+      judgeNegative: 10,
+    }, 'task_type+complexity')
+
+    const result = recommendationConfidence({
+      classificationConfidence: 0.92,
+      topScore: 0.84,
+      secondScore: 0.7,
+      evidence: highEvidence,
+      outcomes,
+    })
+
+    expect(result.level).toBe('high')
+    expect(result.detail).toContain('5 human outcome signals')
   })
 })

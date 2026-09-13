@@ -85,6 +85,23 @@ describe('pickInformationRoute', () => {
     expect(route[1].selectionReason).toContain('local option')
   })
 
+  it('uses evidence scarcity to prefer an under-tested but similarly credible candidate', () => {
+    const models = [
+      model('anchor', 'Provider A', 0.90, 0.03),
+      model('well-tested', 'Provider B', 0.885, 0.02),
+      model('under-tested', 'Provider B', 0.88, 0.02),
+    ]
+
+    const route = pickInformationRoute(models, {
+      k: 2,
+      runnable: allRunnable,
+      outcomeScarcity: (slug) => slug === 'under-tested' ? 1 : 0,
+    })
+
+    expect(route[1].model.slug).toBe('under-tested')
+    expect(route[1].selectionReason).toContain('little real-world evidence')
+  })
+
   it('skips unrunnable candidates', () => {
     const models = [
       model('anchor', 'Provider A', 0.90, 0.03),
