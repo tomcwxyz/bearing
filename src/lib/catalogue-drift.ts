@@ -157,7 +157,7 @@ export function buildCatalogueDriftReview(
     if (providerMatch && !providerMatch.remote) {
       availabilityConcern = {
         source: providerMatch.source,
-        message: `Provider catalogue did not return ${model.providerModelId}. Review availability before changing active state.`,
+        message: `Provider catalogue did not return ${model.providerModelId}. This is evidence for review, not an automatic deactivation.`,
       }
     } else if (!providerMatch && openRouterModels && model.openrouterId && !openRouterRemote) {
       availabilityConcern = {
