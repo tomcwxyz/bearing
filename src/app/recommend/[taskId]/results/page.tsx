@@ -17,6 +17,7 @@ import {
   type RecommendationEvidence,
 } from '@/lib/recommendation-evidence'
 import { recommendationConfidence } from '@/lib/recommendation-confidence'
+import { selectTradeoffAlternatives } from '@/lib/tradeoff-alternatives'
 
 function parsePriorityOrder(value: unknown): Factor[] {
   if (!value) return []
@@ -129,6 +130,11 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
     benchmark: models[0] ? benchmarkBySlug[models[0].slug] : null,
   })
 
+  const featuredAlternatives = selectTradeoffAlternatives(models, {
+    limit: 2,
+    isLocal: (slug) => Boolean(getModel(slug)?.local_info),
+  })
+
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto">
@@ -157,6 +163,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
           evidenceBySlug={evidenceBySlug}
           outcomeBySlug={outcomeBySlug}
           benchmarkBySlug={benchmarkBySlug}
+          featuredAlternatives={featuredAlternatives}
           decisionConfidence={decisionConfidence}
         />
       </div>
