@@ -33,6 +33,17 @@ describe('taskRelativeCapabilityScore', () => {
     expect(withReasoning).toBe(1)
   })
 
+  it('treats extended thinking as relevant for complex work', () => {
+    const withoutThinking = taskRelativeCapabilityScore(model([]), { complexity: 'complex' })
+    const withThinking = taskRelativeCapabilityScore(
+      model(['extended_thinking']),
+      { complexity: 'complex' },
+    )
+
+    expect(withoutThinking).toBeCloseTo(0.85, 6)
+    expect(withThinking).toBe(1)
+  })
+
   it('does not double-reward a capability that is already required', () => {
     const toolsOnly = taskRelativeCapabilityScore(
       model(['tools']),
