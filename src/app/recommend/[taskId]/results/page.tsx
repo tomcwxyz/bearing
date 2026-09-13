@@ -8,6 +8,8 @@ import type { ScoredModel, Exclusion, HardFilterReason } from '@/lib/scoring'
 import type { PipelineResult } from '@/lib/pipeline'
 import type { LocalInferenceResult } from '@/lib/local-inference'
 import { getModelVerificationSummaries } from '@/db/model-verification'
+import { getOutcomeEvidenceForModels } from '@/db/outcome-evidence'
+import type { ModelOutcomeEvidence } from '@/lib/outcome-evidence'
 import {
   recommendationEvidence,
   type RecommendationEvidence,
@@ -85,11 +87,25 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
     )
   }
 
+  let outcomeBySlug: Record<string, ModelOutcomeEvidence> = {}
+  try {
+    outcomeBySlug = await getOutcomeEvidenceForModels({
+      taskType: task.task_type,
+      complexity: task.complexity,
+      modelSlugs: models.map((model) => model.slug),
+    })
+  } catch (error) {
+    // Outcome evidence is additive. A temporary analytics/query problem must
+    // never block a recommendation from being shown.
+    console.warn('[results] outcome evidence unavailable', error)
+  }
+
   const decisionConfidence = recommendationConfidence({
     classificationConfidence: task.classification_confidence,
     topScore: models[0]?.weightedScore,
     secondScore: models[1]?.weightedScore,
     evidence: models[0] ? evidenceBySlug[models[0].slug] : null,
+    outcomes: models[0] ? outcomeBySlug[models[0].slug] : null,
   })
 
   return (
@@ -118,6 +134,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
           pipeline={pipeline}
           local={local}
           evidenceBySlug={evidenceBySlug}
+          outcomeBySlug={outcomeBySlug}
           decisionConfidence={decisionConfidence}
         />
       </div>
