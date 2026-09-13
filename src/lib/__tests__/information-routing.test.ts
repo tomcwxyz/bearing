@@ -102,6 +102,23 @@ describe('pickInformationRoute', () => {
     expect(route[1].selectionReason).toContain('little real-world evidence')
   })
 
+  it('uses benchmark disagreement to choose an informative similarly credible challenger', () => {
+    const models = [
+      model('anchor', 'Provider A', 0.90, 0.03),
+      model('aligned', 'Provider B', 0.885, 0.02),
+      model('disputed', 'Provider B', 0.88, 0.02),
+    ]
+
+    const route = pickInformationRoute(models, {
+      k: 2,
+      runnable: allRunnable,
+      benchmarkUncertainty: (slug) => slug === 'disputed' ? 1 : 0,
+    })
+
+    expect(route[1].model.slug).toBe('disputed')
+    expect(route[1].selectionReason).toContain('benchmark disagreement')
+  })
+
   it('skips unrunnable candidates', () => {
     const models = [
       model('anchor', 'Provider A', 0.90, 0.03),

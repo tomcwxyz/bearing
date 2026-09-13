@@ -1,3 +1,4 @@
+import type { BenchmarkEvidence } from './benchmark-evidence'
 import type { ModelOutcomeEvidence } from './outcome-evidence'
 import type { RecommendationEvidence } from './recommendation-evidence'
 
@@ -17,6 +18,7 @@ export interface RecommendationConfidenceInput {
   secondScore?: number | null
   evidence?: RecommendationEvidence | null
   outcomes?: ModelOutcomeEvidence | null
+  benchmark?: BenchmarkEvidence | null
 }
 
 function scoreSeparation(topScore?: number | null, secondScore?: number | null): number | null {
@@ -30,9 +32,9 @@ function scoreSeparation(topScore?: number | null, secondScore?: number | null):
  * the weighted score is a calibrated probability.
  *
  * Signals are independent evidence channels: classifier confidence, separation
- * between leading candidates, catalogue freshness and supported human outcome
- * evidence. Blind-judge outcomes remain visible elsewhere but deliberately do
- * not change recommendation confidence.
+ * between leading candidates, catalogue freshness, benchmark/curated agreement
+ * and supported human outcome evidence. Blind-judge outcomes remain visible
+ * elsewhere but deliberately do not change recommendation confidence.
  */
 export function recommendationConfidence(
   input: RecommendationConfidenceInput,
@@ -41,6 +43,7 @@ export function recommendationConfidence(
   const separation = scoreSeparation(input.topScore, input.secondScore)
   const evidenceLevel = input.evidence?.level ?? 'unknown'
   const outcomes = input.outcomes ?? null
+  const benchmark = input.benchmark ?? null
 
   const classificationLow = classification != null && classification < 0.65
   const classificationStrong = classification != null && classification >= 0.8
@@ -54,13 +57,22 @@ export function recommendationConfidence(
   const outcomeContradiction = supportedHumanOutcomes && humanOutcomeShare != null && humanOutcomeShare < 0.4
   const outcomeSupportive = supportedHumanOutcomes && humanOutcomeShare != null && humanOutcomeShare >= 0.6
 
-  if (classificationLow || veryClose || weakEvidence || outcomeContradiction) {
+  const supportedBenchmarkDisagreement = benchmark?.agreement === 'strong_disagreement' &&
+    (benchmark.strength === 'high' || benchmark.strength === 'medium')
+  const benchmarkTension = benchmark?.agreement === 'tension' || benchmark?.agreement === 'strong_disagreement'
+  const benchmarkAligned = benchmark?.agreement === 'aligned' &&
+    (benchmark.strength === 'high' || benchmark.strength === 'medium')
+
+  if (classificationLow || veryClose || weakEvidence || outcomeContradiction || supportedBenchmarkDisagreement) {
     const reasons: string[] = []
     if (classificationLow) reasons.push('the task classification is still somewhat uncertain')
     if (veryClose) reasons.push('the leading models are very close in the ranking')
     if (weakEvidence) reasons.push('the top model has catalogue evidence that needs attention')
     if (outcomeContradiction) {
       reasons.push(`human outcome evidence is currently weak for similar work (${outcomes!.humanSupport} signals)`)
+    }
+    if (supportedBenchmarkDisagreement) {
+      reasons.push('current external benchmark evidence strongly disagrees with the curated task score')
     }
 
     return {
@@ -72,13 +84,19 @@ export function recommendationConfidence(
     }
   }
 
-  if (classificationStrong && clearlySeparated && strongEvidence) {
+  if (classificationStrong && clearlySeparated && strongEvidence && !benchmarkTension) {
+    const supports: string[] = [
+      'The task classification is strong',
+      'the leading recommendation is clearly separated',
+      'its catalogue evidence is current',
+    ]
+    if (benchmarkAligned) supports.push('external benchmark evidence broadly agrees with the curated score')
+    if (outcomeSupportive) supports.push(`${outcomes!.humanSupport} human outcome signals are supportive`)
+
     return {
       level: 'high',
       label: 'Recommendation confidence: high',
-      detail: outcomeSupportive
-        ? `The task classification is strong, the leading recommendation is clearly separated, its catalogue evidence is current, and ${outcomes!.humanSupport} human outcome signals are supportive.`
-        : 'The task classification is strong, the leading recommendation is clearly separated, and its catalogue evidence is current.',
+      detail: `${supports.join(', ')}.`,
       shouldChallenge: false,
       scoreSeparation: separation,
     }
@@ -98,13 +116,21 @@ export function recommendationConfidence(
     reasons.push(`human outcome evidence is still early (${outcomes.humanSupport} signals)`)
   }
 
+  if (benchmarkTension) {
+    reasons.push(
+      benchmark?.strength === 'low'
+        ? 'benchmark evidence disagrees, but its support is weak or stale'
+        : 'benchmark and curated evidence are not fully aligned',
+    )
+  }
+
   return {
     level: 'medium',
     label: 'Recommendation confidence: medium',
     detail: reasons.length > 0
       ? `${reasons.join('; ')}. The recommendation is usable, but testing a strong alternative may still be informative.`
       : 'The recommendation is supported, but the available evidence does not justify a high-confidence label yet.',
-    shouldChallenge: separation != null && separation < 0.05,
+    shouldChallenge: (separation != null && separation < 0.05) || (benchmark?.uncertainty ?? 0) >= 0.6,
     scoreSeparation: separation,
   }
 }

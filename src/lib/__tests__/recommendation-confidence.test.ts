@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { benchmarkEvidence } from '../benchmark-evidence'
 import { summariseOutcomeEvidence } from '../outcome-evidence'
 import { recommendationConfidence } from '../recommendation-confidence'
 
@@ -17,6 +18,8 @@ const lowEvidence = {
   source: 'openrouter',
   verifiedAt: '2026-09-13T10:00:00.000Z',
 }
+
+const benchmarkNow = new Date('2026-09-13T12:00:00Z')
 
 describe('recommendationConfidence', () => {
   it('reports high confidence when classification, separation and evidence are all strong', () => {
@@ -109,5 +112,57 @@ describe('recommendationConfidence', () => {
 
     expect(result.level).toBe('high')
     expect(result.detail).toContain('5 human outcome signals')
+  })
+
+  it('lowers confidence when fresh multi-source benchmark evidence strongly contradicts the curated score', () => {
+    const benchmark = benchmarkEvidence({
+      curatedScore: 0.9,
+      aggregate: {
+        score: 0.58,
+        sourceCount: 3,
+        categoryCount: 4,
+        latestSnapshot: '2026-09-05',
+        totalVotes: 4000,
+      },
+      now: benchmarkNow,
+    })
+
+    const result = recommendationConfidence({
+      classificationConfidence: 0.92,
+      topScore: 0.84,
+      secondScore: 0.7,
+      evidence: highEvidence,
+      benchmark,
+    })
+
+    expect(result.level).toBe('low')
+    expect(result.shouldChallenge).toBe(true)
+    expect(result.detail).toContain('benchmark evidence strongly disagrees')
+  })
+
+  it('does not let stale single-source disagreement create false certainty', () => {
+    const benchmark = benchmarkEvidence({
+      curatedScore: 0.9,
+      aggregate: {
+        score: 0.58,
+        sourceCount: 1,
+        categoryCount: 1,
+        latestSnapshot: '2025-01-01',
+        totalVotes: null,
+      },
+      now: benchmarkNow,
+    })
+
+    const result = recommendationConfidence({
+      classificationConfidence: 0.92,
+      topScore: 0.84,
+      secondScore: 0.7,
+      evidence: highEvidence,
+      benchmark,
+    })
+
+    expect(result.level).toBe('medium')
+    expect(result.shouldChallenge).toBe(true)
+    expect(result.detail).toContain('weak or stale')
   })
 })
