@@ -14,8 +14,12 @@ function ageLabel(ageDays: number | null): string {
   return `${Math.floor(ageDays)}d ago`
 }
 
+function isCatalogueLinked(summary: ModelVerificationSummary): boolean {
+  return Boolean(summary.providerModelId || summary.openrouterId)
+}
+
 function freshnessClasses(summary: ModelVerificationSummary): string {
-  if (!summary.openrouterId) return 'border-navy/15 bg-navy/5 text-navy/60'
+  if (!isCatalogueLinked(summary)) return 'border-navy/15 bg-navy/5 text-navy/60'
   const assessment = assessModelFreshness(summary)
   if (assessment.status === 'current' && !assessment.isStale) {
     return 'border-teal/30 bg-teal/5 text-teal'
@@ -31,7 +35,7 @@ function FreshnessCell({ summary }: { summary?: ModelVerificationSummary }) {
     return <span className="text-xs text-navy/40">Not loaded</span>
   }
 
-  if (!summary.openrouterId) {
+  if (!isCatalogueLinked(summary)) {
     return (
       <span className="rounded-full border border-navy/15 bg-navy/5 px-2 py-0.5 text-[10px] font-medium text-navy/60">
         No catalogue link
@@ -40,13 +44,14 @@ function FreshnessCell({ summary }: { summary?: ModelVerificationSummary }) {
   }
 
   const assessment = assessModelFreshness(summary)
+  const mappingSource = summary.providerModelId ? 'provider' : 'OpenRouter'
   return (
     <div className="space-y-1" title={summary.verification_note ?? summary.verification_source ?? undefined}>
       <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${freshnessClasses(summary)}`}>
         {freshnessLabel(assessment)}
       </span>
       <div className="font-mono text-[10px] text-navy/45">
-        {ageLabel(assessment.ageDays)}
+        {mappingSource} · {ageLabel(assessment.ageDays)}
       </div>
     </div>
   )
@@ -69,9 +74,10 @@ export default function ModelsTable({
   )
 
   const activeVerification = verification.filter((row) => row.active)
-  const mappedCount = activeVerification.filter((row) => row.openrouterId).length
+  const mappedCount = activeVerification.filter(isCatalogueLinked).length
+  const providerMappedCount = activeVerification.filter((row) => row.providerModelId).length
   const needsAttentionCount = activeVerification.filter((row) => (
-    row.openrouterId ? assessModelFreshness(row).needsAttention : false
+    isCatalogueLinked(row) ? assessModelFreshness(row).needsAttention : false
   )).length
 
   function verifyCatalogue() {
@@ -85,7 +91,7 @@ export default function ModelsTable({
 
       const report = result.report
       setFeedback(
-        `Checked ${report.checked} mapped models: ${report.current} current, ${report.attention} need review, ${report.unavailable} unavailable.`,
+        `Checked ${report.checked} models: ${report.current} current, ${report.attention} need review, ${report.unavailable} unavailable.`,
       )
       router.refresh()
     })
@@ -100,12 +106,12 @@ export default function ModelsTable({
           </p>
           {verification.length > 0 ? (
             <p className="mt-1 text-xs text-navy/45">
-              {mappedCount} active models linked to OpenRouter
+              {mappedCount} active models linked to a catalogue · {providerMappedCount} provider-native
               {needsAttentionCount > 0 ? ` · ${needsAttentionCount} need attention` : ' · catalogue looks current'}
             </p>
           ) : (
             <p className="mt-1 text-xs text-coral/80">
-              Freshness data is not available yet. Apply migration 026 to enable catalogue verification.
+              Freshness data is not available yet. Apply the latest catalogue migrations to enable verification.
             </p>
           )}
           {feedback && (
@@ -171,12 +177,20 @@ export default function ModelsTable({
                   ${model.pricing.input_per_1m}/{model.pricing.output_per_1m}
                 </td>
                 <td className="px-3 py-2 text-right">
-                  <Link
-                    href={`/admin/models/${model.slug}`}
-                    className="text-teal hover:text-teal-light text-sm underline underline-offset-2"
-                  >
-                    Edit
-                  </Link>
+                  <div className="flex justify-end gap-3">
+                    <Link
+                      href={`/admin/models/${model.slug}/identifiers`}
+                      className="text-navy/55 hover:text-navy text-sm underline underline-offset-2"
+                    >
+                      IDs
+                    </Link>
+                    <Link
+                      href={`/admin/models/${model.slug}`}
+                      className="text-teal hover:text-teal-light text-sm underline underline-offset-2"
+                    >
+                      Edit
+                    </Link>
+                  </div>
                 </td>
               </tr>
             ))}
