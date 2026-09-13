@@ -40,5 +40,8 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Golden ranking evaluation
+        run: npm run eval:ranking
+
       - name: Production build
         run: npm run build
