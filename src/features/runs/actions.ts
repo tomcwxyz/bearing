@@ -246,10 +246,7 @@ export async function challengeAnswer(taskId: string, formData: FormData) {
     if (route.length < 2) return { error: 'No strong runnable alternative is available to challenge this answer.' }
 
     const [primaryEntry, challengerEntry] = route
-    const [primaryModel, challengerModel] = await Promise.all([
-      getModelFromDb(primaryEntry.model.slug),
-      getModelFromDb(challengerEntry.model.slug),
-    ])
+    const challengerModel = await getModelFromDb(challengerEntry.model.slug)
 
     const parsedFile = await parseRunFile(formData)
     if (parsedFile && 'error' in parsedFile) return parsedFile
