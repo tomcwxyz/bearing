@@ -212,6 +212,7 @@ function qualityScore(
 
 function capabilityScore(model: Model, input: ScoringInput): number {
   return taskRelativeCapabilityScore(model, {
+    complexity: input.complexity,
     needsVision: input.needsVision,
     needsTools: input.needsTools,
     needsCode: input.needsCode,
