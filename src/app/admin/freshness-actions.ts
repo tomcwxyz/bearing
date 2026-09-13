@@ -2,8 +2,7 @@
 
 import { getCurrentUser } from '@/lib/auth'
 import { isUserAdmin } from '@/lib/db'
-import { runOpenRouterCatalogueVerification } from '@/lib/verify-catalogue'
-import type { CatalogueVerificationReport } from '@/lib/catalogue-verification'
+import { runCatalogueVerification, type CatalogueVerificationRunReport } from '@/lib/verify-catalogue'
 
 async function requireAdmin(): Promise<void> {
   const user = await getCurrentUser()
@@ -12,15 +11,15 @@ async function requireAdmin(): Promise<void> {
   if (!admin) throw new Error('Not authorised')
 }
 
-export async function verifyOpenRouterCatalogueAdmin(): Promise<{
+export async function verifyCatalogueAdmin(): Promise<{
   success: boolean
-  report?: Omit<CatalogueVerificationReport, 'observations'>
+  report?: Omit<CatalogueVerificationRunReport, 'observations'>
   error?: string
 }> {
   await requireAdmin()
 
   try {
-    const { observations: _observations, ...report } = await runOpenRouterCatalogueVerification()
+    const { observations: _observations, ...report } = await runCatalogueVerification()
     return { success: true, report }
   } catch (error: unknown) {
     return {
