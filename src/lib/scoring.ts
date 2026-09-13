@@ -1,5 +1,6 @@
 import { ALL_TASK_TYPES, getAllModels, type Factor, type Model } from './registry'
 import { priorityToWeights } from './weights'
+import { taskRelativeCapabilityScore } from './capability-fit'
 
 export interface ScoringInput {
   taskType: string
@@ -209,13 +210,15 @@ function qualityScore(
   return curated * (1 - blend) + benchmark * blend
 }
 
-function capabilityScore(model: Model, needs: { vision: boolean; tools: boolean; code: boolean }): number | null {
-  if (needs.vision && !model.capabilities.includes('vision')) return null
-  if (needs.tools && !model.capabilities.includes('tools')) return null
-  if (needs.code && !model.capabilities.includes('code')) return null
-  const allCaps = ['vision', 'tools', 'code', 'long_context', 'extended_thinking', 'structured_output', 'multilingual', 'audio', 'video']
-  const modelCaps = model.capabilities.filter(c => allCaps.includes(c))
-  return modelCaps.length / allCaps.length
+function capabilityScore(model: Model, input: ScoringInput): number {
+  return taskRelativeCapabilityScore(model, {
+    needsVision: input.needsVision,
+    needsTools: input.needsTools,
+    needsCode: input.needsCode,
+    needsReasoning: input.needsReasoning,
+    needsMultilingual: input.needsMultilingual,
+    isAgentic: input.isAgentic,
+  })
 }
 
 // Phase 5.1: hard filters live in one place so they're testable in isolation
@@ -324,13 +327,10 @@ export function scoreModelsDetailed(input: ScoringInput): ScoringResult {
       continue
     }
 
-    const capScore = capabilityScore(model, {
-      vision: input.needsVision,
-      tools: input.needsTools,
-      code: input.needsCode,
-    })!
-    // capScore can no longer be null — hardFilter has already rejected the
-    // missing-capability cases above.
+    // Required capabilities have already been enforced by hardFilter(). The
+    // capability factor now reflects only optional task-relevant capability
+    // signals, rather than rewarding a model for unrelated feature breadth.
+    const capScore = capabilityScore(model, input)
 
     const factorScores: Record<Factor, number> = {
       cost: costScore(model, models, input.inputLength, weights.cost, outputLength),
