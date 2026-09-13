@@ -7,6 +7,10 @@
     {
       "path": "/api/admin/catalogue-verify",
       "schedule": "0 4 * * 1"
+    },
+    {
+      "path": "/api/admin/routability-verify",
+      "schedule": "0 5 * * *"
     }
   ]
 }
