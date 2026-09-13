@@ -2,6 +2,7 @@ import type { Capability, Model } from './registry'
 
 export interface CapabilityTaskSignals {
   complexity?: string
+  inputLength?: string
   needsVision?: boolean
   needsTools?: boolean
   needsCode?: boolean
@@ -32,6 +33,7 @@ export function taskRelativeCapabilityScore(
 
   const useful = new Set<Capability>()
   if (signals.needsReasoning || signals.complexity === 'complex') useful.add('extended_thinking')
+  if (signals.inputLength === 'long' || signals.inputLength === 'very_long') useful.add('long_context')
   if (signals.needsMultilingual) useful.add('multilingual')
   if (signals.isAgentic) {
     useful.add('tools')
