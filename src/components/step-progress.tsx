@@ -3,7 +3,7 @@
 const STEPS = [
   { key: 'describe', label: 'Describe' },
   { key: 'clarify', label: 'Clarify' },
-  { key: 'prioritize', label: 'Prioritize' },
+  { key: 'prioritize', label: 'Adjust' },
   { key: 'results', label: 'Results' },
 ] as const
 
@@ -11,12 +11,22 @@ export type StepKey = (typeof STEPS)[number]['key']
 
 interface StepProgressProps {
   current: StepKey
-  /** Hide the clarify step when classification was confident enough to skip it */
+  /** Hide the clarify step when classification was confident enough to skip it. */
   hideClarify?: boolean
+  /** Hide manual priority adjustment when Bearing inferred priorities automatically. */
+  hidePrioritize?: boolean
 }
 
-export function StepProgress({ current, hideClarify = false }: StepProgressProps) {
-  const steps = hideClarify ? STEPS.filter((s) => s.key !== 'clarify') : [...STEPS]
+export function StepProgress({
+  current,
+  hideClarify = false,
+  hidePrioritize = false,
+}: StepProgressProps) {
+  const steps = STEPS.filter((step) => {
+    if (hideClarify && step.key === 'clarify') return false
+    if (hidePrioritize && step.key === 'prioritize') return false
+    return true
+  })
   const currentIndex = steps.findIndex((s) => s.key === current)
 
   return (
@@ -29,7 +39,6 @@ export function StepProgress({ current, hideClarify = false }: StepProgressProps
 
           return (
             <li key={step.key} className="flex items-center">
-              {/* Step circle + label */}
               <div className="flex flex-col items-center">
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold font-mono transition-all duration-300 ${
@@ -57,7 +66,6 @@ export function StepProgress({ current, hideClarify = false }: StepProgressProps
                 </span>
               </div>
 
-              {/* Connector line */}
               {!isLast && (
                 <div className="mx-2 mb-5 h-0.5 w-8 sm:w-12">
                   <div

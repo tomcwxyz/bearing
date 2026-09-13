@@ -38,8 +38,58 @@ interface ResultsClientProps {
   local?: LocalInferenceResult | null
 }
 
-/** Model cards shown before the "Show all" expander. */
-const VISIBLE_MODEL_COUNT = 5
+/** Keep the default decision small. The full ranking remains available. */
+const VISIBLE_MODEL_COUNT = 3
+
+function RecommendationLabel({ rank }: { rank: number }) {
+  if (rank === 1) {
+    return (
+      <span className="rounded-full bg-coral px-2.5 py-1 text-xs font-semibold text-white">
+        Best fit
+      </span>
+    )
+  }
+  return (
+    <span className="rounded-full bg-cream-dark px-2.5 py-1 text-xs font-medium text-navy/60">
+      Alternative #{rank}
+    </span>
+  )
+}
+
+function FactorDetails({ model }: { model: ScoredModel }) {
+  return (
+    <details className="mt-4 ml-9 rounded-lg border border-cream-dark bg-cream/30 px-4 py-3">
+      <summary className="cursor-pointer font-display text-sm font-medium text-navy">
+        Why this model?
+      </summary>
+      <div className="mt-4 space-y-2">
+        {FACTORS.map((factor) => {
+          const score = model.factorScores[factor] ?? 0
+          const pct = Math.min(100, Math.round(score * 100))
+          return (
+            <div key={factor} className="flex items-center gap-3">
+              <span className="w-28 shrink-0 text-navy/60 text-xs font-mono">
+                {FACTOR_LABELS[factor]}
+              </span>
+              <div className="h-2 flex-1 rounded-full bg-cream-dark">
+                <div
+                  className="h-2 rounded-full bg-teal"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <span className="w-8 shrink-0 text-right text-navy/70 text-xs font-mono font-semibold">
+                {pct}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+      <p className="mt-3 text-xs leading-relaxed text-grey-blue">
+        These are factor scores used in Bearing&apos;s ranking, not confidence percentages.
+      </p>
+    </details>
+  )
+}
 
 export function ResultsClient({ taskId, models, reasoning, pipeline, local }: ResultsClientProps) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
@@ -75,10 +125,6 @@ export function ResultsClient({ taskId, models, reasoning, pipeline, local }: Re
         const isTop = rank === 1
         const isSelected = selectedSlug === model.slug
         const isDisabled = selectedSlug !== null && !isSelected
-        // Quality factor can exceed 1.0 via reasoning/multilingual/agentic
-        // boosts (intentional for ordering); cap the displayed % at 100 so
-        // the bar never overflows its container.
-        const matchPercent = Math.min(100, Math.round(model.weightedScore * 100))
 
         return (
           <div
@@ -90,68 +136,26 @@ export function ResultsClient({ taskId, models, reasoning, pipeline, local }: Re
             }`}
             style={{ animationDelay: `${index * 100}ms` }}
           >
-            {/* Header row */}
             <div className="flex items-start justify-between gap-4 mb-3">
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-mono text-lg font-bold ${
-                      isTop
-                        ? 'bg-coral text-white'
-                        : 'bg-cream-dark text-navy'
-                    }`}
-                  >
-                    {rank}
-                  </span>
-                  <h3 className="font-display text-xl font-bold text-navy">
-                    {model.name}
-                  </h3>
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <RecommendationLabel rank={rank} />
+                  <span className="text-xs text-navy/40">{model.provider}</span>
                 </div>
-                <p className="mt-0.5 ml-9 text-navy/60 text-sm">
-                  {model.provider}
-                </p>
+                <h3 className="font-display text-xl font-bold text-navy">
+                  {model.name}
+                </h3>
               </div>
-              <div className="shrink-0 text-right">
-                <p className="font-mono text-3xl font-bold text-navy">
-                  {matchPercent}%
-                </p>
-                <p className="text-grey-blue text-xs">match</p>
-              </div>
+              <span className="font-mono text-sm text-navy/35">#{rank}</span>
             </div>
 
-            {/* Reasoning */}
             {reasoning[model.slug] && (
-              <p className="mb-4 ml-9 text-navy/70 italic text-sm leading-relaxed">
+              <p className="mb-4 text-navy/75 text-sm leading-relaxed">
                 {reasoning[model.slug]}
               </p>
             )}
 
-            {/* Factor bars */}
-            <div className="mb-4 ml-9 space-y-2">
-              {FACTORS.map((factor) => {
-                const score = model.factorScores[factor] ?? 0
-                const pct = Math.min(100, Math.round(score * 100))
-                return (
-                  <div key={factor} className="flex items-center gap-3">
-                    <span className="w-28 shrink-0 text-navy/60 text-xs font-mono">
-                      {FACTOR_LABELS[factor]}
-                    </span>
-                    <div className="flex-1 h-2 rounded-full bg-cream-dark">
-                      <div
-                        className="h-2 rounded-full bg-teal"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <span className="w-8 shrink-0 text-right text-navy/70 text-xs font-mono font-semibold">
-                      {pct}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Cost + action */}
-            <div className="flex items-center justify-between ml-9">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="font-mono text-sm text-navy/60">
                 ~${model.estimatedCost.toFixed(4)} per task
               </p>
@@ -168,14 +172,12 @@ export function ResultsClient({ taskId, models, reasoning, pipeline, local }: Re
                       : 'bg-navy text-cream hover:bg-navy-light'
                 }`}
               >
-                {isSelected ? 'Selected' : 'Use this one'}
+                {isSelected ? 'Selected' : isTop ? 'Use this recommendation' : 'Use this instead'}
               </button>
             </div>
 
-            {/* Run the user's real prompt on this specific model (Route,
-                Trio anchored here, or Challenger anchored here). Available
-                on every card, not just the top one, so a user can choose
-                any ranked model to actually run against. */}
+            <FactorDetails model={model} />
+
             <div className="mt-4 ml-9">
               <RunSurface taskId={taskId} modelSlug={model.slug} modelName={model.name} />
             </div>
@@ -190,7 +192,7 @@ export function ResultsClient({ taskId, models, reasoning, pipeline, local }: Re
             onClick={() => setShowAllModels(true)}
             className="btn-secondary"
           >
-            Show all {models.length} models
+            Show full ranking ({models.length} models)
           </button>
         </div>
       )}

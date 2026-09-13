@@ -1,10 +1,22 @@
+import Link from 'next/link'
 import { getResults } from '@/app/actions'
 import { ResultsClient } from './results-client'
 import { StepProgress } from '@/components/step-progress'
-import { TASK_TYPE_LABELS } from '@/lib/registry'
+import { TASK_TYPE_LABELS, type Factor } from '@/lib/registry'
+import { describeBearing, deriveBearingPriorities } from '@/lib/bearing-policy'
 import type { ScoredModel, Exclusion, HardFilterReason } from '@/lib/scoring'
 import type { PipelineResult } from '@/lib/pipeline'
 import type { LocalInferenceResult } from '@/lib/local-inference'
+
+function parsePriorityOrder(value: unknown): Factor[] {
+  if (!value) return []
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value
+    return Array.isArray(parsed) ? parsed as Factor[] : []
+  } catch {
+    return []
+  }
+}
 
 export default async function ResultsPage({ params }: { params: Promise<{ taskId: string }> }) {
   const { taskId } = await params
@@ -22,7 +34,21 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
   }
 
   const { task, models, reasoning, pipeline, local, excluded } = result as unknown as {
-    task: { task_type: string }
+    task: {
+      task_type: string
+      priority_order?: unknown
+      complexity?: string | null
+      needs_reasoning?: boolean | null
+      needs_vision?: boolean | null
+      needs_tools?: boolean | null
+      needs_code?: boolean | null
+      data_sensitivity?: string | null
+      latency_target?: string | null
+      volume?: string | null
+      needs_long_context?: boolean | null
+      needs_multilingual?: boolean | null
+      is_agentic?: boolean | null
+    }
     models: ScoredModel[]
     reasoning: Record<string, string>
     pipeline: (PipelineResult & { reasoning: string }) | null
@@ -30,15 +56,29 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
     excluded?: Exclusion[]
   }
 
+  const persistedPriorityOrder = parsePriorityOrder(task.priority_order)
+  const priorityOrder = persistedPriorityOrder.length > 0
+    ? persistedPriorityOrder
+    : deriveBearingPriorities(task)
+
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto">
-        <StepProgress current="results" hideClarify />
+        <StepProgress current="results" hideClarify hidePrioritize />
 
-        <h2 className="text-2xl font-bold mb-2 font-display text-navy">Your results</h2>
-        <p className="text-grey-blue mb-8">
-          Ranked for <strong>{(TASK_TYPE_LABELS as Record<string, string>)[task.task_type] ?? task.task_type}</strong> tasks based on your priorities
+        <h2 className="text-2xl font-bold mb-2 font-display text-navy">Your bearing</h2>
+        <p className="text-grey-blue">
+          Ranked for <strong>{(TASK_TYPE_LABELS as Record<string, string>)[task.task_type] ?? task.task_type}</strong> tasks.
         </p>
+        <div className="mb-8 mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-teal/20 bg-teal/5 px-4 py-3">
+          <p className="flex-1 text-sm text-navy/75">{describeBearing(priorityOrder)}</p>
+          <Link
+            href={`/recommend/${taskId}/priorities?adjust=1`}
+            className="text-sm font-medium text-teal underline-offset-2 hover:underline"
+          >
+            Adjust bearing
+          </Link>
+        </div>
         {excluded && excluded.length > 0 && <ExclusionSummary excluded={excluded} />}
         <ResultsClient
           taskId={taskId}
@@ -52,9 +92,6 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
   )
 }
 
-// Phase 5.4: one-line summary of which models were dropped by hard filters
-// and why. Reasons are grouped so the user sees "5 models excluded because
-// they require cloud hosting" rather than a flat list.
 const REASON_LABELS: Record<HardFilterReason, string> = {
   long_context: 'their context window is too small',
   on_prem_required: 'they cannot run on-prem',
