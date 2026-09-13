@@ -1,6 +1,6 @@
 # Bearing 1.0 — reorientation roadmap
 
-**Status:** 1.0-alpha.3 in progress  
+**Status:** 1.0-alpha.3 substantially complete  
 **Started:** 2026-09-13  
 **Theme:** Infer → recommend → run → challenge → learn
 
@@ -144,7 +144,7 @@ Current capability scoring rewards the number of capabilities a model has after 
 - useful-but-not-required capabilities can add small contextual value;
 - unrelated capabilities (e.g. audio for a text-only task) should not improve the score.
 
-**Status:** implemented 2026-09-13. Required capabilities stay as hard filters; optional reasoning, multilingual and agentic capabilities provide limited task-relative headroom; unrelated capability breadth is neutral.
+**Status:** implemented 2026-09-13. Required capabilities stay as hard filters; optional reasoning, multilingual, long-context and agentic capabilities provide limited task-relative headroom; unrelated capability breadth is neutral.
 
 ### P1.3 Revisit benchmark disagreement handling
 
@@ -174,6 +174,8 @@ Do not use raw prompts. Use the structured task attributes already stored.
 
 First use outcome data as a displayed confidence/evidence layer. Only later blend it into ranking once there is enough support.
 
+**Status:** implemented as an evidence layer in 1.0-alpha.3. Human outcomes/preferences are aggregated separately from blind-judge evidence, with task-type + complexity cohorts where support allows and broader task-type fallback while sparse. Supported contradiction can lower recommendation confidence, but outcome data does not yet alter ranking.
+
 ## P1 — experimentation and learning
 
 ### P1.5 Information-seeking Trio
@@ -189,6 +191,8 @@ Today Trio chooses the anchor plus the next runnable models by rank. Evolve this
 
 Record why each challenger was selected.
 
+**Status:** implemented 2026-09-13. Trio preserves the recommendation anchor, then chooses credible alternatives for information value across provider, cost, factor profile, local-vs-hosted and outcome-evidence scarcity. Original recommendation rank and selection rationale are recorded separately. Benchmark-disagreement value remains to be added once P1.3 is reworked.
+
 ### P1.6 Challenger as a product behaviour, not a mode tab
 
 Use Challenger contextually after an answer:
@@ -196,6 +200,8 @@ Use Challenger contextually after an answer:
 > “Want Bearing to challenge this answer with a strong alternative?”
 
 This is easier to understand than presenting Route / Trio / Challenger as three equal configuration modes before the user has run anything.
+
+**Status:** implemented 2026-09-13. Challenger is offered after a successful answer, selects an informative alternative, and reuses the answer already shown rather than running the primary model twice.
 
 ## P1 — account and continuity
 
@@ -250,6 +256,8 @@ src/features/
 
 Keep server actions thin. Business logic should be callable independently from UI transport.
 
+> Started: the new contextual Challenger / information-seeking Trio behaviour lives under `src/features/runs/`, including isolated run-message handling, rather than expanding `src/app/actions.ts` further.
+
 ### P1.10 Split database access by aggregate
 
 Move away from one growing `db.ts` towards repositories such as:
@@ -266,7 +274,7 @@ src/db/
 
 Remove direct SQL from UI/server-action modules; `submitClarification` is an early target.
 
-> Started: catalogue verification now uses a dedicated DB repository instead of expanding the monolithic `db.ts`.
+> Started: catalogue verification, routability observations, routed-selection rationale and outcome evidence now use dedicated DB repositories instead of expanding the monolithic `db.ts`.
 
 ### P1.11 Runtime validation for classifier output
 
@@ -319,7 +327,7 @@ Introduce confidence based on evidence rather than score magnitude, e.g.:
 
 Low-confidence recommendations should invite a comparison/challenge.
 
-**Status:** first implementation landed 2026-09-13 using classification confidence, top-two relative separation and catalogue freshness. It is deliberately labelled decision evidence rather than a probability. Benchmark agreement and outcome support remain to be added.
+**Status:** classification confidence, top-two relative separation, catalogue freshness and supported human outcome evidence are implemented as separate decision-evidence signals. Blind-judge outcomes remain separate from human support. Benchmark/curated agreement is the main remaining confidence input.
 
 ## P2 — freshness automation
 
@@ -357,7 +365,7 @@ Prefer provider primary sources for canonical capability/status and OpenRouter f
 
 A failed verification should not silently rewrite editorial scores. Store the observation and require approval for material metadata changes unless the field is safe to automate (availability, endpoint id, published pricing with provenance).
 
-**Status:** weekly catalogue verification, admin freshness reporting and reviewed field-level drift acceptance are implemented. Daily runtime routability canaries are the next freshness slice.
+**Status:** weekly catalogue verification, admin freshness reporting, reviewed field-level drift acceptance and daily runtime routability canaries are implemented. Routability is intentionally observational until production canary data establishes a trustworthy baseline for safe routing suppression.
 
 ## P3 — Bearing as a reusable decision layer
 
@@ -401,23 +409,25 @@ This keeps Bearing valuable even when the end user never visits bearing's own UI
 - [x] provider-primary verification;
 - [x] reviewed catalogue-drift acceptance;
 - [x] recommendation evidence freshness;
-- [ ] runtime routability canaries;
-- [ ] finish README/methodology freshness reporting cleanup.
+- [x] runtime routability canaries;
+- [ ] finish README/methodology freshness reporting cleanup;
+- [ ] establish a production routability baseline before making runtime state a hard routing gate.
 
-### 1.0-alpha.3 — challenge and learn — in progress
+### 1.0-alpha.3 — challenge and learn — substantially complete
 
-- [x] first recommendation confidence layer;
-- [ ] contextual Challenger;
-- [ ] information-seeking Trio;
-- [ ] outcome aggregates;
-- [ ] add benchmark agreement and outcome support to recommendation confidence.
+- [x] recommendation confidence layer;
+- [x] contextual Challenger;
+- [x] information-seeking Trio;
+- [x] structured outcome aggregates and displayed evidence;
+- [x] outcome support in recommendation confidence;
+- [ ] benchmark/curated agreement as an uncertainty signal.
 
 ### 1.0-beta — continuity and calibration
 
 - [ ] optional task ownership;
 - [ ] inspectable learned preferences;
 - [ ] golden corpus + shadow ranking evaluation;
-- [ ] outcome evidence surfaced in recommendations.
+- [x] outcome evidence surfaced in recommendations.
 
 ## Current implementation checklist
 
@@ -432,12 +442,15 @@ This keeps Bearing valuable even when the end user never visits bearing's own UI
 - [x] Safe field-level catalogue drift review/accept flow.
 - [x] Catalogue evidence confidence surfaced in recommendations.
 - [x] Task-relative capability scoring.
-- [x] First recommendation decision-confidence layer.
+- [x] Recommendation decision-confidence layer using classification, separation, freshness and human outcome support.
 - [x] CI workflow for typecheck, lint, tests and production build.
 - [ ] Require CI through branch protection rather than convention alone.
-- [ ] Add runtime routability canaries.
-- [ ] Select alternatives by meaningful trade-off rather than raw rank.
-- [ ] Turn Challenger into a contextual response to uncertainty.
-- [ ] Make Trio select challengers for information value.
-- [ ] Build structured outcome aggregates and use them as evidence.
+- [x] Add runtime routability canaries.
+- [ ] Use routability observations as a safe routing gate after a production baseline exists.
+- [ ] Select primary alternatives by meaningful Pareto-style trade-off rather than raw rank.
+- [x] Turn Challenger into a contextual post-answer behaviour.
+- [x] Make Trio select challengers for information value.
+- [x] Build structured outcome aggregates and use them as displayed evidence.
+- [x] Use evidence scarcity to make experiments more informative without changing ranking.
+- [ ] Replace binary benchmark-disagreement handling with evidence confidence.
 - [ ] Add golden-task and shadow-ranking evaluation before larger scoring changes.
