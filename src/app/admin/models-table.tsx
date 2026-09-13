@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import type { AdminModel } from '@/lib/db'
 import type { ModelVerificationSummary } from '@/db/model-verification'
 import { assessModelFreshness, freshnessLabel } from '@/lib/model-freshness'
-import { verifyOpenRouterCatalogueAdmin } from './freshness-actions'
+import { verifyCatalogueAdmin } from './freshness-actions'
 
 function ageLabel(ageDays: number | null): string {
   if (ageDays == null) return 'never'
@@ -83,15 +83,16 @@ export default function ModelsTable({
   function verifyCatalogue() {
     setFeedback(null)
     startVerifying(async () => {
-      const result = await verifyOpenRouterCatalogueAdmin()
+      const result = await verifyCatalogueAdmin()
       if (!result.success || !result.report) {
         setFeedback(result.error ?? 'Catalogue verification failed.')
         return
       }
 
       const report = result.report
+      const sourceIssues = report.providerFailures.length + (report.openRouterFailure ? 1 : 0)
       setFeedback(
-        `Checked ${report.checked} models: ${report.current} current, ${report.attention} need review, ${report.unavailable} unavailable.`,
+        `Checked ${report.checked} models: ${report.current} current, ${report.attention} need review, ${report.unavailable} unavailable.${sourceIssues > 0 ? ` ${sourceIssues} source check${sourceIssues === 1 ? '' : 's'} failed.` : ''}`,
       )
       router.refresh()
     })
@@ -119,7 +120,17 @@ export default function ModelsTable({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/admin/catalogue-review"
+            className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+              needsAttentionCount > 0
+                ? 'border-coral/30 text-coral hover:bg-coral/5'
+                : 'border-navy/15 text-navy/60 hover:bg-navy/5'
+            }`}
+          >
+            Review drift{needsAttentionCount > 0 ? ` (${needsAttentionCount})` : ''}
+          </Link>
           <button
             type="button"
             onClick={verifyCatalogue}
