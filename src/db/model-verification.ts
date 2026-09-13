@@ -13,6 +13,7 @@ export interface ModelForVerification extends ModelFreshness {
   provider: string
   active: boolean
   openrouterId: string | null
+  providerModelId: string | null
   pricing: { input_per_1m: number; output_per_1m: number }
   contextWindow: number
   capabilities: string[]
@@ -22,6 +23,7 @@ export interface ModelVerificationSummary extends ModelFreshness {
   slug: string
   active: boolean
   openrouterId: string | null
+  providerModelId: string | null
 }
 
 export interface VerificationObservation {
@@ -43,15 +45,15 @@ function freshnessFromRow(row: Record<string, unknown>): ModelFreshness {
 
 /**
  * Catalogue-verification view of every model. We include inactive rows so an
- * OpenRouter id already attached to a draft is not mistaken for a new model,
+ * external id already attached to a draft is not mistaken for a new model,
  * but callers should only verify active rows.
  */
 export async function listModelsForVerification(): Promise<ModelForVerification[]> {
   const rows = await getDb()`
     SELECT
-      slug, name, provider, active, openrouter_id, pricing, context_window,
-      capabilities, last_verified_at, verification_status,
-      verification_source, verification_note
+      slug, name, provider, active, openrouter_id, provider_model_id,
+      pricing, context_window, capabilities, last_verified_at,
+      verification_status, verification_source, verification_note
     FROM models
     ORDER BY active DESC, name
   `
@@ -62,6 +64,7 @@ export async function listModelsForVerification(): Promise<ModelForVerification[
     provider: row.provider as string,
     active: row.active === true,
     openrouterId: (row.openrouter_id as string | null) ?? null,
+    providerModelId: (row.provider_model_id as string | null) ?? null,
     pricing: row.pricing as ModelForVerification['pricing'],
     contextWindow: row.context_window as number,
     capabilities: (row.capabilities as string[]) ?? [],
@@ -69,11 +72,11 @@ export async function listModelsForVerification(): Promise<ModelForVerification[
   }))
 }
 
-/** Small serialisable projection used by the admin model list. */
+/** Small serialisable projection used by the admin model list and results. */
 export async function getModelVerificationSummaries(): Promise<ModelVerificationSummary[]> {
   const rows = await getDb()`
     SELECT
-      slug, active, openrouter_id, last_verified_at,
+      slug, active, openrouter_id, provider_model_id, last_verified_at,
       verification_status, verification_source, verification_note
     FROM models
     ORDER BY active DESC, slug
@@ -83,6 +86,7 @@ export async function getModelVerificationSummaries(): Promise<ModelVerification
     slug: row.slug as string,
     active: row.active === true,
     openrouterId: (row.openrouter_id as string | null) ?? null,
+    providerModelId: (row.provider_model_id as string | null) ?? null,
     ...freshnessFromRow(row),
   }))
 }

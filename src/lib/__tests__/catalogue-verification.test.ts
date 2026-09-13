@@ -10,6 +10,7 @@ function bearingModel(overrides: Partial<ModelForVerification> = {}): ModelForVe
     provider: 'Example',
     active: true,
     openrouterId: 'example/model',
+    providerModelId: null,
     pricing: { input_per_1m: 1, output_per_1m: 4 },
     contextWindow: 128_000,
     capabilities: ['tools', 'code', 'multilingual', 'long_context'],
