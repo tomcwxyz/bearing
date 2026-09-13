@@ -22,14 +22,14 @@ describe('taskRelativeCapabilityScore', () => {
     expect(unrelated).toBe(plain)
   })
 
-  it('gives a small contextual advantage for a useful optional capability', () => {
+  it('gives bounded contextual value for a useful optional capability', () => {
     const withoutReasoning = taskRelativeCapabilityScore(model([]), { needsReasoning: true })
     const withReasoning = taskRelativeCapabilityScore(
       model(['extended_thinking']),
       { needsReasoning: true },
     )
 
-    expect(withoutReasoning).toBeCloseTo(0.85, 6)
+    expect(withoutReasoning).toBeCloseTo(0.80, 6)
     expect(withReasoning).toBe(1)
   })
 
@@ -40,7 +40,7 @@ describe('taskRelativeCapabilityScore', () => {
       { complexity: 'complex' },
     )
 
-    expect(withoutThinking).toBeCloseTo(0.85, 6)
+    expect(withoutThinking).toBeCloseTo(0.80, 6)
     expect(withThinking).toBe(1)
   })
 
@@ -54,7 +54,7 @@ describe('taskRelativeCapabilityScore', () => {
       { needsTools: true, isAgentic: true },
     )
 
-    expect(toolsOnly).toBeCloseTo(0.85, 6)
+    expect(toolsOnly).toBeCloseTo(0.80, 6)
     expect(toolsPlusUsefulAgenticCapabilities).toBe(1)
   })
 })
