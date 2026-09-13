@@ -8,6 +8,7 @@ import InsightsTab from './insights-tab'
 import DiscoverTab from './discover-tab'
 import BenchmarksTab from './benchmarks-tab'
 import type { AdminModel } from '@/lib/db'
+import type { ModelVerificationSummary } from '@/db/model-verification'
 import type { UsageSummary, ActivityPoint, ModeCount, SignupPoint } from './types'
 import type { InsightsSummary, TaskTypeCount, LeaderboardEntry, OutcomeBreakdown, CapabilityDemand } from './types'
 import type { DiscoverModel } from './types'
@@ -25,6 +26,7 @@ type TabKey = typeof TABS[number]['key']
 
 interface AdminTabsProps {
   models: AdminModel[]
+  verification: ModelVerificationSummary[]
   initialDiscover: {
     newModels: DiscoverModel[]
     matchedCount: number
@@ -46,7 +48,7 @@ interface AdminTabsProps {
   activeSlugs: string[]
 }
 
-function AdminTabsInner({ models, initialDiscover, initialUsage, initialInsights, initialBenchmarks, activeSlugs }: AdminTabsProps) {
+function AdminTabsInner({ models, verification, initialDiscover, initialUsage, initialInsights, initialBenchmarks, activeSlugs }: AdminTabsProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const activeTab = (searchParams.get('tab') as TabKey) || 'models'
@@ -74,7 +76,7 @@ function AdminTabsInner({ models, initialDiscover, initialUsage, initialInsights
       </div>
 
       <div className="mt-6">
-        {activeTab === 'models' && <ModelsTable models={models} />}
+        {activeTab === 'models' && <ModelsTable models={models} verification={verification} />}
         {activeTab === 'usage' && <UsageTab initialData={initialUsage} />}
         {activeTab === 'insights' && <InsightsTab initialData={initialInsights} />}
         {activeTab === 'discover' && <DiscoverTab initialModels={initialDiscover.newModels} matchedCount={initialDiscover.matchedCount} />}
