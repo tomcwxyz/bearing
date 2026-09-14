@@ -1,0 +1,39 @@
+import {
+  effectivePreferenceFactors,
+  inferLearnedPreferenceProfile,
+  type LearnablePreferenceFactor,
+  type LearnedPreferenceProfile,
+} from '@/lib/bearing-preferences'
+import {
+  getBearingPreferenceSettings,
+  getPreferenceDecisionEvidence,
+  type BearingPreferenceSettings,
+} from '@/db/preferences'
+
+export interface BearingPreferenceProfile {
+  settings: BearingPreferenceSettings
+  learned: LearnedPreferenceProfile
+  effectiveFactors: LearnablePreferenceFactor[]
+}
+
+export async function getBearingPreferenceProfile(userId: string): Promise<BearingPreferenceProfile> {
+  const [settings, decisions] = await Promise.all([
+    getBearingPreferenceSettings(userId),
+    getPreferenceDecisionEvidence(userId),
+  ])
+  const learned = inferLearnedPreferenceProfile(decisions)
+  const effectiveFactors = effectivePreferenceFactors({
+    manualFactors: settings.manualFactors,
+    learnedFactors: learned.factors,
+    learningEnabled: settings.learningEnabled,
+  })
+
+  return { settings, learned, effectiveFactors }
+}
+
+export async function getEffectiveBearingPreferenceFactors(
+  userId: string,
+): Promise<LearnablePreferenceFactor[]> {
+  const profile = await getBearingPreferenceProfile(userId)
+  return profile.effectiveFactors
+}
