@@ -77,7 +77,7 @@ export default async function BearingPreferencesPage({
             {error
               ? 'Bearing could not save that preference change. Migration 031 may not be applied yet.'
               : reset === '1'
-                ? 'Preference settings reset. Learning is back to its default, inspectable state.'
+                ? 'Preferences reset. Older experiment choices no longer influence your defaults; future choices can teach Bearing again.'
                 : 'Bearing preferences saved.'}
           </div>
         )}
@@ -85,14 +85,14 @@ export default async function BearingPreferencesPage({
         <section className="mb-6 rounded-xl border border-cream-dark bg-white p-6 shadow-sm">
           <h2 className="font-display text-xl font-semibold text-navy">What Bearing has noticed</h2>
           <p className="mt-2 text-sm leading-relaxed text-grey-blue">
-            Learning uses only your explicit choices between recommended models on bearings owned by this account. It compares structured factor scores; raw task descriptions and prompts are not used.
+            Learning uses only authenticated preferences you submit after Trio or Challenger experiments. It compares the structured factor scores recorded for those models; raw task descriptions and prompts are not used, and anonymous or shared-task clicks cannot affect this profile.
           </p>
 
           {profile.learned.decisions < 3 ? (
             <div className="mt-5 rounded-lg bg-cream/60 p-4">
               <p className="font-display text-sm font-semibold text-navy">Not enough evidence yet</p>
               <p className="mt-1 text-sm leading-relaxed text-grey-blue">
-                Bearing has {profile.learned.decisions} usable override {profile.learned.decisions === 1 ? 'choice' : 'choices'}. It waits for at least three before learning a default, so one unusual decision cannot personalise future bearings.
+                Bearing has {profile.learned.decisions} usable override {profile.learned.decisions === 1 ? 'experiment' : 'experiments'}. It waits for at least three before learning a default, so one unusual decision cannot personalise future bearings.
               </p>
             </div>
           ) : (
@@ -105,7 +105,7 @@ export default async function BearingPreferencesPage({
                         {FACTOR_COPY[signal.factor].label}
                       </p>
                       <p className="mt-1 text-xs leading-relaxed text-grey-blue">
-                        {signal.support} of {signal.decisions} comparable override choices moved materially towards this factor
+                        {signal.support} of {signal.decisions} comparable override experiments moved materially towards this factor
                         {signal.support > 0 ? ` · average advantage ${pct(signal.meanPositiveDelta)}` : ''}.
                       </p>
                     </div>
@@ -198,7 +198,7 @@ export default async function BearingPreferencesPage({
 
         <form action={resetBearingPreferences} className="mt-4 text-right">
           <button type="submit" className="text-sm text-navy/55 underline hover:text-navy">
-            Reset preference settings
+            Reset preference settings and learning history
           </button>
         </form>
       </div>
