@@ -20,11 +20,13 @@ export async function getBearingPreferenceProfile(userId: string): Promise<Beari
   const settings = await getBearingPreferenceSettings(userId)
   const decisions = await getPreferenceDecisionEvidence(userId, settings.learningSince)
   const learned = inferLearnedPreferenceProfile(decisions)
-  const effectiveFactors = effectivePreferenceFactors({
-    manualFactors: settings.manualFactors,
-    learnedFactors: learned.factors,
-    learningEnabled: settings.learningEnabled,
-  })
+  const effectiveFactors = settings.schemaAvailable
+    ? effectivePreferenceFactors({
+        manualFactors: settings.manualFactors,
+        learnedFactors: learned.factors,
+        learningEnabled: settings.learningEnabled,
+      })
+    : []
 
   return { settings, learned, effectiveFactors }
 }
