@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { submitClarification } from '@/app/actions'
+import { submitBearingClarification } from '@/features/bearing/clarification-actions'
 import { StepProgress } from '@/components/step-progress'
 import { LoadingIndicator } from '@/components/loading-indicator'
 import type { ClarificationAnswer } from '@/lib/classification'
@@ -74,7 +74,7 @@ export default function ClarificationPage() {
 
     startTransition(async () => {
       try {
-        const result = await submitClarification(taskId, description, clarifications)
+        const result = await submitBearingClarification(taskId, description, clarifications)
 
         if (result && 'error' in result && result.error) {
           setError(result.error)
