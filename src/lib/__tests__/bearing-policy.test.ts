@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { deriveBearingPriorities, describeBearing } from '../bearing-policy'
+import {
+  deriveBearingPriorities,
+  describeBearing,
+  nudgePriorityOrder,
+} from '../bearing-policy'
 
 function rankOf(order: string[], factor: string) {
   return order.indexOf(factor)
@@ -81,6 +85,51 @@ describe('deriveBearingPriorities', () => {
 
     expect(order.slice(0, 3)).toContain('cost')
     expect(order.slice(0, 3)).toContain('capability')
+  })
+
+  it('uses preferences as a soft nudge rather than replacing task evidence', () => {
+    const neutral = deriveBearingPriorities({
+      complexity: 'simple',
+      data_sensitivity: 'none',
+      latency_target: 'interactive',
+      volume: 'one_off',
+    })
+    const privateByDefault = deriveBearingPriorities({
+      complexity: 'simple',
+      data_sensitivity: 'none',
+      latency_target: 'interactive',
+      volume: 'one_off',
+    }, { preferredFactors: ['privacy'] })
+
+    expect(neutral.slice(0, 3)).toEqual(['quality', 'capability', 'cost'])
+    expect(privateByDefault.slice(0, 3)).toEqual(['quality', 'capability', 'privacy'])
+  })
+
+  it('does not let a cost preference overpower a realtime task signal', () => {
+    const order = deriveBearingPriorities({
+      complexity: 'simple',
+      data_sensitivity: 'none',
+      latency_target: 'realtime',
+      volume: 'one_off',
+    }, { preferredFactors: ['cost'] })
+
+    expect(order[0]).toBe('speed')
+    expect(rankOf(order, 'speed')).toBeLessThan(rankOf(order, 'cost'))
+  })
+})
+
+describe('nudgePriorityOrder', () => {
+  it('returns the same order when there are no preferences', () => {
+    const order = ['quality', 'cost', 'speed', 'capability', 'privacy', 'sustainability', 'transparency'] as const
+    expect(nudgePriorityOrder([...order])).toEqual(order)
+  })
+
+  it('moves a preferred factor modestly without rebuilding a specialised order', () => {
+    const order = ['quality', 'cost', 'speed', 'capability', 'privacy', 'sustainability', 'transparency'] as const
+    const nudged = nudgePriorityOrder([...order], ['privacy'])
+
+    expect(nudged.slice(0, 3)).toEqual(['quality', 'cost', 'speed'])
+    expect(rankOf(nudged, 'privacy')).toBeLessThan(rankOf(nudged, 'capability'))
   })
 })
 
