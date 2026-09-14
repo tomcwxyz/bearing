@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
 import { isUserAdmin, getAllModelsForAdmin, getOpenRouterIds } from '@/lib/db'
 import { getModelVerificationSummaries } from '@/db/model-verification'
+import { getRoutabilitySummaries } from '@/db/model-routability'
 import {
   getUsageSummary, getActivityOverTime, getModeBreakdown, getSignupsOverTime,
   getInsightsSummary, getTaskTypeDistribution, getModelLeaderboard,
@@ -26,7 +27,7 @@ export default async function AdminPage() {
   if (!admin) redirect('/')
 
   const [
-    models, verification,
+    models, verification, routability,
     usageSummary, activity, modes, signups,
     insightsSummary, taskTypes, leaderboard, outcomes, capabilities,
     orModels, existingIds,
@@ -36,6 +37,7 @@ export default async function AdminPage() {
     // Keep admin usable while migration 026 is being rolled out. Once the
     // columns exist this returns one lightweight freshness row per model.
     getModelVerificationSummaries().catch(() => []),
+    getRoutabilitySummaries().catch(() => []),
     getUsageSummary(),
     getActivityOverTime('day'),
     getModeBreakdown(),
@@ -109,6 +111,10 @@ export default async function AdminPage() {
             summary: benchmarkSummary,
             aliases: benchmarkAliases,
             unmatched: benchmarkUnmatchedWithSuggestions,
+          }}
+          initialMaintenance={{
+            cronConfigured: Boolean(process.env.CRON_SECRET),
+            routability,
           }}
           activeSlugs={models.filter(m => m.active).map(m => m.slug).sort()}
         />
