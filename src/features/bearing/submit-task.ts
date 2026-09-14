@@ -10,6 +10,8 @@ import { createTaskWithOwner } from '@/db/tasks'
 import { updateTaskPriorities, saveRecommendations } from '@/lib/db'
 import { scoreModelsDetailed } from '@/lib/scoring'
 import { getLatestBenchmarkScores } from '@/lib/benchmarks'
+import { nudgePriorityOrder } from '@/lib/bearing-policy'
+import { getEffectiveBearingPreferenceFactors } from './preferences'
 import type { Factor } from '@/lib/registry'
 
 export interface EmbeddingFormInput {
@@ -85,10 +87,12 @@ async function scoreAndSaveEmbedding(
 async function prepareEmbeddingRecommendation(
   taskId: string,
   classification: Classification,
+  preferredFactors: Factor[] = [],
 ): Promise<void> {
-  const priorityOrder = embeddingPriorityForHosting(
+  const basePriorityOrder = embeddingPriorityForHosting(
     dataSensitivityToHosting(classification.data_sensitivity),
   )
+  const priorityOrder = nudgePriorityOrder(basePriorityOrder, preferredFactors)
   await updateTaskPriorities(taskId, priorityOrder)
   await scoreAndSaveEmbedding(taskId, {
     complexity: classification.complexity,
@@ -103,12 +107,21 @@ async function prepareEmbeddingRecommendation(
 async function maybeRouteEmbedding(
   taskId: string,
   classification: Classification,
+  preferredFactors: Factor[] = [],
 ): Promise<void> {
   const hasPipelineStages = (classification.pipeline_stages?.length ?? 0) > 0
   if (classification.task_type !== 'embedding' || hasPipelineStages) return
 
-  await prepareEmbeddingRecommendation(taskId, classification)
+  await prepareEmbeddingRecommendation(taskId, classification, preferredFactors)
   redirect(`/embedding/${taskId}/results`)
+}
+
+async function preferencesForUser(userId: string | null | undefined): Promise<Factor[]> {
+  if (!userId) return []
+  return getEffectiveBearingPreferenceFactors(userId).catch((error) => {
+    console.warn('[bearing] preference defaults unavailable', error)
+    return []
+  })
 }
 
 /**
@@ -166,7 +179,8 @@ export async function submitBearingTask(formData: FormData) {
       }
     }
 
-    await maybeRouteEmbedding(taskId, classification)
+    const preferredFactors = await preferencesForUser(user?.id)
+    await maybeRouteEmbedding(taskId, classification, preferredFactors)
     redirect(`/recommend/${taskId}/priorities`)
   } catch (error) {
     if (isRedirectError(error)) throw error
@@ -178,7 +192,9 @@ export async function submitBearingTask(formData: FormData) {
 export async function submitOwnedEmbeddingTask(input: EmbeddingFormInput) {
   try {
     const user = await getCurrentUser()
-    const priorityOrder = embeddingPriorityForHosting(input.hosting)
+    const preferredFactors = await preferencesForUser(user?.id)
+    const basePriorityOrder = embeddingPriorityForHosting(input.hosting)
+    const priorityOrder = nudgePriorityOrder(basePriorityOrder, preferredFactors)
     const inputLength = input.inputSize === 'long' ? 'very_long' : input.inputSize
     const dataSensitivity = hostingToDataSensitivity(input.hosting)
     const latencyTarget = input.latency === 'any' ? 'batch' : input.latency
