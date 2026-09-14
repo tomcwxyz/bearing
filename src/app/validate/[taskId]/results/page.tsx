@@ -1,4 +1,4 @@
-import { getValidationResults } from '@/app/actions'
+import { getValidationResults } from '@/features/validation/service'
 import type { ScoredModel } from '@/lib/scoring'
 import { TASK_TYPE_LABELS, type Factor } from '@/lib/registry'
 
