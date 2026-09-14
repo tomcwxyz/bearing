@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { getTask, updateTaskPriorities } from '@/lib/db'
+import { getCurrentUser } from '@/lib/auth'
 import { deriveBearingPriorities } from '@/lib/bearing-policy'
+import { getEffectiveBearingPreferenceFactors } from '@/features/bearing/preferences'
 import type { Factor } from '@/lib/registry'
 import { PrioritiesClient } from './priorities-client'
 
@@ -23,7 +25,10 @@ export default async function PrioritiesPage({
 }) {
   const { taskId } = await params
   const { adjust } = await searchParams
-  const task = await getTask(taskId)
+  const [task, user] = await Promise.all([
+    getTask(taskId),
+    getCurrentUser(),
+  ])
 
   if (!task) {
     return (
@@ -36,14 +41,23 @@ export default async function PrioritiesPage({
     )
   }
 
-  const inferred = deriveBearingPriorities(task)
+  // Preferences only personalise tasks owned by the current account. A shared
+  // or anonymous task URL must never inherit whichever user happens to open it.
+  const preferredFactors = user && task.user_id === user.id
+    ? await getEffectiveBearingPreferenceFactors(user.id).catch((error) => {
+        console.warn('[priorities] bearing preferences unavailable', error)
+        return []
+      })
+    : []
+
+  const inferred = deriveBearingPriorities(task, { preferredFactors })
   const existing = parseFactors(task.priority_order)
   const excluded = parseFactors(task.excluded_factors)
 
-  // The normal route still lands here from submitTask/submitClarification,
-  // but Bearing now does the prioritisation itself and immediately continues
-  // to results. `?adjust=1` turns this route back into the explicit advanced
-  // control for people who want to override the automatic bearing.
+  // The normal route still lands here from submitBearingTask/submitClarification,
+  // but Bearing does the prioritisation itself and immediately continues to
+  // results. `?adjust=1` restores the explicit advanced control. Existing
+  // per-task adjustments always win over account defaults.
   if (adjust !== '1') {
     await updateTaskPriorities(taskId, inferred, [])
     redirect(`/recommend/${taskId}/results`)
