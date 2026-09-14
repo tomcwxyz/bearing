@@ -17,6 +17,7 @@ export interface BearingPreferenceSettings {
   manualFactors: LearnablePreferenceFactor[]
   learningSince: string | null
   hasSavedSettings: boolean
+  schemaAvailable: boolean
 }
 
 function isMissingPreferenceSchema(error: unknown): boolean {
@@ -70,7 +71,11 @@ function timestampString(value: unknown): string | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString()
 }
 
-/** Missing migration 031 is treated as default settings so rollout is safe. */
+/**
+ * Missing migration 031 is rollout-safe, but schemaAvailable=false is
+ * important: Bearing must not apply learned personalisation before the user
+ * has a surface where they can inspect, disable and reset it.
+ */
 export async function getBearingPreferenceSettings(userId: string): Promise<BearingPreferenceSettings> {
   try {
     const rows = await getDb()`
@@ -85,6 +90,7 @@ export async function getBearingPreferenceSettings(userId: string): Promise<Bear
         manualFactors: [],
         learningSince: null,
         hasSavedSettings: false,
+        schemaAvailable: true,
       }
     }
     return {
@@ -92,6 +98,7 @@ export async function getBearingPreferenceSettings(userId: string): Promise<Bear
       manualFactors: parseFactorArray(rows[0].preferred_factors),
       learningSince: timestampString(rows[0].learning_since),
       hasSavedSettings: true,
+      schemaAvailable: true,
     }
   } catch (error) {
     if (isMissingPreferenceSchema(error)) {
@@ -100,6 +107,7 @@ export async function getBearingPreferenceSettings(userId: string): Promise<Bear
         manualFactors: [],
         learningSince: null,
         hasSavedSettings: false,
+        schemaAvailable: false,
       }
     }
     throw error
