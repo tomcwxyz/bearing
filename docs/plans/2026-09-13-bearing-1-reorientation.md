@@ -1,7 +1,8 @@
 # Bearing 1.0 — reorientation roadmap
 
-**Status:** 1.0-alpha.3 substantially complete  
+**Status:** 1.0-alpha.3 complete; beta continuity/calibration foundations substantially landed  
 **Started:** 2026-09-13  
+**Last reviewed:** 2026-09-14  
 **Theme:** Infer → recommend → run → challenge → learn
 
 ## Why this exists
@@ -10,7 +11,7 @@ Bearing started as a model recommendation tool: describe a task, rank seven fact
 
 The product has grown beyond that shape. It can now classify work, enforce capability constraints, rank chat and embedding models, recommend pipelines and local models, execute a prompt, compare candidates, run Trio and Challenger experiments, record preferences, and publish outcome data.
 
-The current interface still exposes the machinery as if Bearing were primarily a scoring website. Bearing 1.0 should instead behave like a decision and evaluation layer:
+The current interface still exposes some of the machinery as if Bearing were primarily a scoring website. Bearing 1.0 should instead behave like a decision and evaluation layer:
 
 > Tell Bearing what you are trying to do. Bearing takes a bearing, recommends the right route, lets you run it, tests uncertainty when useful, and learns from what actually worked.
 
@@ -71,6 +72,8 @@ Initial policy:
 - The user can open Adjust bearing, change the order/exclusions, and return to updated results.
 - Unit tests cover the main classification → priority behaviours.
 
+**Status:** complete.
+
 ### P0.2 Stop presenting weighted score as a calibrated match percentage
 
 **Goal:** remove false precision.
@@ -79,6 +82,8 @@ Initial policy:
 - Keep the weighted score available in methodology/debug views if useful.
 - Collapse detailed seven-factor bars behind “Why this?” or an equivalent disclosure.
 - Make the first recommendation visually dominant; show two or three meaningful alternatives before “show all”.
+
+**Status:** complete.
 
 ### P0.3 Model freshness as first-class data
 
@@ -102,6 +107,8 @@ Then:
 
 Initial freshness target: active hosted models should be re-verified at least weekly; curated metadata should show its age even when it does not block ranking.
 
+**Status:** schema, provider/OpenRouter verification, freshness evidence, reviewed drift and admin reporting are live. Runtime routability has its own observation table and admin surface. Hard suppression remains deliberately deferred until there is a trustworthy production baseline.
+
 ### P0.4 CI as a merge gate
 
 Add GitHub Actions for:
@@ -109,6 +116,7 @@ Add GitHub Actions for:
 - typecheck (`tsc --noEmit`)
 - lint
 - tests
+- golden ranking evaluation
 - production build
 
 Do not rely on a successful Vercel deployment as the only repository-level check.
@@ -120,6 +128,9 @@ Do not rely on a successful Vercel deployment as the only repository-level check
 - Update README counts/auth/flow from the live implementation rather than old milestone copy.
 - Add an explicit “data freshness” section to the methodology.
 - Avoid hard-coded model counts in prose where the generated registry can provide them.
+- Keep deployment requirements such as `CRON_SECRET` aligned with the scheduled jobs that depend on them.
+
+**Status:** deployment example now documents `CRON_SECRET` as required for production scheduled maintenance. The wider README/methodology freshness and hard-coded-count cleanup remains.
 
 ## P1 — make the recommendation more useful than the ranking
 
@@ -132,9 +143,9 @@ Move from repeated full scorecards to:
 - **Why this?** — factor evidence, hard filters, benchmark provenance and uncertainty.
 - **Run it** as the primary action.
 
-Alternative selection should be based on useful Pareto-style differences, not merely ranks 2–5.
+Alternative selection should be based on useful differences, not merely ranks 2–5.
 
-**Status:** recommendation-shaped presentation is live; Pareto-style alternative selection remains.
+**Status:** complete. Recommendation-shaped presentation is live and alternatives are selected for meaningful trade-offs rather than simply exposing ranks 2/3.
 
 ### P1.2 Task-relative capability scoring
 
@@ -148,17 +159,19 @@ Current capability scoring rewards the number of capabilities a model has after 
 
 ### P1.3 Revisit benchmark disagreement handling
 
-The current large-delta guard protects curated specialist scores from noisy or mismatched benchmark data, but it can also discard external evidence precisely when it disagrees most.
+The old large-delta guard protected curated specialist scores from noisy or mismatched benchmark data, but could discard external evidence precisely when it disagreed most.
 
 Replace the binary “discard if delta > threshold” rule with evidence confidence:
 
-- mapping confidence;
+- mapping/coverage confidence;
 - benchmark relevance to task type;
-- sample size / recency where available;
+- sample size / source breadth / recency where available;
 - curated evidence confidence;
 - outcome evidence from Bearing.
 
 Disagreement should surface uncertainty and can trigger an experiment rather than silently returning to the editorial score.
+
+**Status:** complete for the current ranking architecture. Benchmark/curated disagreement now contributes explicit uncertainty and experiment value. When benchmark blending is enabled, ranking influence is tapered by evidence breadth/recency rather than discarded by a large-delta cliff. `BENCHMARK_BLEND` remains an opt-in rollout ceiling and defaults to curated-only production ranking until live shadow evidence supports enabling it.
 
 ### P1.4 Outcome-calibrated recommendations
 
@@ -180,7 +193,7 @@ First use outcome data as a displayed confidence/evidence layer. Only later blen
 
 ### P1.5 Information-seeking Trio
 
-Today Trio chooses the anchor plus the next runnable models by rank. Evolve this into challenger selection designed to learn:
+Evolve Trio into challenger selection designed to learn:
 
 - close score, different provider;
 - frontier vs cheaper model;
@@ -191,7 +204,7 @@ Today Trio chooses the anchor plus the next runnable models by rank. Evolve this
 
 Record why each challenger was selected.
 
-**Status:** implemented 2026-09-13. Trio preserves the recommendation anchor, then chooses credible alternatives for information value across provider, cost, factor profile, local-vs-hosted and outcome-evidence scarcity. Original recommendation rank and selection rationale are recorded separately. Benchmark-disagreement value remains to be added once P1.3 is reworked.
+**Status:** complete. Trio preserves the recommendation anchor, then chooses credible alternatives for information value across provider, cost, factor profile, local-vs-hosted, outcome-evidence scarcity and benchmark uncertainty. Original recommendation rank and selection rationale are recorded separately.
 
 ### P1.6 Challenger as a product behaviour, not a mode tab
 
@@ -207,7 +220,7 @@ This is easier to understand than presenting Route / Trio / Challenger as three 
 
 ### P1.7 Optional task ownership
 
-Tasks are currently anonymous records while comparisons are user-linked. Add nullable `user_id` to tasks so signed-in users can:
+Add nullable task ownership so signed-in users can:
 
 - resume a bearing on another device;
 - view their own recent bearings;
@@ -215,6 +228,8 @@ Tasks are currently anonymous records while comparisons are user-linked. Add nul
 - see how often they override Bearing.
 
 Preserve anonymous use. Do not store raw task text to enable this.
+
+**Status:** complete. Nullable `tasks.user_id` is live in production; new signed-in bearings attach ownership while anonymous use remains supported. Existing 712 pre-migration tasks were intentionally left anonymous. “My bearings” lists only the signed-in user's owned, persisted recommendations. Raw task descriptions remain unstored.
 
 ### P1.8 Inspectable preference profile
 
@@ -226,6 +241,8 @@ Learn lightweight defaults such as recurring preference for:
 - transparency / sustainability.
 
 Preferences must be visible, editable and resettable. They influence the automatic bearing, never become hidden permanent rules.
+
+**Status:** complete for the initial learning model. Preference settings are inspectable/disableable/resettable, explicit and learned defaults are separate, learning only uses authenticated human experiment choices with sufficient repeated evidence, and soft preference nudges cannot override hard/current-task signals. The production preference schema is live.
 
 ## P1 — architecture
 
@@ -256,7 +273,7 @@ src/features/
 
 Keep server actions thin. Business logic should be callable independently from UI transport.
 
-> Started: the new contextual Challenger / information-seeking Trio behaviour lives under `src/features/runs/`, including isolated run-message handling, rather than expanding `src/app/actions.ts` further.
+> In progress: contextual Trio/Challenger live under `src/features/runs/`; task submission/ownership, embedding preparation and clarification now have feature-level modules/actions rather than adding more logic to the monolith. `src/app/actions.ts` still contains recommendations, validation, comparisons, outcomes and legacy paths to extract.
 
 ### P1.10 Split database access by aggregate
 
@@ -272,13 +289,15 @@ src/db/
   users.ts
 ```
 
-Remove direct SQL from UI/server-action modules; `submitClarification` is an early target.
+Remove direct SQL from UI/server-action modules.
 
-> Started: catalogue verification, routability observations, routed-selection rationale and outcome evidence now use dedicated DB repositories instead of expanding the monolithic `db.ts`.
+> In progress: catalogue verification, routability observations, routed-selection rationale, outcome evidence, tasks and preference settings have dedicated repositories. Active clarification persistence no longer performs direct SQL in the UI/server action path. The remaining `lib/db.ts` surface should continue to be decomposed by aggregate.
 
 ### P1.11 Runtime validation for classifier output
 
-The TypeScript interface and Anthropic tool schema must describe the same required fields. Add a runtime schema (prefer an existing dependency if introduced elsewhere; otherwise a small explicit validator) and one canonical task-type/capability definition used by both the prompt and tool schema where practical.
+The TypeScript interface and Anthropic tool schema must describe the same required fields. Add runtime validation and one canonical task-type/capability definition used by both the prompt and tool schema where practical.
+
+**Status:** complete. Classifier responses are validated against the canonical runtime shape before entering the task pipeline; malformed or incomplete tool output no longer silently becomes application state.
 
 ## P2 — evaluation system
 
@@ -306,6 +325,8 @@ Evaluate:
 
 Prompt-string assertions remain useful regression guards, but they are not semantic classifier evaluation.
 
+**Status:** the deterministic versioned golden task corpus is live and is used for ranking regression. Live semantic classifier evaluation (classification accuracy, clarification necessity and pipeline detection using real model calls) remains future work and should initially be non-blocking.
+
 ### P2.2 Shadow evaluation for ranking changes
 
 Before changing production ranking weights:
@@ -314,6 +335,8 @@ Before changing production ranking weights:
 - compare current vs candidate ranking;
 - report changed top picks and why;
 - require explicit acceptance for large shifts.
+
+**Status:** complete. CI has an approved ranking baseline and shadow-evaluation command; candidate ranking changes report changed top picks and severity before rollout. The evidence-weighted benchmark work used this path before merge.
 
 ### P2.3 Recommendation confidence
 
@@ -327,7 +350,7 @@ Introduce confidence based on evidence rather than score magnitude, e.g.:
 
 Low-confidence recommendations should invite a comparison/challenge.
 
-**Status:** classification confidence, top-two relative separation, catalogue freshness and supported human outcome evidence are implemented as separate decision-evidence signals. Blind-judge outcomes remain separate from human support. Benchmark/curated agreement is the main remaining confidence input.
+**Status:** implemented. Classification confidence, top-two relative separation, catalogue freshness, supported human outcome evidence and benchmark/curated disagreement are separate decision-evidence signals. Blind-judge outcomes remain separate from human support.
 
 ## P2 — freshness automation
 
@@ -365,7 +388,7 @@ Prefer provider primary sources for canonical capability/status and OpenRouter f
 
 A failed verification should not silently rewrite editorial scores. Store the observation and require approval for material metadata changes unless the field is safe to automate (availability, endpoint id, published pricing with provenance).
 
-**Status:** weekly catalogue verification, admin freshness reporting, reviewed field-level drift acceptance and daily runtime routability canaries are implemented. Routability is intentionally observational until production canary data establishes a trustworthy baseline for safe routing suppression.
+**Status:** the catalogue/freshness and routability schemas are live in production. Weekly catalogue verification, reviewed field-level drift acceptance, EcoLogits refresh and daily runtime canaries are implemented. The admin Maintenance surface can run all three jobs manually and inspect persisted routability observations. As of 2026-09-14, production Vercel is missing `CRON_SECRET`, so the scheduled requests correctly fail closed; configuring that environment value is the remaining operational fix before unattended verification resumes. Routability remains observational until enough production canary data exists for conservative suppression.
 
 ## P3 — Bearing as a reusable decision layer
 
@@ -388,7 +411,7 @@ and receive:
 }
 ```
 
-This keeps Bearing valuable even when the end user never visits bearing's own UI.
+This keeps Bearing valuable even when the end user never visits Bearing's own UI.
 
 ## Suggested release sequence
 
@@ -410,24 +433,31 @@ This keeps Bearing valuable even when the end user never visits bearing's own UI
 - [x] reviewed catalogue-drift acceptance;
 - [x] recommendation evidence freshness;
 - [x] runtime routability canaries;
+- [x] production migrations for routability/selection rationale;
+- [x] admin maintenance/recovery surface;
+- [ ] configure production `CRON_SECRET` so scheduled jobs can authenticate;
 - [ ] finish README/methodology freshness reporting cleanup;
 - [ ] establish a production routability baseline before making runtime state a hard routing gate.
 
-### 1.0-alpha.3 — challenge and learn — substantially complete
+### 1.0-alpha.3 — challenge and learn — complete
 
 - [x] recommendation confidence layer;
 - [x] contextual Challenger;
 - [x] information-seeking Trio;
 - [x] structured outcome aggregates and displayed evidence;
 - [x] outcome support in recommendation confidence;
-- [ ] benchmark/curated agreement as an uncertainty signal.
+- [x] benchmark/curated disagreement as an uncertainty signal;
+- [x] evidence-weighted benchmark blend path with opt-in rollout ceiling.
 
-### 1.0-beta — continuity and calibration
+### 1.0-beta — continuity and calibration — substantially landed
 
-- [ ] optional task ownership;
-- [ ] inspectable learned preferences;
-- [ ] golden corpus + shadow ranking evaluation;
-- [x] outcome evidence surfaced in recommendations.
+- [x] optional task ownership;
+- [x] inspectable learned preferences;
+- [x] production ownership/preference migrations;
+- [x] golden corpus + shadow ranking evaluation;
+- [x] outcome evidence surfaced in recommendations;
+- [ ] live semantic classifier evaluation over the golden task descriptions;
+- [ ] decide whether/when real benchmark evidence is strong enough to enable non-zero `BENCHMARK_BLEND` in production.
 
 ## Current implementation checklist
 
@@ -442,15 +472,24 @@ This keeps Bearing valuable even when the end user never visits bearing's own UI
 - [x] Safe field-level catalogue drift review/accept flow.
 - [x] Catalogue evidence confidence surfaced in recommendations.
 - [x] Task-relative capability scoring.
-- [x] Recommendation decision-confidence layer using classification, separation, freshness and human outcome support.
-- [x] CI workflow for typecheck, lint, tests and production build.
+- [x] Recommendation decision-confidence layer using classification, separation, freshness, benchmark disagreement and human outcome support.
+- [x] CI workflow for typecheck, lint, tests, golden ranking evaluation and production build.
 - [ ] Require CI through branch protection rather than convention alone.
-- [x] Add runtime routability canaries.
-- [ ] Use routability observations as a safe routing gate after a production baseline exists.
-- [ ] Select primary alternatives by meaningful Pareto-style trade-off rather than raw rank.
+- [x] Add runtime routability canaries and production persistence.
+- [x] Add admin maintenance diagnostics/manual recovery.
+- [ ] Configure production `CRON_SECRET`.
+- [ ] Use routability observations as a safe routing gate only after a production baseline exists.
+- [x] Select primary alternatives by meaningful trade-off rather than raw rank.
 - [x] Turn Challenger into a contextual post-answer behaviour.
-- [x] Make Trio select challengers for information value.
+- [x] Make Trio select challengers for information value including benchmark uncertainty.
 - [x] Build structured outcome aggregates and use them as displayed evidence.
 - [x] Use evidence scarcity to make experiments more informative without changing ranking.
-- [ ] Replace binary benchmark-disagreement handling with evidence confidence.
-- [ ] Add golden-task and shadow-ranking evaluation before larger scoring changes.
+- [x] Replace binary benchmark-disagreement handling with evidence confidence when benchmark blending is enabled.
+- [x] Add golden-task and shadow-ranking evaluation before larger scoring changes.
+- [x] Add optional task ownership and My bearings.
+- [x] Add inspectable learned preferences with reset/disable controls.
+- [x] Move active clarification/embedding/submission paths out of the action monolith.
+- [ ] Continue extracting recommendations, validation, comparisons and outcomes from `src/app/actions.ts`.
+- [ ] Continue splitting `lib/db.ts` by aggregate.
+- [ ] Add non-blocking live semantic classifier evaluation.
+- [ ] Finish README/methodology truth cleanup.
