@@ -15,6 +15,10 @@ export interface BearingSignals {
   task_type?: string | null
 }
 
+export interface BearingPreferenceNudges {
+  preferredFactors?: Factor[]
+}
+
 const BASE_PRIORITY: Record<Factor, number> = {
   quality: 100,
   capability: 90,
@@ -35,6 +39,12 @@ const TIE_BREAK_ORDER: Factor[] = [
   'sustainability',
 ]
 
+// Personal defaults are intentionally weak relative to task evidence. A nudge
+// can often move a factor by about one place in an otherwise close ordering,
+// but strong signals such as regulated data, realtime latency or huge volume
+// remain dominant. Hard requirements still live outside this policy entirely.
+const PREFERENCE_NUDGE = 25
+
 /**
  * Infer a sensible default priority order from the structured task signals
  * Bearing has already classified. This is deliberately a small, transparent
@@ -45,7 +55,10 @@ const TIE_BREAK_ORDER: Factor[] = [
  * live in scoring hard filters. This policy only decides how to rank the
  * models that are actually eligible for the task.
  */
-export function deriveBearingPriorities(signals: BearingSignals): Factor[] {
+export function deriveBearingPriorities(
+  signals: BearingSignals,
+  preferences: BearingPreferenceNudges = {},
+): Factor[] {
   const score: Record<Factor, number> = { ...BASE_PRIORITY }
 
   if (signals.complexity === 'complex') {
@@ -116,10 +129,39 @@ export function deriveBearingPriorities(signals: BearingSignals): Factor[] {
     score.capability += 10
   }
 
+  for (const factor of new Set(preferences.preferredFactors ?? [])) {
+    if (factor in score) score[factor] += PREFERENCE_NUDGE
+  }
+
   return (Object.keys(score) as Factor[]).sort((a, b) => {
     const difference = score[b] - score[a]
     if (difference !== 0) return difference
     return TIE_BREAK_ORDER.indexOf(a) - TIE_BREAK_ORDER.indexOf(b)
+  })
+}
+
+/**
+ * Apply the same weak preference nudge to an already-specialised priority
+ * order, such as the embedding form's hosting-aware defaults. With no
+ * preferences this is byte-for-byte stable. Ties retain the original order.
+ */
+export function nudgePriorityOrder(
+  priorityOrder: Factor[],
+  preferredFactors: Factor[] = [],
+): Factor[] {
+  if (preferredFactors.length === 0) return [...priorityOrder]
+
+  const preferred = new Set(preferredFactors)
+  const spacing = 20
+  const baseScores = new Map(
+    priorityOrder.map((factor, index) => [factor, (priorityOrder.length - index) * spacing]),
+  )
+
+  return [...priorityOrder].sort((a, b) => {
+    const aScore = (baseScores.get(a) ?? 0) + (preferred.has(a) ? PREFERENCE_NUDGE : 0)
+    const bScore = (baseScores.get(b) ?? 0) + (preferred.has(b) ? PREFERENCE_NUDGE : 0)
+    if (bScore !== aScore) return bScore - aScore
+    return priorityOrder.indexOf(a) - priorityOrder.indexOf(b)
   })
 }
 
