@@ -60,8 +60,6 @@ function ModelCard({
   isHighlighted?: boolean
   highlightLabel?: string
 }) {
-  const matchPercent = Math.min(100, Math.round(model.weightedScore * 100))
-
   return (
     <div
       className={`rounded-xl border p-5 transition-colors shadow-sm ${
@@ -70,7 +68,7 @@ function ModelCard({
           : 'bg-white border-cream-dark'
       }`}
     >
-      <div className="flex items-start justify-between gap-4 mb-3">
+      <div className="flex items-start gap-4 mb-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span
@@ -94,12 +92,6 @@ function ModelCard({
           <p className="mt-0.5 ml-9 text-grey-blue text-sm">
             {model.provider}
           </p>
-        </div>
-        <div className="shrink-0 text-right">
-          <p className="font-mono text-3xl font-bold text-navy">
-            {matchPercent}%
-          </p>
-          <p className="text-grey-blue text-xs">match</p>
         </div>
       </div>
 
@@ -184,21 +176,13 @@ export default async function ValidateResultsPage({
               Good fit — this is a strong choice for what you&apos;re doing
             </h3>
             {currentModel && currentModelRank && (
-              <div className="flex items-center gap-6">
-                <p className="text-navy text-sm">
-                  <strong>{currentModel.name}</strong> ranks{' '}
-                  <span className="font-mono font-bold text-teal">
-                    #{currentModelRank}
-                  </span>{' '}
-                  of {models.length} models
-                </p>
-                <p className="font-mono text-sm text-navy">
-                  Score:{' '}
-                  <span className="font-bold">
-                    {Math.min(100, Math.round(currentModel.weightedScore * 100))}%
-                  </span>
-                </p>
-              </div>
+              <p className="text-navy text-sm">
+                <strong>{currentModel.name}</strong> ranks{' '}
+                <span className="font-mono font-bold text-teal">
+                  #{currentModelRank}
+                </span>{' '}
+                of {models.length} models
+              </p>
             )}
             {currentModel && (
               <div className="mt-4">
@@ -230,19 +214,17 @@ export default async function ValidateResultsPage({
             {topModel && topModel.slug !== currentModel?.slug && (
               <div className="rounded-lg border border-amber/30 bg-white p-4">
                 <p className="text-sm text-grey-blue mb-2">
-                  Top-ranked cheaper alternative:
+                  Top-ranked alternative:
                 </p>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="font-display font-bold text-navy">
                       {topModel.name}
                     </p>
                     <p className="text-xs text-grey-blue">{topModel.provider}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-mono text-lg font-bold text-navy">
-                      {Math.min(100, Math.round(topModel.weightedScore * 100))}%
-                    </p>
+                  <div className="shrink-0 text-right">
+                    <p className="font-mono text-sm font-bold text-navy">Rank #1</p>
                     <p className="font-mono text-xs text-grey-blue">
                       ~${topModel.estimatedCost.toFixed(4)}/task
                     </p>
@@ -277,9 +259,9 @@ export default async function ValidateResultsPage({
               {models.slice(0, 3).map((m, i) => (
                 <div
                   key={m.slug}
-                  className="flex items-center justify-between rounded-lg border border-coral/20 bg-white px-4 py-3"
+                  className="flex items-center justify-between gap-4 rounded-lg border border-coral/20 bg-white px-4 py-3"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-coral text-white font-mono text-xs font-bold">
                       {i + 1}
                     </span>
@@ -288,8 +270,8 @@ export default async function ValidateResultsPage({
                     </span>
                     <span className="text-xs text-grey-blue">{m.provider}</span>
                   </div>
-                  <span className="font-mono text-sm font-bold text-navy">
-                    {Math.min(100, Math.round(m.weightedScore * 100))}%
+                  <span className="shrink-0 font-mono text-xs text-grey-blue">
+                    ~${m.estimatedCost.toFixed(4)}/task
                   </span>
                 </div>
               ))}
@@ -298,9 +280,12 @@ export default async function ValidateResultsPage({
         )}
 
         {/* Full ranked list */}
-        <h3 className="font-display text-lg font-bold text-navy mb-4">
+        <h3 className="font-display text-lg font-bold text-navy mb-1">
           Full ranking
         </h3>
+        <p className="mb-4 text-xs text-grey-blue">
+          Ranking is relative to this task and your priorities. The factor evidence below is not a probability of success.
+        </p>
         <div className="space-y-4">
           {models.map((model, index) => {
             const rank = index + 1
