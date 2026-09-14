@@ -12,6 +12,9 @@ const links = [
 export async function Nav() {
   const session = await auth()
   const userEmail = session?.user?.email ?? null
+  const navLinks = userEmail
+    ? [{ href: '/bearings', label: 'My bearings' }, ...links]
+    : [...links]
 
-  return <NavClient links={[...links]} userEmail={userEmail} />
+  return <NavClient links={navLinks} userEmail={userEmail} />
 }
