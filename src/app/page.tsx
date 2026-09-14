@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { submitTask } from './actions'
+import { submitBearingTask } from '@/features/bearing/submit-task'
 import { LoadingIndicator } from '@/components/loading-indicator'
 
 function SubmitProgress() {
@@ -48,7 +48,7 @@ export default function Home() {
     setLoading(true)
     setError(null)
     try {
-      const result = await submitTask(formData)
+      const result = await submitBearingTask(formData)
       if (result?.error) {
         setError(result.error)
         setLoading(false)
