@@ -5,116 +5,20 @@ import { redirect } from 'next/navigation'
 import { isRedirectError } from 'next/dist/client/components/redirect-error'
 
 import { getCurrentUser } from '@/lib/auth'
-import { classifyTask, type Classification } from '@/lib/classification'
+import { classifyTask } from '@/lib/classification'
 import { createTaskWithOwner } from '@/db/tasks'
-import { updateTaskPriorities, saveRecommendations } from '@/lib/db'
-import { scoreModelsDetailed } from '@/lib/scoring'
-import { getLatestBenchmarkScores } from '@/lib/benchmarks'
 import { nudgePriorityOrder } from '@/lib/bearing-policy'
 import { getEffectiveBearingPreferenceFactors } from './preferences'
+import {
+  embeddingPriorityForHosting,
+  hostingToDataSensitivity,
+  prepareSingleStageEmbedding,
+  scoreAndSaveEmbedding,
+  type EmbeddingFormInput,
+} from './embedding'
 import type { Factor } from '@/lib/registry'
 
-export interface EmbeddingFormInput {
-  useCase: 'retrieval' | 'similarity' | 'classification' | 'clustering' | 'dedup' | 'other'
-  inputSize: 'short' | 'medium' | 'long'
-  hosting: 'hosted' | 'open' | 'no_preference'
-  languages: 'english' | 'few' | 'many'
-  latency: 'any' | 'interactive' | 'realtime'
-}
-
-function embeddingPriorityForHosting(hosting: EmbeddingFormInput['hosting']): Factor[] {
-  if (hosting === 'open') {
-    return ['quality', 'transparency', 'privacy', 'sustainability', 'cost', 'speed', 'capability']
-  }
-  if (hosting === 'hosted') {
-    return ['quality', 'speed', 'cost', 'capability', 'privacy', 'sustainability', 'transparency']
-  }
-  return ['quality', 'cost', 'speed', 'capability', 'privacy', 'sustainability', 'transparency']
-}
-
-function hostingToDataSensitivity(hosting: EmbeddingFormInput['hosting']): Classification['data_sensitivity'] {
-  return hosting === 'open' ? 'on_prem_required' : 'none'
-}
-
-function dataSensitivityToHosting(
-  dataSensitivity: Classification['data_sensitivity'],
-): EmbeddingFormInput['hosting'] {
-  return dataSensitivity === 'on_prem_required' ? 'open' : 'no_preference'
-}
-
-async function scoreAndSaveEmbedding(
-  taskId: string,
-  scoring: {
-    complexity: string
-    inputLength: string
-    dataSensitivity: string
-    latencyTarget: string
-    needsMultilingual: boolean
-    priorityOrder: Factor[]
-  },
-): Promise<void> {
-  const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
-  const { models } = scoreModelsDetailed({
-    taskType: 'embedding',
-    complexity: scoring.complexity,
-    inputLength: scoring.inputLength,
-    needsVision: false,
-    needsTools: false,
-    needsCode: false,
-    needsReasoning: false,
-    dataSensitivity: scoring.dataSensitivity,
-    latencyTarget: scoring.latencyTarget,
-    volume: 'one_off',
-    needsLongContext: false,
-    needsMultilingual: scoring.needsMultilingual,
-    isAgentic: false,
-    outputLength: 'short',
-    priorityOrder: scoring.priorityOrder,
-    benchmarkScores,
-  })
-
-  await saveRecommendations(
-    taskId,
-    models.map((model, index) => ({
-      modelSlug: model.slug,
-      rank: index + 1,
-      weightedScore: model.weightedScore,
-      factorScores: model.factorScores as Record<string, number>,
-    })),
-  )
-}
-
-async function prepareEmbeddingRecommendation(
-  taskId: string,
-  classification: Classification,
-  preferredFactors: Factor[] = [],
-): Promise<void> {
-  const basePriorityOrder = embeddingPriorityForHosting(
-    dataSensitivityToHosting(classification.data_sensitivity),
-  )
-  const priorityOrder = nudgePriorityOrder(basePriorityOrder, preferredFactors)
-  await updateTaskPriorities(taskId, priorityOrder)
-  await scoreAndSaveEmbedding(taskId, {
-    complexity: classification.complexity,
-    inputLength: classification.input_length,
-    dataSensitivity: classification.data_sensitivity,
-    latencyTarget: classification.latency_target,
-    needsMultilingual: classification.needs_multilingual,
-    priorityOrder,
-  })
-}
-
-async function maybeRouteEmbedding(
-  taskId: string,
-  classification: Classification,
-  preferredFactors: Factor[] = [],
-): Promise<void> {
-  const hasPipelineStages = (classification.pipeline_stages?.length ?? 0) > 0
-  if (classification.task_type !== 'embedding' || hasPipelineStages) return
-
-  await prepareEmbeddingRecommendation(taskId, classification, preferredFactors)
-  redirect(`/embedding/${taskId}/results`)
-}
+export type { EmbeddingFormInput } from './embedding'
 
 async function preferencesForUser(userId: string | null | undefined): Promise<Factor[]> {
   if (!userId) return []
@@ -126,8 +30,7 @@ async function preferencesForUser(userId: string | null | undefined): Promise<Fa
 
 /**
  * Initial bearing submission with optional ownership attached atomically to the
- * task row. Clarification continues through the existing action and preserves
- * the owner already stored on the task.
+ * task row. Clarification preserves the owner already stored on the task.
  */
 export async function submitBearingTask(formData: FormData) {
   try {
@@ -180,7 +83,13 @@ export async function submitBearingTask(formData: FormData) {
     }
 
     const preferredFactors = await preferencesForUser(user?.id)
-    await maybeRouteEmbedding(taskId, classification, preferredFactors)
+    const handledEmbedding = await prepareSingleStageEmbedding(
+      taskId,
+      classification,
+      preferredFactors,
+    )
+    if (handledEmbedding) redirect(`/embedding/${taskId}/results`)
+
     redirect(`/recommend/${taskId}/priorities`)
   } catch (error) {
     if (isRedirectError(error)) throw error

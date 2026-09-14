@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { submitClarification } from '@/app/actions'
+import { submitBearingClarification } from '@/features/bearing/clarification-actions'
 import { StepProgress } from '@/components/step-progress'
 import { LoadingIndicator } from '@/components/loading-indicator'
 import type { ClarificationAnswer } from '@/lib/classification'
@@ -74,7 +74,7 @@ export default function ClarificationPage() {
 
     startTransition(async () => {
       try {
-        const result = await submitClarification(taskId, description, clarifications)
+        const result = await submitBearingClarification(taskId, description, clarifications)
 
         if (result && 'error' in result && result.error) {
           setError(result.error)
@@ -95,14 +95,15 @@ export default function ClarificationPage() {
           return
         }
 
-        // If no result returned, the redirect happened server-side.
-        // But if we somehow get here, push manually.
-        if (!result) {
-          router.push(`/recommend/${taskId}/priorities`)
+        if (result && 'redirectTo' in result && result.redirectTo) {
+          sessionStorage.removeItem(`clarify-${taskId}`)
+          router.push(result.redirectTo)
+          return
         }
+
+        setError('Bearing could not determine the next step. Please start over.')
       } catch {
-        // redirect() from server action may throw on client — navigate manually
-        router.push(`/recommend/${taskId}/priorities`)
+        setError('Something went wrong while classifying your answers. Please try again.')
       }
     })
   }
