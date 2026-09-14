@@ -29,9 +29,14 @@ export default async function BearingsPage() {
               Resume completed bearings from this account. Bearing stores the structured task classification and recommendations, not your raw task description.
             </p>
           </div>
-          <Link href="/" className="btn-secondary">
-            Take a new bearing
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/bearings/preferences" className="btn-secondary">
+              Preferences
+            </Link>
+            <Link href="/" className="btn-secondary">
+              Take a new bearing
+            </Link>
+          </div>
         </div>
 
         {tasks.length === 0 ? (
