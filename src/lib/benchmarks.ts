@@ -11,6 +11,7 @@
 import { neon } from '@neondatabase/serverless'
 import type { TaskType } from './registry'
 import { autoMatchSlug, type BearingModelMeta } from './alias-matching'
+import type { BenchmarkAggregate, BenchmarkScoreMap } from './benchmark-evidence'
 
 function getDb() {
   const url = process.env.NEON_DATABASE_URL
@@ -229,48 +230,102 @@ export async function ingestSnapshot(rows: SnapshotRow[]): Promise<{
   return { inserted, unmatched: [...unmatched] }
 }
 
+interface BenchmarkBucket {
+  scores: number[]
+  sources: Set<string>
+  categories: Set<string>
+  latestSnapshot: string | null
+  totalVotes: number
+  hasVotes: boolean
+}
+
 /**
  * Fetch the latest normalised score per (bearing_slug, bearing_task) by
  * averaging across all source categories that map to that task.
  *
- * Returns a Map keyed by `${slug}::${task}` for O(1) lookup at scoring time.
+ * The returned Map also carries source/category coverage and recency metadata
+ * used by scoring to taper benchmark influence. This keeps one database read
+ * as the source of both the score and its evidence strength.
  */
-export async function getLatestBenchmarkScores(): Promise<Map<string, number>> {
+export async function getLatestBenchmarkScores(): Promise<BenchmarkScoreMap> {
   const rows = await getDb()`
     WITH latest AS (
       SELECT DISTINCT ON (source, source_category, bearing_slug)
-        source, source_category, bearing_slug, normalised_score
+        source,
+        source_category,
+        bearing_slug,
+        normalised_score,
+        vote_count,
+        snapshot_date
       FROM benchmark_snapshots
       WHERE bearing_slug IS NOT NULL
         AND (signal_type = 'task' OR signal_type IS NULL)
       ORDER BY source, source_category, bearing_slug, snapshot_date DESC, captured_at DESC
     )
-    SELECT source, source_category, bearing_slug, normalised_score
+    SELECT
+      source,
+      source_category,
+      bearing_slug,
+      normalised_score,
+      vote_count,
+      snapshot_date::text
     FROM latest
   `
 
-  // Bucket by (slug, task) and average.
-  const buckets = new Map<string, number[]>()
+  const buckets = new Map<string, BenchmarkBucket>()
   for (const row of rows) {
     const source = row.source as BenchmarkSource
     const cat = row.source_category as string
     const slug = row.bearing_slug as string
-    const score = row.normalised_score as number
+    const score = Number(row.normalised_score)
+    if (!Number.isFinite(score)) continue
     const tasks = CATEGORY_TO_TASKS[source]?.[cat]
     if (!tasks) continue
+
     for (const task of tasks) {
       const key = `${slug}::${task}`
-      const list = buckets.get(key) ?? []
-      list.push(score)
-      buckets.set(key, list)
+      const bucket = buckets.get(key) ?? {
+        scores: [],
+        sources: new Set<string>(),
+        categories: new Set<string>(),
+        latestSnapshot: null,
+        totalVotes: 0,
+        hasVotes: false,
+      }
+      bucket.scores.push(score)
+      bucket.sources.add(source)
+      bucket.categories.add(`${source}:${cat}`)
+
+      const snapshotDate = row.snapshot_date == null ? null : String(row.snapshot_date)
+      if (snapshotDate && (!bucket.latestSnapshot || snapshotDate > bucket.latestSnapshot)) {
+        bucket.latestSnapshot = snapshotDate
+      }
+
+      if (row.vote_count != null) {
+        const votes = Number(row.vote_count)
+        if (Number.isFinite(votes)) {
+          bucket.totalVotes += votes
+          bucket.hasVotes = true
+        }
+      }
+      buckets.set(key, bucket)
     }
   }
 
-  const result = new Map<string, number>()
-  for (const [key, scores] of buckets) {
-    const mean = scores.reduce((a, b) => a + b, 0) / scores.length
+  const result = new Map<string, number>() as BenchmarkScoreMap
+  const aggregates = new Map<string, BenchmarkAggregate>()
+  for (const [key, bucket] of buckets) {
+    const mean = bucket.scores.reduce((a, b) => a + b, 0) / bucket.scores.length
     result.set(key, mean)
+    aggregates.set(key, {
+      score: mean,
+      sourceCount: bucket.sources.size,
+      categoryCount: bucket.categories.size,
+      latestSnapshot: bucket.latestSnapshot,
+      totalVotes: bucket.hasVotes ? bucket.totalVotes : null,
+    })
   }
+  result.aggregates = aggregates
   return result
 }
 

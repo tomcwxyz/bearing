@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { benchmarkEvidence } from '../benchmark-evidence'
+import { benchmarkBlendReliability, benchmarkEvidence } from '../benchmark-evidence'
 
 const now = new Date('2026-09-13T12:00:00Z')
 
@@ -10,6 +10,7 @@ describe('benchmarkEvidence', () => {
     expect(evidence.agreement).toBe('none')
     expect(evidence.strength).toBe('none')
     expect(evidence.delta).toBeNull()
+    expect(evidence.blendReliability).toBe(0.25)
   })
 
   it('treats a small delta as aligned', () => {
@@ -28,6 +29,7 @@ describe('benchmarkEvidence', () => {
     expect(evidence.agreement).toBe('aligned')
     expect(evidence.strength).toBe('high')
     expect(evidence.uncertainty).toBeLessThan(0.2)
+    expect(evidence.blendReliability).toBe(1)
   })
 
   it('turns a large well-supported delta into strong uncertainty rather than discarding it', () => {
@@ -46,6 +48,7 @@ describe('benchmarkEvidence', () => {
     expect(evidence.agreement).toBe('strong_disagreement')
     expect(evidence.strength).toBe('high')
     expect(evidence.uncertainty).toBe(1)
+    expect(evidence.blendReliability).toBe(1)
     expect(evidence.detail).toContain('33 points lower')
   })
 
@@ -66,5 +69,38 @@ describe('benchmarkEvidence', () => {
     expect(evidence.strength).toBe('low')
     expect(evidence.uncertainty).toBeLessThan(1)
     expect(evidence.uncertainty).toBeGreaterThan(0.5)
+    expect(evidence.blendReliability).toBe(0.30)
+  })
+})
+
+describe('benchmarkBlendReliability', () => {
+  it('uses the full configured blend only for fresh multi-source evidence', () => {
+    expect(benchmarkBlendReliability({
+      score: 0.8,
+      sourceCount: 2,
+      categoryCount: 2,
+      latestSnapshot: '2026-09-01',
+      totalVotes: null,
+    }, now)).toBe(1)
+  })
+
+  it('tapers a fresh single-source aggregate', () => {
+    expect(benchmarkBlendReliability({
+      score: 0.8,
+      sourceCount: 1,
+      categoryCount: 1,
+      latestSnapshot: '2026-09-01',
+      totalVotes: null,
+    }, now)).toBe(0.65)
+  })
+
+  it('tapers stale evidence substantially instead of discarding it', () => {
+    expect(benchmarkBlendReliability({
+      score: 0.8,
+      sourceCount: 3,
+      categoryCount: 4,
+      latestSnapshot: '2025-01-01',
+      totalVotes: null,
+    }, now)).toBe(0.30)
   })
 })
