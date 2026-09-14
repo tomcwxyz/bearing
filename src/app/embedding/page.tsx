@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { submitEmbeddingTask, type EmbeddingFormInput } from '@/app/actions'
+import { submitOwnedEmbeddingTask, type EmbeddingFormInput } from '@/features/bearing/submit-task'
 import { LoadingIndicator } from '@/components/loading-indicator'
 
 // Each form group is a simple radio set so the user can answer with a
@@ -103,7 +103,7 @@ export default function EmbeddingPage() {
     setLoading(true)
     setError(null)
     try {
-      const result = await submitEmbeddingTask(form)
+      const result = await submitOwnedEmbeddingTask(form)
       if (result?.error) {
         setError(result.error)
         setLoading(false)
