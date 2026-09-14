@@ -12,37 +12,62 @@ import { scoreModelsDetailed } from '@/lib/scoring'
 import { getLatestBenchmarkScores } from '@/lib/benchmarks'
 import type { Factor } from '@/lib/registry'
 
-function embeddingPriorityFor(dataSensitivity: Classification['data_sensitivity']): Factor[] {
-  if (dataSensitivity === 'on_prem_required') {
+export interface EmbeddingFormInput {
+  useCase: 'retrieval' | 'similarity' | 'classification' | 'clustering' | 'dedup' | 'other'
+  inputSize: 'short' | 'medium' | 'long'
+  hosting: 'hosted' | 'open' | 'no_preference'
+  languages: 'english' | 'few' | 'many'
+  latency: 'any' | 'interactive' | 'realtime'
+}
+
+function embeddingPriorityForHosting(hosting: EmbeddingFormInput['hosting']): Factor[] {
+  if (hosting === 'open') {
     return ['quality', 'transparency', 'privacy', 'sustainability', 'cost', 'speed', 'capability']
+  }
+  if (hosting === 'hosted') {
+    return ['quality', 'speed', 'cost', 'capability', 'privacy', 'sustainability', 'transparency']
   }
   return ['quality', 'cost', 'speed', 'capability', 'privacy', 'sustainability', 'transparency']
 }
 
-async function prepareEmbeddingRecommendation(
-  taskId: string,
-  classification: Classification,
-): Promise<void> {
-  const priorityOrder = embeddingPriorityFor(classification.data_sensitivity)
-  await updateTaskPriorities(taskId, priorityOrder)
+function hostingToDataSensitivity(hosting: EmbeddingFormInput['hosting']): Classification['data_sensitivity'] {
+  return hosting === 'open' ? 'on_prem_required' : 'none'
+}
 
+function dataSensitivityToHosting(
+  dataSensitivity: Classification['data_sensitivity'],
+): EmbeddingFormInput['hosting'] {
+  return dataSensitivity === 'on_prem_required' ? 'open' : 'no_preference'
+}
+
+async function scoreAndSaveEmbedding(
+  taskId: string,
+  scoring: {
+    complexity: string
+    inputLength: string
+    dataSensitivity: string
+    latencyTarget: string
+    needsMultilingual: boolean
+    priorityOrder: Factor[]
+  },
+): Promise<void> {
   const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
   const { models } = scoreModelsDetailed({
     taskType: 'embedding',
-    complexity: classification.complexity,
-    inputLength: classification.input_length,
+    complexity: scoring.complexity,
+    inputLength: scoring.inputLength,
     needsVision: false,
     needsTools: false,
     needsCode: false,
     needsReasoning: false,
-    dataSensitivity: classification.data_sensitivity,
-    latencyTarget: classification.latency_target,
+    dataSensitivity: scoring.dataSensitivity,
+    latencyTarget: scoring.latencyTarget,
     volume: 'one_off',
     needsLongContext: false,
-    needsMultilingual: classification.needs_multilingual,
+    needsMultilingual: scoring.needsMultilingual,
     isAgentic: false,
     outputLength: 'short',
-    priorityOrder,
+    priorityOrder: scoring.priorityOrder,
     benchmarkScores,
   })
 
@@ -55,6 +80,24 @@ async function prepareEmbeddingRecommendation(
       factorScores: model.factorScores as Record<string, number>,
     })),
   )
+}
+
+async function prepareEmbeddingRecommendation(
+  taskId: string,
+  classification: Classification,
+): Promise<void> {
+  const priorityOrder = embeddingPriorityForHosting(
+    dataSensitivityToHosting(classification.data_sensitivity),
+  )
+  await updateTaskPriorities(taskId, priorityOrder)
+  await scoreAndSaveEmbedding(taskId, {
+    complexity: classification.complexity,
+    inputLength: classification.input_length,
+    dataSensitivity: classification.data_sensitivity,
+    latencyTarget: classification.latency_target,
+    needsMultilingual: classification.needs_multilingual,
+    priorityOrder,
+  })
 }
 
 async function maybeRouteEmbedding(
@@ -70,9 +113,8 @@ async function maybeRouteEmbedding(
 
 /**
  * Initial bearing submission with optional ownership attached atomically to the
- * task row. This intentionally mirrors the existing submitTask flow while the
- * broader actions.ts split progresses; clarification continues through the
- * existing action and preserves the owner already stored on the task.
+ * task row. Clarification continues through the existing action and preserves
+ * the owner already stored on the task.
  */
 export async function submitBearingTask(formData: FormData) {
   try {
@@ -129,5 +171,54 @@ export async function submitBearingTask(formData: FormData) {
   } catch (error) {
     if (isRedirectError(error)) throw error
     return { error: error instanceof Error ? error.message : 'Failed to submit task.' }
+  }
+}
+
+/** Dedicated embedding-form submission with the same ownership semantics. */
+export async function submitOwnedEmbeddingTask(input: EmbeddingFormInput) {
+  try {
+    const user = await getCurrentUser()
+    const priorityOrder = embeddingPriorityForHosting(input.hosting)
+    const inputLength = input.inputSize === 'long' ? 'very_long' : input.inputSize
+    const dataSensitivity = hostingToDataSensitivity(input.hosting)
+    const latencyTarget = input.latency === 'any' ? 'batch' : input.latency
+
+    const taskId = await createTaskWithOwner({
+      userId: user?.id ?? null,
+      taskType: 'embedding',
+      taskSubtype: input.useCase,
+      complexity: 'simple',
+      inputLength,
+      needsVision: false,
+      needsTools: false,
+      needsCode: false,
+      needsReasoning: false,
+      isRecurring: true,
+      dataSensitivity,
+      latencyTarget,
+      volume: 'one_off',
+      needsLongContext: false,
+      needsMultilingual: input.languages !== 'english',
+      isAgentic: false,
+      outputLength: 'short',
+      mode: 'embedding',
+      priorityOrder,
+      classificationConfidence: 1,
+      pipelineStages: null,
+    })
+
+    await scoreAndSaveEmbedding(taskId, {
+      complexity: 'simple',
+      inputLength,
+      dataSensitivity,
+      latencyTarget,
+      needsMultilingual: input.languages !== 'english',
+      priorityOrder,
+    })
+
+    redirect(`/embedding/${taskId}/results`)
+  } catch (error) {
+    if (isRedirectError(error)) throw error
+    return { error: error instanceof Error ? error.message : 'Failed to find embedding models.' }
   }
 }
