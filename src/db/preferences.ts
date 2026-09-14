@@ -24,7 +24,8 @@ function isMissingPreferenceSchema(error: unknown): boolean {
   if (candidate.code === '42P01' || candidate.code === '42703') return true
   return typeof candidate.message === 'string' && (
     candidate.message.includes('user_bearing_preferences') ||
-    candidate.message.includes('user_id')
+    candidate.message.includes('routed_runs') ||
+    candidate.message.includes('routed_run_models')
   )
 }
 
@@ -118,9 +119,11 @@ export async function resetBearingPreferenceSettings(userId: string): Promise<vo
 }
 
 /**
- * Reconstruct the factor trade-off visible when each owned selection was made.
- * Recommendation rows are chosen at or before the selection timestamp so later
- * catalogue/ranking refreshes do not rewrite the evidence Bearing learns from.
+ * Learn only from authenticated human preferences on Trio / Challenger runs.
+ * Those runs store the factor scores shown at experiment time plus user_id, so
+ * a shared task URL or anonymous selection cannot contaminate another person's
+ * profile. Choosing the primary does not count as an override; choosing a
+ * challenger creates one inspectable trade-off decision.
  */
 export async function getPreferenceDecisionEvidence(
   userId: string,
@@ -130,31 +133,27 @@ export async function getPreferenceDecisionEvidence(
     const rows = await getDb()`
       SELECT
         selected.factor_scores AS selected_factor_scores,
-        recommended.factor_scores AS recommended_factor_scores
-      FROM selections s
-      JOIN tasks t ON t.id = s.task_id
+        primary_model.factor_scores AS recommended_factor_scores
+      FROM routed_runs rr
+      JOIN routed_run_models selected
+        ON selected.routed_run_id = rr.id
+       AND selected.model_slug = rr.human_preferred
+       AND COALESCE(selected.is_error, false) = false
       JOIN LATERAL (
-        SELECT r.factor_scores
-        FROM recommendations r
-        WHERE r.task_id = s.task_id
-          AND r.model_slug = s.model_slug
-          AND r.created_at <= s.created_at
-        ORDER BY r.created_at DESC
+        SELECT model_slug, factor_scores
+        FROM routed_run_models primary_candidate
+        WHERE primary_candidate.routed_run_id = rr.id
+          AND primary_candidate.role = 'primary'
+          AND COALESCE(primary_candidate.is_error, false) = false
+        ORDER BY primary_candidate.route_rank ASC, primary_candidate.created_at ASC
         LIMIT 1
-      ) selected ON true
-      JOIN LATERAL (
-        SELECT r.factor_scores
-        FROM recommendations r
-        WHERE r.task_id = s.task_id
-          AND r.rank = 1
-          AND r.created_at <= s.created_at
-        ORDER BY r.created_at DESC
-        LIMIT 1
-      ) recommended ON true
-      WHERE t.user_id = ${userId}
-        AND COALESCE(s.source, 'recommend') = 'recommend'
-        AND COALESCE(s.recommended_rank, 1) > 1
-      ORDER BY s.created_at DESC
+      ) primary_model ON true
+      WHERE rr.user_id = ${userId}
+        AND rr.mode IN ('trio', 'challenger')
+        AND rr.human_preferred IS NOT NULL
+        AND rr.human_preferred <> 'tie'
+        AND selected.model_slug <> primary_model.model_slug
+      ORDER BY rr.created_at DESC
       LIMIT ${Math.max(1, Math.min(limit, 200))}
     `
 
@@ -165,8 +164,8 @@ export async function getPreferenceDecisionEvidence(
       return [{ selectedFactorScores, recommendedFactorScores }]
     })
   } catch (error) {
-    // Migration 030 may not be present yet. In that case there is simply no
-    // owned behavioural evidence to learn from.
+    // Preference learning is additive. Older deployments without routed-run
+    // schema simply have no behavioural evidence yet.
     if (isMissingPreferenceSchema(error)) return []
     throw error
   }
