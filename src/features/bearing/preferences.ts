@@ -17,10 +17,8 @@ export interface BearingPreferenceProfile {
 }
 
 export async function getBearingPreferenceProfile(userId: string): Promise<BearingPreferenceProfile> {
-  const [settings, decisions] = await Promise.all([
-    getBearingPreferenceSettings(userId),
-    getPreferenceDecisionEvidence(userId),
-  ])
+  const settings = await getBearingPreferenceSettings(userId)
+  const decisions = await getPreferenceDecisionEvidence(userId, settings.learningSince)
   const learned = inferLearnedPreferenceProfile(decisions)
   const effectiveFactors = effectivePreferenceFactors({
     manualFactors: settings.manualFactors,
