@@ -147,7 +147,7 @@ function BenchmarkEvidenceDisclosure({ evidence }: { evidence: BenchmarkEvidence
         {evidence.detail}
       </p>
       <p className="mt-1.5 text-[11px] leading-relaxed text-navy/45">
-        This compares external benchmark evidence with Bearing&apos;s curated task score. It can affect decision confidence and which models Bearing chooses to test, but it does not yet change the production ranking blend.
+        This compares external benchmark evidence with Bearing&apos;s curated task score. When benchmark blending is enabled, fresh broad evidence receives more ranking influence and sparse or stale evidence is automatically down-weighted. Disagreement still lowers decision confidence and can prompt a challenge.
       </p>
     </details>
   )
