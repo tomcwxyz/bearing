@@ -8,6 +8,7 @@ import {
   type RankingBaseline,
 } from '../src/evaluation/ranking-baseline'
 import { compareShadowRankings, withBenchmarkBlend } from '../src/evaluation/shadow-ranking'
+import type { BenchmarkScoreMap } from '../src/lib/benchmark-evidence'
 import { ALL_TASK_TYPES, getAllModels } from '../src/lib/registry'
 
 const BASELINE_PATH = resolve(process.cwd(), 'src/evaluation/baselines/ranking-v1.json')
@@ -23,26 +24,41 @@ function hash(text: string): number {
 
 /**
  * CI has no database credentials, so its candidate shadow run uses a stable,
- * small synthetic benchmark perturbation around curated scores. This exercises
- * benchmark blending deterministically without pretending those values are real
- * evidence. Set SHADOW_USE_LIVE_BENCHMARKS=1 in an environment with Neon access
- * to evaluate against the latest actual benchmark snapshots instead.
+ * small synthetic benchmark perturbation around curated scores. The fixture
+ * also carries synthetic high-confidence coverage metadata so CI exercises the
+ * evidence-weighted production path rather than the legacy plain-Map fallback.
+ * None of these values are presented as real evidence. Set
+ * SHADOW_USE_LIVE_BENCHMARKS=1 in an environment with Neon access to evaluate
+ * against the latest actual benchmark snapshots instead.
  */
-function syntheticBenchmarkScores(): Map<string, number> {
-  const scores = new Map<string, number>()
+function syntheticBenchmarkScores(): BenchmarkScoreMap {
+  const scores = new Map<string, number>() as BenchmarkScoreMap
+  const aggregates = new Map()
   for (const model of getAllModels()) {
     for (const taskType of ALL_TASK_TYPES) {
       const curated = model.task_fitness[taskType]
       if (curated == null) continue
-      const bucket = hash(`${model.slug}::${taskType}`) % 17
+      const key = `${model.slug}::${taskType}`
+      const bucket = hash(key) % 17
       const delta = (bucket - 8) / 100 // deterministic -0.08 .. +0.08
-      scores.set(`${model.slug}::${taskType}`, Math.max(0, Math.min(1, curated + delta)))
+      const score = Math.max(0, Math.min(1, curated + delta))
+      scores.set(key, score)
+      aggregates.set(key, {
+        score,
+        sourceCount: 2,
+        categoryCount: 2,
+        // Future-dated only because this is a non-evidence CI fixture: it
+        // prevents the synthetic reliability path decaying with wall-clock time.
+        latestSnapshot: '2099-01-01',
+        totalVotes: null,
+      })
     }
   }
+  scores.aggregates = aggregates
   return scores
 }
 
-async function candidateBenchmarkScores(): Promise<{ scores: Map<string, number>; source: string }> {
+async function candidateBenchmarkScores(): Promise<{ scores: BenchmarkScoreMap; source: string }> {
   if (process.env.SHADOW_USE_LIVE_BENCHMARKS === '1') {
     const { getLatestBenchmarkScores } = await import('../src/lib/benchmarks')
     return { scores: await getLatestBenchmarkScores(), source: 'live benchmark snapshots' }
