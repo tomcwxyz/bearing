@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless'
+import type { Classification } from '@/lib/classification'
 
 function getDb() {
   const url = process.env.NEON_DATABASE_URL
@@ -178,6 +179,37 @@ export async function createTaskWithOwner(input: CreateOwnedTaskInput): Promise<
     RETURNING id
   `
   return rows[0].id as string
+}
+
+/** Persist a re-classification after a clarification round. */
+export async function updateTaskClassification(
+  taskId: string,
+  classification: Classification,
+): Promise<void> {
+  await getDb()`
+    UPDATE tasks
+    SET
+      task_type = ${classification.task_type},
+      task_subtype = ${classification.task_subtype},
+      complexity = ${classification.complexity},
+      input_length = ${classification.input_length},
+      needs_vision = ${classification.needs_vision},
+      needs_tools = ${classification.needs_tools},
+      needs_code = ${classification.needs_code},
+      needs_reasoning = ${classification.needs_reasoning},
+      is_recurring = ${classification.is_recurring},
+      data_sensitivity = ${classification.data_sensitivity},
+      latency_target = ${classification.latency_target},
+      volume = ${classification.volume},
+      needs_long_context = ${classification.needs_long_context},
+      needs_multilingual = ${classification.needs_multilingual},
+      is_agentic = ${classification.is_agentic},
+      output_length = ${classification.output_length},
+      classification_confidence = ${classification.confidence},
+      pipeline_stages = ${classification.pipeline_stages ? JSON.stringify(classification.pipeline_stages) : null},
+      classification_schema_version = ${schemaVersionFor(classification.task_type)}
+    WHERE id = ${taskId}
+  `
 }
 
 /**
