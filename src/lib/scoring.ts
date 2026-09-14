@@ -1,6 +1,10 @@
 import { ALL_TASK_TYPES, getAllModels, type Factor, type Model } from './registry'
 import { priorityToWeights } from './weights'
 import { taskRelativeCapabilityScore } from './capability-fit'
+import {
+  benchmarkBlendReliability,
+  type BenchmarkScoreMap,
+} from './benchmark-evidence'
 
 export interface ScoringInput {
   taskType: string
@@ -24,10 +28,11 @@ export interface ScoringInput {
   priorityOrder: Factor[]
   excludedFactors?: string[]
   // Optional map keyed by `${bearing_slug}::${taskType}` → 0..1 normalised
-  // benchmark mean. When present and a model+task has an entry, the quality
-  // score is blended with curated task_fitness via BENCHMARK_BLEND (env, 0..1,
-  // default 0 = curated only). Sync injection keeps scoring testable.
-  benchmarkScores?: Map<string, number>
+  // benchmark mean. When produced by getLatestBenchmarkScores() the map also
+  // carries source/category/recency aggregates. BENCHMARK_BLEND is a ceiling:
+  // evidence reliability decides how much of that configured influence a
+  // model/task pair has earned. Sync injection keeps scoring testable.
+  benchmarkScores?: BenchmarkScoreMap
 }
 
 export interface ScoredModel {
@@ -172,18 +177,10 @@ function getBenchmarkBlend(): number {
   return Math.min(1, Math.max(0, parsed))
 }
 
-// When curated and benchmark disagree by more than this, skip the blend and
-// use curated only. Phase 1.4 inspection found 43/134 pairs (32%) with
-// |delta| > 0.10 — driven by specialist models the LMArena cohort doesn't
-// cover (devstral, mistral-ocr) and budget models that LMArena over-rates
-// versus our task-specific rubric. Blending these pairs imports noise; the
-// blend works well for the well-aligned majority below the threshold.
-export const BENCHMARK_DELTA_SKIP_THRESHOLD = 0.10
-
 function qualityScore(
   model: Model,
   taskType: string,
-  benchmarkScores: Map<string, number> | undefined,
+  benchmarkScores: BenchmarkScoreMap | undefined,
   blend: number,
 ): number {
   const curated = model.task_fitness[taskType]
@@ -204,10 +201,20 @@ function qualityScore(
     return 0.5
   }
   if (blend <= 0 || !benchmarkScores) return curated
-  const benchmark = benchmarkScores.get(`${model.slug}::${taskType}`)
+
+  const key = `${model.slug}::${taskType}`
+  const benchmark = benchmarkScores.get(key)
   if (benchmark === undefined) return curated
-  if (Math.abs(curated - benchmark) > BENCHMARK_DELTA_SKIP_THRESHOLD) return curated
-  return curated * (1 - blend) + benchmark * blend
+
+  // BENCHMARK_BLEND is the maximum influence external evidence may have. The
+  // score map carries coverage/recency evidence, which tapers that influence
+  // for sparse or stale model/task pairs. Large curated-vs-benchmark deltas are
+  // deliberately NOT discarded: disagreement is surfaced as uncertainty and
+  // an experiment signal elsewhere, rather than silently reverting to the
+  // editorial score precisely when external evidence is most informative.
+  const reliability = benchmarkBlendReliability(benchmarkScores.aggregates?.get(key))
+  const effectiveBlend = blend * reliability
+  return curated * (1 - effectiveBlend) + benchmark * effectiveBlend
 }
 
 // Hard requirements are enforced in hardFilter(). The capability factor is
