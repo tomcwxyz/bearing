@@ -95,14 +95,15 @@ export default function ClarificationPage() {
           return
         }
 
-        // If no result returned, the redirect happened server-side.
-        // But if we somehow get here, push manually.
-        if (!result) {
-          router.push(`/recommend/${taskId}/priorities`)
+        if (result && 'redirectTo' in result && result.redirectTo) {
+          sessionStorage.removeItem(`clarify-${taskId}`)
+          router.push(result.redirectTo)
+          return
         }
+
+        setError('Bearing could not determine the next step. Please start over.')
       } catch {
-        // redirect() from server action may throw on client — navigate manually
-        router.push(`/recommend/${taskId}/priorities`)
+        setError('Something went wrong while classifying your answers. Please try again.')
       }
     })
   }
