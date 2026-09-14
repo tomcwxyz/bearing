@@ -9,6 +9,16 @@ export interface BenchmarkAggregate {
   totalVotes: number | null
 }
 
+/**
+ * A normal benchmark score map can carry the evidence used to decide how much
+ * influence each score deserves. Keeping the aggregate metadata on the map
+ * preserves the existing synchronous scoring API while making the ranking
+ * policy evidence-aware.
+ */
+export type BenchmarkScoreMap = Map<string, number> & {
+  aggregates?: Map<string, BenchmarkAggregate>
+}
+
 export interface BenchmarkEvidence {
   agreement: BenchmarkAgreement
   strength: BenchmarkEvidenceStrength
@@ -22,6 +32,7 @@ export interface BenchmarkEvidence {
   label: string
   detail: string
   uncertainty: number
+  blendReliability: number
 }
 
 function ageInDays(date: string | null, now: Date): number | null {
@@ -31,7 +42,10 @@ function ageInDays(date: string | null, now: Date): number | null {
   return Math.max(0, Math.floor((now.getTime() - parsed.getTime()) / 86_400_000))
 }
 
-function evidenceStrength(aggregate: BenchmarkAggregate, now: Date): BenchmarkEvidenceStrength {
+export function benchmarkEvidenceStrength(
+  aggregate: BenchmarkAggregate,
+  now: Date = new Date(),
+): BenchmarkEvidenceStrength {
   const age = ageInDays(aggregate.latestSnapshot, now)
   if (age == null) return 'low'
   if (aggregate.sourceCount >= 2 && aggregate.categoryCount >= 2 && age <= 90) return 'high'
@@ -40,9 +54,30 @@ function evidenceStrength(aggregate: BenchmarkAggregate, now: Date): BenchmarkEv
 }
 
 /**
- * Describe benchmark/curated agreement without silently turning a large delta
- * into "use curated only". This evidence can inform confidence and experiments
- * before any benchmark blending rule is changed.
+ * Convert evidence coverage/recency into a multiplier for BENCHMARK_BLEND.
+ * BENCHMARK_BLEND remains the maximum external-evidence influence; this
+ * reliability factor decides how much of that ceiling a particular model/task
+ * pair has earned.
+ *
+ * Missing aggregate metadata is deliberately conservative rather than zero so
+ * older/synthetic callers can still exercise benchmark blending without being
+ * treated as equally trustworthy to fresh multi-source production evidence.
+ */
+export function benchmarkBlendReliability(
+  aggregate: BenchmarkAggregate | null | undefined,
+  now: Date = new Date(),
+): number {
+  if (!aggregate) return 0.25
+  const strength = benchmarkEvidenceStrength(aggregate, now)
+  if (strength === 'high') return 1
+  if (strength === 'medium') return 0.65
+  return 0.30
+}
+
+/**
+ * Describe benchmark/curated agreement. Disagreement is itself evidence: it
+ * raises uncertainty and can trigger an experiment, while coverage/recency
+ * separately determine how much influence the benchmark earns in ranking.
  */
 export function benchmarkEvidence(input: {
   curatedScore: number | null | undefined
@@ -67,6 +102,7 @@ export function benchmarkEvidence(input: {
       label: 'Benchmark evidence: none',
       detail: 'Bearing does not have comparable external benchmark evidence for this model and task yet.',
       uncertainty: 0.5,
+      blendReliability: benchmarkBlendReliability(aggregate, now),
     }
   }
 
@@ -76,7 +112,7 @@ export function benchmarkEvidence(input: {
     : delta <= 0.20
       ? 'tension'
       : 'strong_disagreement'
-  const strength = evidenceStrength(aggregate, now)
+  const strength = benchmarkEvidenceStrength(aggregate, now)
   const signedDelta = aggregate.score - curatedScore
   const direction = signedDelta >= 0 ? 'higher' : 'lower'
   const points = Math.round(Math.abs(signedDelta) * 100)
@@ -111,5 +147,6 @@ export function benchmarkEvidence(input: {
     label,
     detail: `External benchmark evidence is ${points} points ${direction} than Bearing's curated task score (${coverage} · ${recency}${votes}). Evidence strength: ${strength}.`,
     uncertainty,
+    blendReliability: benchmarkBlendReliability(aggregate, now),
   }
 }
