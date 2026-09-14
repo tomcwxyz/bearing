@@ -1,8 +1,5 @@
 'use server'
 
-import { redirect } from 'next/navigation'
-import { isRedirectError } from 'next/dist/client/components/redirect-error'
-
 import { classifyTask, type ClarificationAnswer } from '@/lib/classification'
 import { getCurrentUser } from '@/lib/auth'
 import { getTask } from '@/lib/db'
@@ -24,8 +21,9 @@ async function preferencesForOwnedTask(
 
 /**
  * Reclassify a task after one clarification round, persist the structured
- * result through the task repository, and route onward. Raw task text remains
- * client-held for the short clarification session and is not stored here.
+ * result through the task repository, and return the exact next route. Raw
+ * task text remains client-held for the short clarification session and is not
+ * stored here.
  */
 export async function submitBearingClarification(
   taskId: string,
@@ -56,11 +54,13 @@ export async function submitBearingClarification(
       classification,
       preferredFactors,
     )
-    if (handledEmbedding) redirect(`/embedding/${taskId}/results`)
 
-    redirect(`/recommend/${taskId}/priorities`)
+    return {
+      redirectTo: handledEmbedding
+        ? `/embedding/${taskId}/results`
+        : `/recommend/${taskId}/priorities`,
+    }
   } catch (error) {
-    if (isRedirectError(error)) throw error
     return {
       error: error instanceof Error ? error.message : 'Failed to submit clarification.',
     }
