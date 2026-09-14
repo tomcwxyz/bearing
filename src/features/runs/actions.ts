@@ -21,48 +21,16 @@ import { pickInformationRoute } from '@/lib/information-routing'
 import { outcomeInformationScarcity, type ModelOutcomeEvidence } from '@/lib/outcome-evidence'
 import { judgeResponses, type JudgeCandidate } from '@/lib/judge'
 import { callDirectProvider, callModel, DIRECT_PROVIDERS } from '@/lib/openrouter'
-import { getAllModels, type Factor } from '@/lib/registry'
+import { getAllModels } from '@/lib/registry'
 import { scoreModels } from '@/lib/scoring'
 import { getBenchmarkAggregatesForModels } from '@/db/benchmark-evidence'
 import { getOutcomeEvidenceForModels } from '@/db/outcome-evidence'
 import { saveRoutedSelectionReasons } from '@/db/routed-selection'
+import { scoringInputFromTask } from '@/features/recommendations/scoring-input'
 import { buildRunMessages, type RunFileData } from './run-messages'
 
 const DAILY_TRIO_LIMIT = 3
 const DAILY_CHALLENGER_LIMIT = 4
-
-function scoringInputFromTask(
-  task: NonNullable<Awaited<ReturnType<typeof getTask>>>,
-  benchmarkScores: Map<string, number> | undefined,
-) {
-  const priorityOrder: Factor[] = task.priority_order
-    ? (typeof task.priority_order === 'string' ? JSON.parse(task.priority_order) : task.priority_order)
-    : ['quality', 'cost', 'speed', 'capability', 'privacy', 'sustainability', 'transparency']
-
-  const excludedFactors: string[] = task.excluded_factors
-    ? (typeof task.excluded_factors === 'string' ? JSON.parse(task.excluded_factors) : task.excluded_factors)
-    : []
-
-  return {
-    taskType: task.task_type,
-    complexity: task.complexity,
-    inputLength: task.input_length,
-    needsVision: task.needs_vision,
-    needsTools: task.needs_tools,
-    needsCode: task.needs_code,
-    needsReasoning: task.needs_reasoning ?? false,
-    dataSensitivity: task.data_sensitivity ?? 'none',
-    latencyTarget: task.latency_target ?? 'interactive',
-    volume: task.volume ?? 'one_off',
-    needsLongContext: task.needs_long_context ?? false,
-    needsMultilingual: task.needs_multilingual ?? false,
-    isAgentic: task.is_agentic ?? false,
-    outputLength: task.output_length ?? 'medium',
-    priorityOrder,
-    excludedFactors,
-    benchmarkScores,
-  }
-}
 
 async function parseRunFile(formData: FormData): Promise<RunFileData | null | { error: string }> {
   const uploadedFile = formData.get('file') as File | null
