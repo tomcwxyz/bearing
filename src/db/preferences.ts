@@ -15,6 +15,7 @@ function getDb() {
 export interface BearingPreferenceSettings {
   learningEnabled: boolean
   manualFactors: LearnablePreferenceFactor[]
+  learningSince: string | null
   hasSavedSettings: boolean
 }
 
@@ -62,26 +63,44 @@ function parseFactorScores(value: unknown): Partial<Record<Factor, number>> | nu
   return scores
 }
 
+function timestampString(value: unknown): string | null {
+  if (value == null) return null
+  if (value instanceof Date) return value.toISOString()
+  const parsed = new Date(String(value))
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString()
+}
+
 /** Missing migration 031 is treated as default settings so rollout is safe. */
 export async function getBearingPreferenceSettings(userId: string): Promise<BearingPreferenceSettings> {
   try {
     const rows = await getDb()`
-      SELECT learning_enabled, preferred_factors
+      SELECT learning_enabled, preferred_factors, learning_since
       FROM user_bearing_preferences
       WHERE user_id = ${userId}
       LIMIT 1
     `
     if (rows.length === 0) {
-      return { learningEnabled: true, manualFactors: [], hasSavedSettings: false }
+      return {
+        learningEnabled: true,
+        manualFactors: [],
+        learningSince: null,
+        hasSavedSettings: false,
+      }
     }
     return {
       learningEnabled: rows[0].learning_enabled !== false,
       manualFactors: parseFactorArray(rows[0].preferred_factors),
+      learningSince: timestampString(rows[0].learning_since),
       hasSavedSettings: true,
     }
   } catch (error) {
     if (isMissingPreferenceSchema(error)) {
-      return { learningEnabled: true, manualFactors: [], hasSavedSettings: false }
+      return {
+        learningEnabled: true,
+        manualFactors: [],
+        learningSince: null,
+        hasSavedSettings: false,
+      }
     }
     throw error
   }
@@ -93,11 +112,12 @@ export async function saveBearingPreferenceSettings(
 ): Promise<void> {
   await getDb()`
     INSERT INTO user_bearing_preferences (
-      user_id, learning_enabled, preferred_factors, updated_at
+      user_id, learning_enabled, preferred_factors, learning_since, updated_at
     ) VALUES (
       ${userId},
       ${input.learningEnabled},
       ${JSON.stringify(input.manualFactors)},
+      NULL,
       now()
     )
     ON CONFLICT (user_id) DO UPDATE SET
@@ -107,15 +127,24 @@ export async function saveBearingPreferenceSettings(
   `
 }
 
+/**
+ * Reset explicit defaults and begin a fresh learning window. Historical Trio /
+ * Challenger data remains intact for the public evidence dataset; it simply no
+ * longer participates in this user's personalised defaults.
+ */
 export async function resetBearingPreferenceSettings(userId: string): Promise<void> {
-  try {
-    await getDb()`
-      DELETE FROM user_bearing_preferences
-      WHERE user_id = ${userId}
-    `
-  } catch (error) {
-    if (!isMissingPreferenceSchema(error)) throw error
-  }
+  await getDb()`
+    INSERT INTO user_bearing_preferences (
+      user_id, learning_enabled, preferred_factors, learning_since, updated_at
+    ) VALUES (
+      ${userId}, true, ${JSON.stringify([])}, now(), now()
+    )
+    ON CONFLICT (user_id) DO UPDATE SET
+      learning_enabled = true,
+      preferred_factors = ${JSON.stringify([])},
+      learning_since = now(),
+      updated_at = now()
+  `
 }
 
 /**
@@ -127,6 +156,7 @@ export async function resetBearingPreferenceSettings(userId: string): Promise<vo
  */
 export async function getPreferenceDecisionEvidence(
   userId: string,
+  learningSince: string | null = null,
   limit = 50,
 ): Promise<PreferenceDecisionEvidence[]> {
   try {
@@ -153,6 +183,7 @@ export async function getPreferenceDecisionEvidence(
         AND rr.human_preferred IS NOT NULL
         AND rr.human_preferred <> 'tie'
         AND selected.model_slug <> primary_model.model_slug
+        AND (${learningSince}::timestamptz IS NULL OR rr.created_at >= ${learningSince}::timestamptz)
       ORDER BY rr.created_at DESC
       LIMIT ${Math.max(1, Math.min(limit, 200))}
     `
@@ -164,8 +195,8 @@ export async function getPreferenceDecisionEvidence(
       return [{ selectedFactorScores, recommendedFactorScores }]
     })
   } catch (error) {
-    // Preference learning is additive. Older deployments without routed-run
-    // schema simply have no behavioural evidence yet.
+    // Preference learning is additive. Older deployments without routed-run or
+    // preference schema simply have no behavioural evidence yet.
     if (isMissingPreferenceSchema(error)) return []
     throw error
   }
