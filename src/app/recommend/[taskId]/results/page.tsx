@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getResults } from '@/app/actions'
+import { getRecommendationResults } from '@/features/recommendations/service'
 import { ResultsClient } from './results-client'
 import { StepProgress } from '@/components/step-progress'
 import { TASK_TYPE_LABELS, getModel, type Factor } from '@/lib/registry'
@@ -31,7 +31,7 @@ function parsePriorityOrder(value: unknown): Factor[] {
 
 export default async function ResultsPage({ params }: { params: Promise<{ taskId: string }> }) {
   const { taskId } = await params
-  const result = await getResults(taskId)
+  const result = await getRecommendationResults(taskId)
 
   if ('error' in result && result.error) {
     return (
