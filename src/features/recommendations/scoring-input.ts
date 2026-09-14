@@ -2,13 +2,21 @@ import type { BenchmarkScoreMap } from '@/lib/benchmark-evidence'
 import type { Factor } from '@/lib/registry'
 import type { ScoringInput } from '@/lib/scoring'
 
+/**
+ * Minimal persisted-task shape needed by recommendation scoring.
+ *
+ * The legacy DB layer currently returns generic records, so fields are optional
+ * here and normalised at this boundary. Real task rows contain these required
+ * columns; the defaults make the service fail-safe for older/partial fixtures
+ * without leaking `any` through the scoring engine.
+ */
 export interface TaskScoringSource {
-  task_type: string
-  complexity: string
-  input_length: string
-  needs_vision: boolean
-  needs_tools: boolean
-  needs_code: boolean
+  task_type?: string | null
+  complexity?: string | null
+  input_length?: string | null
+  needs_vision?: boolean | null
+  needs_tools?: boolean | null
+  needs_code?: boolean | null
   needs_reasoning?: boolean | null
   data_sensitivity?: string | null
   latency_target?: string | null
@@ -50,12 +58,12 @@ export function scoringInputFromTask(
   benchmarkScores?: BenchmarkScoreMap,
 ): ScoringInput {
   return {
-    taskType: task.task_type,
-    complexity: task.complexity,
-    inputLength: task.input_length,
-    needsVision: task.needs_vision,
-    needsTools: task.needs_tools,
-    needsCode: task.needs_code,
+    taskType: task.task_type ?? 'other',
+    complexity: task.complexity ?? 'moderate',
+    inputLength: task.input_length ?? 'medium',
+    needsVision: task.needs_vision ?? false,
+    needsTools: task.needs_tools ?? false,
+    needsCode: task.needs_code ?? false,
     needsReasoning: task.needs_reasoning ?? false,
     dataSensitivity: task.data_sensitivity ?? 'none',
     latencyTarget: task.latency_target ?? 'interactive',
