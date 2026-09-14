@@ -1,7 +1,18 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import type { BenchmarkAggregate, BenchmarkScoreMap } from '../benchmark-evidence'
+import type { Factor } from '../registry'
 import { scoreModels } from '../scoring'
+
+const priorityOrder: Factor[] = [
+  'quality',
+  'capability',
+  'cost',
+  'speed',
+  'privacy',
+  'transparency',
+  'sustainability',
+]
 
 const baseInput = {
   taskType: 'code',
@@ -10,7 +21,7 @@ const baseInput = {
   needsVision: false,
   needsTools: false,
   needsCode: true,
-  priorityOrder: ['quality', 'capability', 'cost', 'speed', 'privacy', 'transparency', 'sustainability'] as const,
+  priorityOrder,
 }
 
 function evidenceMap(
