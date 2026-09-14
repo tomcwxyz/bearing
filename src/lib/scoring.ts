@@ -177,6 +177,11 @@ function getBenchmarkBlend(): number {
   return Math.min(1, Math.max(0, parsed))
 }
 
+// Plain Maps pre-date evidence metadata and remain supported for tests, shadow
+// fixtures and external callers. Preserve their historical semantics so the
+// evidence-aware production change is explicit rather than a hidden API break.
+const LEGACY_BENCHMARK_DELTA_SKIP_THRESHOLD = 0.10
+
 function qualityScore(
   model: Model,
   taskType: string,
@@ -206,13 +211,18 @@ function qualityScore(
   const benchmark = benchmarkScores.get(key)
   if (benchmark === undefined) return curated
 
+  if (!benchmarkScores.aggregates) {
+    if (Math.abs(curated - benchmark) > LEGACY_BENCHMARK_DELTA_SKIP_THRESHOLD) return curated
+    return curated * (1 - blend) + benchmark * blend
+  }
+
   // BENCHMARK_BLEND is the maximum influence external evidence may have. The
-  // score map carries coverage/recency evidence, which tapers that influence
-  // for sparse or stale model/task pairs. Large curated-vs-benchmark deltas are
-  // deliberately NOT discarded: disagreement is surfaced as uncertainty and
-  // an experiment signal elsewhere, rather than silently reverting to the
-  // editorial score precisely when external evidence is most informative.
-  const reliability = benchmarkBlendReliability(benchmarkScores.aggregates?.get(key))
+  // production score map carries coverage/recency evidence, which tapers that
+  // influence for sparse or stale model/task pairs. Large curated-vs-benchmark
+  // deltas are deliberately NOT discarded: disagreement is surfaced as
+  // uncertainty and an experiment signal elsewhere, rather than silently
+  // reverting to the editorial score precisely when evidence is informative.
+  const reliability = benchmarkBlendReliability(benchmarkScores.aggregates.get(key))
   const effectiveBlend = blend * reliability
   return curated * (1 - effectiveBlend) + benchmark * effectiveBlend
 }
