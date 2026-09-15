@@ -110,23 +110,33 @@ async function parseComparisonFile(formData: FormData): Promise<RunFileData | nu
   }
 }
 
+function comparisonRunFailure(error: string) {
+  return {
+    error,
+    responseA: '',
+    responseB: '',
+    errorA: undefined as string | undefined,
+    errorB: undefined as string | undefined,
+  }
+}
+
 export async function runComparison(comparisonId: string, formData: FormData) {
   try {
     const user = await getCurrentUser()
-    if (!user) return { error: 'You must be signed in to compare models.' }
+    if (!user) return comparisonRunFailure('You must be signed in to compare models.')
 
     const comparison = await getComparison(comparisonId)
-    if (!comparison) return { error: 'Comparison not found.' }
-    if (comparison.user_id !== user.id) return { error: 'Not authorized.' }
+    if (!comparison) return comparisonRunFailure('Comparison not found.')
+    if (comparison.user_id !== user.id) return comparisonRunFailure('Not authorized.')
 
     const prompt = formData.get('prompt') as string
-    if (!prompt?.trim()) return { error: 'Prompt is required.' }
+    if (!prompt?.trim()) return comparisonRunFailure('Prompt is required.')
 
     const filtered = await filterPrompt(prompt)
-    if (!filtered.safe) return { error: filtered.reason || 'Prompt was flagged by content filter.' }
+    if (!filtered.safe) return comparisonRunFailure(filtered.reason || 'Prompt was flagged by content filter.')
 
     const parsedFile = await parseComparisonFile(formData)
-    if (parsedFile && 'error' in parsedFile) return parsedFile
+    if (parsedFile && 'error' in parsedFile) return comparisonRunFailure(parsedFile.error)
     const file = parsedFile as RunFileData | null
 
     const [orIdA, orIdB, modelA, modelB] = await Promise.all([
@@ -138,8 +148,12 @@ export async function runComparison(comparisonId: string, formData: FormData) {
 
     const directA = DIRECT_PROVIDERS[comparison.model_a_slug]
     const directB = DIRECT_PROVIDERS[comparison.model_b_slug]
-    if (!orIdA && !directA) return { error: `Model ${comparison.model_a_slug} is not available for comparison.` }
-    if (!orIdB && !directB) return { error: `Model ${comparison.model_b_slug} is not available for comparison.` }
+    if (!orIdA && !directA) {
+      return comparisonRunFailure(`Model ${comparison.model_a_slug} is not available for comparison.`)
+    }
+    if (!orIdB && !directB) {
+      return comparisonRunFailure(`Model ${comparison.model_b_slug} is not available for comparison.`)
+    }
 
     const messagesA = buildRunMessages(
       prompt,
@@ -178,7 +192,7 @@ export async function runComparison(comparisonId: string, formData: FormData) {
       errorB: resultB.error,
     }
   } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Failed to run comparison.' }
+    return comparisonRunFailure(error instanceof Error ? error.message : 'Failed to run comparison.')
   }
 }
 
