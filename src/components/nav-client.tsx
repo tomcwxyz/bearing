@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { signOutAction } from '@/app/actions'
+import { signOutAction } from '@/features/auth/actions'
 
 interface NavLink {
   href: string
