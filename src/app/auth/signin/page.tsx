@@ -3,7 +3,7 @@
 import { useState, useTransition, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { signInWithPassword, requestPasswordSetup } from '@/app/actions'
+import { signInWithPassword, requestPasswordSetup } from '@/features/auth/actions'
 import { CredentialsForm } from '@/components/credentials-form'
 import { sanitizeRedirect } from '@/lib/safe-redirect'
 
