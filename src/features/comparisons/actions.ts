@@ -19,6 +19,7 @@ import {
 import { filterPrompt } from '@/lib/content-filter'
 import { extractText, validateFile } from '@/lib/file-parser'
 import { callDirectProvider, callModel, DIRECT_PROVIDERS } from '@/lib/openrouter'
+import { getRecommendationResults } from '@/features/recommendations/service'
 import { buildRunMessages, type RunFileData } from '@/features/runs/run-messages'
 
 const DAILY_COMPARISON_LIMIT = 4
@@ -39,6 +40,11 @@ export async function getModelsForCompare() {
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Failed to load models.' }
   }
+}
+
+/** Client-callable bridge to the shared recommendation service for task-based compare. */
+export async function getComparisonRecommendations(taskId: string) {
+  return getRecommendationResults(taskId)
 }
 
 export async function createDirectCompareTask(): Promise<{ taskId?: string; error?: string }> {
