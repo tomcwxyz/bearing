@@ -1,13 +1,9 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import {
-  routeAndRun,
-  checkAuth,
-  signInWithPassword,
-  submitRoutedPreference,
-} from '@/app/actions'
+import { checkAuth, signInWithPassword } from '@/app/actions'
 import { challengeAnswer, runInformationTrio } from '@/features/runs/actions'
+import { routeAndRun, submitRoutedPreference } from '@/features/runs/route-actions'
 import type { Factor } from '@/lib/registry'
 import { LoadingIndicator } from '@/components/loading-indicator'
 import { CredentialsForm } from '@/components/credentials-form'

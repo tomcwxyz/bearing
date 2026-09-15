@@ -1,0 +1,164 @@
+'use server'
+
+import { createHash } from 'crypto'
+
+import { getCurrentUser } from '@/lib/auth'
+import {
+  addRoutedRunModel,
+  createRoutedRun,
+  getModelFromDb,
+  getOpenRouterIdsBySlug,
+  getRoutedRun,
+  getRoutedRunCountToday,
+  getTask,
+  isUserAdmin,
+  setRoutedRunPreference,
+} from '@/lib/db'
+import { getLatestBenchmarkScores } from '@/lib/benchmarks'
+import { filterPrompt } from '@/lib/content-filter'
+import { extractText, validateFile } from '@/lib/file-parser'
+import { callDirectProvider, callModel, DIRECT_PROVIDERS } from '@/lib/openrouter'
+import { pickRoute, pickRouteFrom } from '@/lib/routing'
+import { scoreModels } from '@/lib/scoring'
+import { scoringInputFromTask } from '@/features/recommendations/scoring-input'
+import { buildRunMessages, type RunFileData } from './run-messages'
+
+const DAILY_ROUTE_LIMIT = 10
+
+async function parseRunFile(formData: FormData): Promise<RunFileData | null | { error: string }> {
+  const uploadedFile = formData.get('file') as File | null
+  if (!uploadedFile || uploadedFile.size <= 0) return null
+
+  const validation = validateFile(uploadedFile.name, uploadedFile.type, uploadedFile.size)
+  if (!validation.valid) return { error: validation.error ?? 'Invalid file.' }
+
+  const buffer = Buffer.from(await uploadedFile.arrayBuffer())
+  const extractedText = await extractText(buffer, uploadedFile.type, uploadedFile.name)
+  return {
+    buffer,
+    mimeType: uploadedFile.type,
+    name: uploadedFile.name,
+    extractedText,
+  }
+}
+
+function co2g(model: Awaited<ReturnType<typeof getModelFromDb>>): number | null {
+  return model?.sustainability.inference_energy_source?.raw_gwp_gco2eq ?? null
+}
+
+/** Run the selected recommendation (or the top runnable recommendation). */
+export async function routeAndRun(taskId: string, formData: FormData) {
+  try {
+    const user = await getCurrentUser()
+    if (!user) return { error: 'You must be signed in to run a prompt.' }
+
+    const admin = await isUserAdmin(user.id)
+    if (!admin && await getRoutedRunCountToday(user.id, 'route') >= DAILY_ROUTE_LIMIT) {
+      return { error: `You've used your ${DAILY_ROUTE_LIMIT} daily runs.` }
+    }
+
+    const prompt = formData.get('prompt') as string
+    if (!prompt?.trim()) return { error: 'Prompt is required.' }
+
+    const filtered = await filterPrompt(prompt)
+    if (!filtered.safe) return { error: filtered.reason || 'Prompt was flagged by content filter.' }
+
+    const task = await getTask(taskId)
+    if (!task) return { error: 'Task not found.' }
+
+    const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
+    const ranked = scoreModels(scoringInputFromTask(task, benchmarkScores))
+    const orIds = await getOpenRouterIdsBySlug()
+    const runnable = (slug: string) => orIds.has(slug) || Boolean(DIRECT_PROVIDERS[slug])
+    const anchorSlug = formData.get('modelSlug') as string | null
+    const route = anchorSlug
+      ? pickRouteFrom(ranked, anchorSlug, { k: 1, runnable })
+      : pickRoute(ranked, { k: 1, runnable })
+
+    if (route.length === 0) {
+      return {
+        error: anchorSlug
+          ? "This model isn't available to run directly."
+          : 'No runnable model is available for this task.',
+      }
+    }
+
+    const selected = route[0]
+    const parsedFile = await parseRunFile(formData)
+    if (parsedFile && 'error' in parsedFile) return parsedFile
+    const file = parsedFile as RunFileData | null
+
+    const openRouterId = orIds.get(selected.slug) ?? null
+    const fullModel = await getModelFromDb(selected.slug)
+    const messages = buildRunMessages(
+      prompt,
+      file,
+      fullModel?.capabilities.includes('vision') ?? false,
+    )
+
+    const startedAt = Date.now()
+    const result = openRouterId
+      ? await callModel(openRouterId, messages)
+      : await callDirectProvider(selected.slug, messages)
+    const latencyMs = Date.now() - startedAt
+
+    const promptHash = createHash('sha256').update(prompt).digest('hex')
+    const responseHash = result.text?.trim()
+      ? createHash('sha256').update(result.text).digest('hex')
+      : null
+    const estCo2g = co2g(fullModel)
+
+    const routedRunId = await createRoutedRun(taskId, user.id, 'route', promptHash)
+    await addRoutedRunModel(routedRunId, {
+      modelSlug: selected.slug,
+      // Preserve the legacy single-route dataset semantics in this extraction.
+      // A follow-up can record the original recommendation rank explicitly.
+      routeRank: 1,
+      weightedScore: selected.weightedScore,
+      factorScores: selected.factorScores as Record<string, number>,
+      role: 'primary',
+      responseHash,
+      estCost: selected.estimatedCost,
+      estCo2g,
+      latencyMs,
+      isError: Boolean(result.error),
+      errorReason: result.error ?? null,
+    })
+
+    return {
+      routedRunId,
+      modelSlug: selected.slug,
+      modelName: selected.name,
+      provider: selected.provider,
+      factorScores: selected.factorScores as Record<string, number>,
+      response: result.text,
+      error: result.error,
+      estCost: selected.estimatedCost,
+      estCo2g,
+      latencyMs,
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Failed to run prompt.' }
+  }
+}
+
+/** Record the human preference for a routed experiment. */
+export async function submitRoutedPreference(
+  routedRunId: string,
+  preferred: string,
+  reason: string | null,
+) {
+  try {
+    const user = await getCurrentUser()
+    if (!user) return { error: 'You must be signed in.' }
+
+    const run = await getRoutedRun(routedRunId)
+    if (!run) return { error: 'Run not found.' }
+    if (run.user_id !== user.id) return { error: 'Not authorized.' }
+
+    await setRoutedRunPreference(routedRunId, preferred, reason)
+    return { success: true }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Failed to submit preference.' }
+  }
+}
