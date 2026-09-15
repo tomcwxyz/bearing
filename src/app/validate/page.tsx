@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useTransition } from 'react'
-import { submitValidation } from '@/app/actions'
+import { submitValidation } from '@/features/validation/actions'
 import registryData from '@/data/bearing-registry.json'
 
 interface ModelOption {
