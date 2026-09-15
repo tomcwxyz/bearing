@@ -29,18 +29,22 @@ function modelMeta(slug: string): {
 }
 
 function ModelCard({ model, rank }: { model: ScoredModel; rank: number }) {
-  const matchPercent = Math.min(100, Math.round(model.weightedScore * 100))
   const pricing = pricingPer1M(model.slug)
   const meta = modelMeta(model.slug)
+  const isBestFit = rank === 1
 
   return (
-    <div className="rounded-xl border border-cream-dark bg-white p-5 shadow-sm">
+    <div
+      className={`rounded-xl border bg-white p-5 shadow-sm ${
+        isBestFit ? 'border-2 border-teal bg-teal/5' : 'border-cream-dark'
+      }`}
+    >
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span
               className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-mono text-lg font-bold ${
-                rank === 1 ? 'bg-teal text-white' : 'bg-cream-dark text-navy'
+                isBestFit ? 'bg-teal text-white' : 'bg-cream-dark text-navy'
               }`}
             >
               {rank}
@@ -53,10 +57,11 @@ function ModelCard({ model, rank }: { model: ScoredModel; rank: number }) {
           </div>
           <p className="mt-0.5 ml-9 text-grey-blue text-sm">{model.provider}</p>
         </div>
-        <div className="shrink-0 text-right">
-          <p className="font-mono text-3xl font-bold text-navy">{matchPercent}%</p>
-          <p className="text-grey-blue text-xs">match</p>
-        </div>
+        {isBestFit && (
+          <span className="shrink-0 rounded-full bg-teal px-2.5 py-1 text-xs font-semibold text-white">
+            Best fit
+          </span>
+        )}
       </div>
 
       {/* Embedding-specific metadata grid */}
@@ -143,10 +148,13 @@ export default async function EmbeddingResultsPage({
     <main className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto">
         <h2 className="text-2xl font-bold mb-2 font-display text-navy">Embedding models for your task</h2>
-        <p className="text-grey-blue mb-8">
+        <p className="text-grey-blue mb-3">
           Ranked for <strong>{task.task_subtype ?? 'general embedding'}</strong>. MTEB
           quality, pricing per 1M input tokens, max input length, and Matryoshka
           support shown per model.
+        </p>
+        <p className="mb-8 text-xs leading-relaxed text-navy/45">
+          This is a relative ranking for your brief and priorities, not a probability that a model will succeed.
         </p>
 
         <div className="space-y-4">
