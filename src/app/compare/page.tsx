@@ -1,14 +1,13 @@
 'use client'
 
 import { useState, useEffect, useTransition, useRef } from 'react'
+import { checkAuth, signInWithPassword } from '@/app/actions'
 import {
   getModelsForCompare,
-  checkAuth,
   createDirectCompareTask,
   startComparison,
   runComparison,
-  signInWithPassword,
-} from '@/app/actions'
+} from '@/features/comparisons/actions'
 import { LoadingIndicator } from '@/components/loading-indicator'
 import { CredentialsForm } from '@/components/credentials-form'
 
