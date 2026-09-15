@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getEmbeddingResults } from '@/app/actions'
+import { getEmbeddingResults } from '@/features/bearing/embedding-results'
 import { getAllModels } from '@/lib/registry'
 import { embeddingPriceLabel } from '@/lib/pricing'
 import type { ScoredModel } from '@/lib/scoring'
