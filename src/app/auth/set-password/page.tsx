@@ -2,7 +2,7 @@
 
 import { useState, useTransition, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { setPassword } from '@/app/actions'
+import { setPassword } from '@/features/auth/actions'
 
 function SetPasswordForm() {
   const router = useRouter()

@@ -3,7 +3,7 @@
 import { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { registerUser } from '@/app/actions'
+import { registerUser } from '@/features/auth/actions'
 import { CredentialsForm } from '@/components/credentials-form'
 import { sanitizeRedirect } from '@/lib/safe-redirect'
 
