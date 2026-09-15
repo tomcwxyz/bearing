@@ -21,6 +21,7 @@ import { callDirectProvider, callModel, DIRECT_PROVIDERS } from '@/lib/openroute
 import { pickRoute, pickRouteFrom } from '@/lib/routing'
 import { scoreModels } from '@/lib/scoring'
 import { scoringInputFromTask } from '@/features/recommendations/scoring-input'
+import { originalRecommendationRank } from './route-metadata'
 import { buildRunMessages, type RunFileData } from './run-messages'
 
 const DAILY_ROUTE_LIMIT = 10
@@ -84,6 +85,7 @@ export async function routeAndRun(taskId: string, formData: FormData) {
     }
 
     const selected = route[0]
+    const routeRank = originalRecommendationRank(ranked, selected.slug)
     const parsedFile = await parseRunFile(formData)
     if (parsedFile && 'error' in parsedFile) return parsedFile
     const file = parsedFile as RunFileData | null
@@ -111,9 +113,7 @@ export async function routeAndRun(taskId: string, formData: FormData) {
     const routedRunId = await createRoutedRun(taskId, user.id, 'route', promptHash)
     await addRoutedRunModel(routedRunId, {
       modelSlug: selected.slug,
-      // Preserve the legacy single-route dataset semantics in this extraction.
-      // A follow-up can record the original recommendation rank explicitly.
-      routeRank: 1,
+      routeRank,
       weightedScore: selected.weightedScore,
       factorScores: selected.factorScores as Record<string, number>,
       role: 'primary',
