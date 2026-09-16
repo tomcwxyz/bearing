@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect, use } from 'react'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { submitPreference } from '@/app/actions'
+import { submitPreference } from '@/features/comparisons/actions'
 
 interface ComparisonData {
   comparisonId: string

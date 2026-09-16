@@ -2,7 +2,12 @@
 
 import { useState, useEffect, useTransition, useRef, use } from 'react'
 import Link from 'next/link'
-import { getResults, startComparison, runComparison, checkAuth } from '@/app/actions'
+import { checkAuth } from '@/app/actions'
+import {
+  getComparisonRecommendations,
+  startComparison,
+  runComparison,
+} from '@/features/comparisons/actions'
 import { LoadingIndicator } from '@/components/loading-indicator'
 import type { ScoredModel } from '@/lib/scoring'
 
@@ -66,7 +71,7 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
       const authResult = await checkAuth()
       setIsAuthenticated(authResult.authenticated)
 
-      const result = await getResults(taskId)
+      const result = await getComparisonRecommendations(taskId)
       if ('error' in result && result.error) {
         setError(result.error)
       } else {
