@@ -1,231 +1,235 @@
 # Bearing
 
-**Find the right AI model for your task.**
+**Take a bearing on the right AI route for the job.**
 
-Describe what you want to do, tell us what matters to you, and get a ranked shortlist of models with transparent scoring across 7 factors. Building search or RAG? Describe the job and Bearing routes you to ranked embedding models too. Compare models head-to-head with real prompts. See which open-weight models you can run locally.
+Describe what you are trying to do. Bearing infers what matters, recommends a model or route, lets you run it where possible, challenges uncertain answers with useful alternatives, and learns from what actually worked.
 
-The tool collects structured outcome data on what people actually want AI to do and which models work. This dataset — anonymised and published openly — is a core output, not a byproduct.
+The product is deliberately more than a ranking page. It combines task classification, capability gates, transparent evidence, execution, comparisons and structured human outcomes into a reusable decision layer.
 
-Built by [The Good Ship](https://good-ship.co.uk) · [tomcw.xyz](https://tomcw.xyz) | [MIT License](LICENSE)
+Built by [The Good Ship](https://good-ship.co.uk) · [tomcw.xyz](https://tomcw.xyz) · [MIT License](LICENSE)
 
-## Features
+## How Bearing works
+
+The default journey is:
+
+1. **Describe the job** — tell Bearing what you need to do.
+2. **Clarify only when needed** — low-confidence classifications can ask short follow-up questions.
+3. **Take a bearing automatically** — priorities are inferred from the task, constraints and any inspectable user preferences.
+4. **Recommend one route** — one best fit plus meaningful trade-off alternatives.
+5. **Run it** — execute the real prompt on a runnable recommendation.
+6. **Challenge uncertainty** — use Trio or Challenger when another model could teach us something useful.
+7. **Learn** — record human preference and outcomes as structured evidence.
+
+If you want more control, **Adjust bearing** exposes the underlying seven-factor priority order and exclusions.
+
+## Product principles
+
+- **Recommendation before configuration.** A normal task should not require manual factor sorting.
+- **A bearing is a reasoned route, not a percentage.** Weighted scores are ranking machinery, not calibrated probabilities of success.
+- **Execution closes the loop.** Real task outcomes are stronger evidence than editorial assumptions alone.
+- **Uncertainty should trigger an experiment.** Trio and Challenger are designed to be informative, not simply additional modes.
+- **Freshness is part of correctness.** Catalogue metadata and runtime availability are checked separately and continuously.
+- **Privacy is structural.** Raw task descriptions and prompts are not retained as the price of learning.
+
+## Main capabilities
 
 ### Recommend
 
-*"I need to do X — what should I use?"*
+Describe a task and Bearing classifies it, applies hard capability constraints, infers a bearing and presents:
 
-Describe your task, answer clarifying questions, rank your priorities. Get a ranked list with transparent per-factor scoring and plain-English reasoning. Complex tasks automatically boost quality and capability weights. Toggle off factors you don't care about.
+- **Best fit** — the primary recommendation;
+- **trade-off alternatives** — meaningfully cheaper, different-provider, local/private or otherwise distinct options where relevant;
+- **decision confidence** — evidence strength, not answer-correctness probability;
+- **Why this model?** — inspectable factor, freshness, benchmark and outcome evidence.
 
-### Embedding models
+### Run, Trio and Challenger
 
-*"I need to turn text into vectors for search / RAG."*
+From a recommendation card you can run your actual prompt on that model.
 
-Embedding models are a first-class category, hard-separated from chat models by a `model_class` routing filter — embedding tasks never see chat models and vice versa. Just describe an embedding job in the normal flow and Bearing recognises it and routes you straight to ranked embedding models (dimension, max input, Matryoshka support, MTEB quality, per-1M pricing). For a guided path, the model registry has a Chat/Embedding filter and a dedicated finder at `/embedding`. Embedding stages inside a pipeline are routed the same way.
+- **Run this model** executes the selected recommendation, including lower-ranked alternatives when you explicitly choose them.
+- **Trio** keeps your selected model as the anchor and chooses up to two credible alternatives for information value — for example provider diversity, cost trade-offs, local-vs-hosted differences, outcome-evidence scarcity or benchmark uncertainty.
+- **Challenger** appears after a successful answer and asks an informative alternative to identify material gaps and produce an improved answer if it can.
 
-### Validate
-
-*"I'm using GPT-5.4 for everything — is that right?"*
-
-Name your current model and what you use it for. See where it sits in the ranking — good fit, overpaying, or better options exist.
+Blind-judge results and human preferences are stored separately. Routed-run records retain hashes and structured metadata rather than raw prompts/responses.
 
 ### Compare
 
-*"Show me the difference."*
+Compare any two runnable models with the same prompt, including optional PDF/CSV attachments. You can enter Compare directly or from an existing bearing. Human preference is recorded as pairwise outcome evidence.
 
-Pick any two models, send the same prompt, see real outputs side by side. Works with text prompts and PDF/CSV attachments. You pick which response you preferred — generating high-quality pairwise preference data.
+### Validate
 
-Two ways in: via recommendations (pre-scored model list) or directly at `/compare` (pick any two models, no classification needed).
+Name a model you already use and describe the job. Bearing shows where it sits relative to the task-specific ranking and whether stronger alternatives exist, without presenting the weighted score as a fake match probability.
 
-### Run it (auto-routing)
+### Embeddings
 
-*"Just give me the answer from the right model."*
+Embedding models are a first-class model class. Embedding tasks route separately from chat tasks and expose relevant evidence such as:
 
-From your recommendations, **Run this prompt** routes to the #1-ranked model for your task and priorities and runs it for you — no copying the suggestion elsewhere. You see which model answered, why it ranked first, and the per-request footprint (grams CO₂e, estimated cost, latency).
+- MTEB-oriented quality;
+- embedding dimensions;
+- maximum input length;
+- Matryoshka support;
+- input-token pricing;
+- hosted/open execution characteristics.
 
-Two auto-comparison modes pick the models for you:
+A dedicated guided finder is available at `/embedding`.
 
-- **Trio** — run the top 3 models on one prompt, then a **blind judge** (shown the answers anonymously) picks the best.
-- **Challenger** — route to the top model, then the #2 model critiques and improves it; the blind judge picks the winner.
+### Local inference
 
-You record which answer you preferred after each run. The judge verdict and your preference both publish to the open routed-run dataset (`/api/dataset/routed-runs`) — the strongest signal Bearing collects about which models win on real tasks. Prompts and responses are never stored, only hashes.
+Open-weight recommendations can include local hardware guidance, quantisation options and estimated VRAM requirements for consumer through server-class hardware.
 
-### Pipeline recommendations
+### Pipelines
 
-For multi-stage tasks, Bearing recommends specialist model pipelines — e.g. a vision model for OCR followed by a smaller model for structuring, rather than one expensive model doing everything.
+When the classifier identifies a multi-stage task, Bearing can recommend specialist models per stage instead of assuming one model should do everything.
 
-### Run it locally
+## How ranking works
 
-Open-weight models are shown with hardware tier estimates (consumer laptop through server-class). Quantization options from Q2_K through Q8_0 with VRAM requirements calibrated for Apple Silicon unified memory and dedicated GPUs. Links to Ollama, LM Studio, and llama.cpp.
+Models are considered across seven factors:
 
-## How scoring works
+| Factor | What it represents |
+| --- | --- |
+| **Quality** | Task-relative fitness informed by curated and external evidence |
+| **Capability** | Required and contextually useful features |
+| **Cost** | Estimated cost for the task shape |
+| **Speed** | Expected response latency |
+| **Privacy** | Data handling and deployment characteristics |
+| **Sustainability** | Inference/provider environmental evidence |
+| **Transparency** | Openness of weights, methods, data and provider disclosure |
 
-Every model is scored across **7 factors**:
+Required capabilities are hard gates. Optional capability breadth only helps when it is relevant to the task.
 
-| Factor | What it measures |
-|--------|-----------------|
-| **Quality** | Task-specific fitness from benchmarks and capability data |
-| **Capability** | Required features (vision, code, tools, long context, extended thinking) |
-| **Cost** | Estimated per-task cost using log-scale normalisation |
-| **Transparency** | Open weights, training data, methodology, FMTI scores |
-| **Privacy** | Data retention and handling policies |
-| **Sustainability** | Inference energy, training footprint, provider infrastructure |
-| **Speed** | Response latency |
+Priority order is converted to weights, then adjusted by task context such as complexity, sensitivity, latency and volume. Users can override or exclude factors through **Adjust bearing**.
 
-Your priority ranking shifts the weights (rank 1 gets ~28%, rank 7 gets ~4%). Users can **exclude** factors entirely — excluded factors get zero weight, remaining factors renormalise.
+External benchmark evidence can be blended behind the `BENCHMARK_BLEND` rollout ceiling. Production remains curated-first until shadow/live evidence supports changing that ceiling. Benchmark disagreement is surfaced as uncertainty rather than silently discarded.
 
-**Complexity boost**: complex tasks automatically amplify quality (1.5×) and capability (1.3×) weights before normalisation, so frontier models rank higher when the task genuinely needs them. Moderate tasks get a smaller boost (1.2×/1.1×).
+The scoring engine is deterministic and tested. Larger ranking changes are evaluated against a versioned golden task corpus and approved shadow-ranking baseline in CI.
 
-**Model-class routing**: a `model_class` hard filter runs before any factor scoring — `embedding` tasks route only to embedding models and every other task routes only to chat models. Embedding quality is anchored to MTEB rather than the chat factor mix.
+## Evidence and freshness
 
-The scoring function is a pure, tested TypeScript function — no black box.
+Bearing keeps several evidence types deliberately separate:
 
-## Rating methodology
+- **catalogue evidence** — is the model metadata current and verified?
+- **runtime routability** — can the configured execution path currently run the model?
+- **benchmark evidence** — what do relevant external measurements suggest?
+- **human outcome evidence** — what did users actually prefer or report as successful?
+- **blind-judge evidence** — what did an automated judge choose when model identities were hidden?
 
-All model ratings are researched and documented in [docs/model-ratings.md](docs/model-ratings.md). Key choices:
+These signals are not interchangeable. In particular, a provider outage does not reduce a model's capability score.
 
-- **Quality scores** are task-fitness estimates derived from public benchmarks (LMSYS Chatbot Arena, LiveBench, SWE-bench) cross-referenced with capability profiles. These are the weakest signal and will improve with outcome data.
-- **Sustainability scores** follow a documented formula: `0.4 × inference_energy + 0.2 × training_footprint + 0.4 × provider_infrastructure`. Provider data sourced from corporate sustainability reports, PUE/WUE disclosures, and renewable energy commitments. For the major hosted models, `inference_energy` is **grounded in real per-request carbon estimates from [EcoLogits](https://ecologits.ai)** on a fixed gCO₂eq efficiency curve, refreshed weekly; each model records whether its value is measured or curated. Embedding model quality additionally draws on **MTEB** (Massive Text Embedding Benchmark).
-- **Transparency scores** weight: open weights (25%), open training data (20%), open methodology (15%), licence openness (15%), provider disclosure (10%), FMTI company score (15%). FMTI scores from the Stanford Foundation Model Transparency Index 2025.
-- **Privacy scores** reflect published data policies: Anthropic and IBM score highest (no training on user data by default), DeepSeek and Moonshot AI lowest (China-based hosting, less clear retention policies).
-- **Cost scoring** uses log-scale normalisation with a 0.05 floor — prevents the most expensive model from scoring a flat zero, which would make it unrecommendable even when cost is the user's lowest priority.
+### Scheduled maintenance
 
-## Model registry (v0.9.0)
+Production maintenance currently runs through authenticated Vercel cron jobs:
 
-41 models across 17 providers — 31 chat models and 10 embedding models.
+- **03:00 UTC Monday** — EcoLogits refresh;
+- **04:00 UTC Monday** — catalogue verification;
+- **05:00 UTC daily** — runtime routability canary.
 
-**Chat models**
+`CRON_SECRET` is required in production so Vercel can authenticate these endpoints.
 
-| Provider | Models |
-|----------|--------|
-| **Anthropic** | Claude Opus 4.7, Opus 4.6, Sonnet 4.6, Haiku 4.5 |
-| **OpenAI** | GPT-5.4, GPT-5.4 Mini, GPT-5.4 Nano |
-| **Google** | Gemini 3.1 Pro, Gemini 3 Flash, Gemini 2.5 Flash-Lite |
-| **DeepSeek** | V4 Pro, V3.2, V3.1, R1, R1 0528 |
-| **Meta** | Llama 4 Maverick |
-| **Mistral** | Medium 3, OCR (Pixtral Large), Codestral, Devstral |
-| **Alibaba** | Qwen 3.5 397B, Qwen 3 235B, Qwen 2.5 72B |
-| **Moonshot AI** | Kimi K2, Kimi K2.5 |
-| **MiniMax** | M2.5, M2.7 |
-| **xAI** | Grok 4 |
-| **GreenPT** | GreenL (Mistral Small 3.2 24B), GreenR (GPT-OSS 120B) |
-| **IBM** | Granite 4.0 Micro |
+The first authenticated production routability baseline completed on **2026-09-16** with 42 persisted observations: 40 healthy and 2 explicit unavailable observations. Routability remains observational; a conservative guard requires repeated recent explicit unavailability and is not yet wired into live model filtering. See [`docs/operations/2026-09-16-routability-baseline.md`](docs/operations/2026-09-16-routability-baseline.md).
 
-**Embedding models**
+## Outcomes and open data
 
-| Provider | Models |
-|----------|--------|
-| **OpenAI** | text-embedding-3-large, text-embedding-3-small |
-| **Voyage AI** | voyage-3-large, voyage-3-lite |
-| **Cohere** | embed-v4 |
-| **Mistral** | mistral-embed-2 |
-| **GreenPT** | green-embedding (Qwen3-Embedding-4B) |
-| **BAAI** | BGE-M3 |
-| **Nomic AI** | nomic-embed-text-v2-moe |
-| **Alibaba** | gte-Qwen2-7B-instruct |
+Bearing collects structured evidence about AI work and model outcomes. Depending on the flow this can include:
 
-22 open-weight models include local inference data (parameter counts, MoE architecture, quantization VRAM estimates).
+- classified task attributes;
+- inferred/adjusted priorities;
+- recommendations and ranks;
+- selections;
+- explicit success/failure outcomes;
+- pairwise preferences;
+- Trio/Challenger candidates and selection rationale;
+- blind-judge verdicts kept separate from human preference.
+
+Raw task descriptions and prompts are not stored in the outcome dataset. Descriptions/prompts used for persistence are hashed where needed for linkage/deduplication.
+
+## Accounts and continuity
+
+Anonymous recommendation use remains supported. Signed-in users can additionally own/resume bearings, view **My bearings**, and use inspectable preference defaults.
+
+Authentication uses **email + password**. Earlier passwordless accounts can use the password-setup/reset flow. Password reset/setup emails are sent through Resend.
+
+## Architecture
+
+Bearing is a Next.js application with product capabilities increasingly separated from UI transport:
+
+```text
+src/
+├── app/                         # App Router pages + API routes
+├── features/
+│   ├── auth/                    # Account/password actions
+│   ├── bearing/                 # Submission, clarification, embedding preparation
+│   ├── comparisons/             # Pairwise comparison execution/preferences
+│   ├── feedback/                # Recommendation selections + outcomes
+│   ├── recommendations/         # Scoring input + recommendation service
+│   ├── runs/                    # Route, Trio, Challenger
+│   └── validation/              # Validation submission/results
+├── db/                          # Aggregate-specific repositories (in progress)
+├── lib/                         # Scoring, classification, evidence and shared domain logic
+├── data/                        # Generated model registry
+└── prompts/                     # LLM task/reasoning prompts
+```
+
+`src/app/actions.ts` is now primarily a legacy compatibility surface being decomposed. New product logic should live under the appropriate feature/service rather than extending that monolith.
+
+Database access is also moving from `lib/db.ts` into aggregate-specific repositories under `src/db/`.
 
 ## Stack
 
 | Layer | Choice |
-|-------|--------|
-| Frontend | Next.js 16 (App Router, Turbopack), TypeScript |
-| Styling | Tailwind CSS v4, Fraunces + DM Sans + JetBrains Mono |
-| Database | Neon (Postgres, serverless driver, raw SQL) |
-| Classification | Claude Haiku 4.5 via Anthropic SDK |
-| Comparison | OpenRouter + direct provider APIs (GreenPT, Mistral) |
-| Benchmarks | LMArena, LiveBench, Artificial Analysis, MTEB; EcoLogits for inference carbon |
-| Model data | Static JSON registry generated from DB |
-| Auth | Magic link emails via Resend |
+| --- | --- |
+| Frontend | Next.js App Router + TypeScript |
+| Styling | Tailwind CSS v4 |
+| Database | Neon Postgres (`@neondatabase/serverless`) |
+| Classification/reasoning | Anthropic SDK |
+| Execution | OpenRouter plus supported direct-provider adapters |
+| Benchmarks/evidence | LMArena, LiveBench, Artificial Analysis, MTEB and curated evidence |
+| Carbon grounding | EcoLogits where supported |
+| Auth | Auth.js credentials + email/password |
+| Email | Resend |
 | Hosting | Vercel |
 
 ## Getting started
 
 ```bash
-git clone https://github.com/dataforaction-tom/bearing.git
+git clone https://github.com/tomcwxyz/bearing.git
 cd bearing
 npm install
-
-# Set up environment
 cp .env.local.example .env.local
-# Required keys:
-#   ANTHROPIC_API_KEY    — Claude Haiku for classification
-#   NEON_DATABASE_URL    — Postgres connection
-#   OPENROUTER_API_KEY   — model comparisons
-#   RESEND_API_KEY       — magic link emails
-#   AUTH_SECRET          — HMAC signing
-# Optional:
-#   GREENPT_API_KEY      — GreenPT direct API
-#   MISTRAL_API_KEY      — Mistral direct API
-#   CRON_SECRET          — guards the weekly EcoLogits carbon-refresh endpoint
+```
 
-# Run migrations
-for f in src/db/migrations/*.sql; do psql $NEON_DATABASE_URL -f "$f"; done
+Configure the required environment variables described in `.env.local.example`, then run migrations and seed/model sync appropriate to your environment.
 
-# Seed models from registry
-npm run db:seed
-
+```bash
 npm run dev
 ```
 
-## Project structure
+For production, ensure `CRON_SECRET` is configured alongside the application/database/provider credentials so scheduled maintenance fails closed rather than running unauthenticated.
 
-```
-src/
-├── app/                          # Next.js App Router pages
-│   ├── page.tsx                  # Home — task input (Recommend / Validate)
-│   ├── recommend/[taskId]/       # Recommend flow
-│   │   ├── page.tsx              # Clarification questions
-│   │   ├── priorities/page.tsx   # Priority ranking + factor exclusion
-│   │   ├── results/              # Ranked results + pipeline + local
-│   │   └── feedback/page.tsx     # Outcome feedback
-│   ├── embedding/                # Embedding finder + results
-│   ├── compare/                  # Compare flow
-│   │   ├── page.tsx              # Direct compare (pick any 2 models)
-│   │   └── [taskId]/             # Task-based compare + results
-│   ├── validate/                 # Validate flow
-│   ├── models/                   # Browsable registry (Chat/Embedding filter)
-│   ├── data/                     # Public dataset export
-│   ├── admin/                    # Admin UI (auth-gated)
-│   └── actions.ts                # Server actions
-├── lib/
-│   ├── scoring.ts                # Pure 7-factor scoring function + class routing
-│   ├── weights.ts                # Priority → weight conversion + complexity boost
-│   ├── local-inference.ts        # Hardware tiers + local model scoring
-│   ├── pipeline.ts               # Multi-stage pipeline recommendations
-│   ├── benchmarks.ts             # Benchmark ingest + blend (LMArena/LiveBench/AA/MTEB)
-│   ├── ecologits-grounding.ts    # EcoLogits carbon grounding for inference_energy
-│   ├── openrouter.ts             # OpenRouter + direct provider API calls
-│   ├── classification.ts         # Haiku task classification
-│   ├── reasoning.ts              # Haiku reasoning generation
-│   ├── content-filter.ts         # Prompt safety filter
-│   └── db.ts                     # Neon connection + queries
-├── data/
-│   └── bearing-registry.json     # 41 models (31 chat + 10 embedding)
-├── prompts/
-│   ├── classify.md               # Classification prompt
-│   └── reason.md                 # Reasoning prompt
-└── db/migrations/
-    └── 001–022                   # Postgres schema migrations
-```
+## Testing and CI
 
-## Testing
+The repository CI workflow runs:
 
 ```bash
-npm test        # 185 tests across 13 suites (vitest)
-npm run build   # Production build
-npm run lint    # ESLint
+npx tsc --noEmit
+npm run lint
+npm test
+npm run eval:golden
+npm run build
 ```
 
-Tests cover the scoring engine (including model-class routing), weight conversion (complexity boost and factor exclusion), registry loader, classification parsing, local inference scoring, benchmark normalisation, and the EcoLogits carbon curve.
+Recent changes are merged only after this full verification job succeeds. GitHub branch protection is not yet technically enforcing the check because the current connected integration does not have branch-protection administration access.
 
-## Privacy
+## Methodology
 
-We do not store raw task descriptions or prompts. What we store: hashed descriptions (SHA-256, for dedup), classified task attributes, model recommendations, selections, and outcomes. Comparison prompts are hashed before storage. The anonymised dataset contains task type, priorities, model chosen, and outcome — never the original text.
+Detailed model-rating methodology lives in [`docs/model-ratings.md`](docs/model-ratings.md). The current direction is to make provenance, freshness, disagreement and evidence support explicit rather than imply precision that the underlying evidence cannot justify.
+
+## Roadmap
+
+See [`docs/plans/2026-09-13-bearing-1-reorientation.md`](docs/plans/2026-09-13-bearing-1-reorientation.md) for the current Bearing 1.0 roadmap.
 
 ## Contributing
 
-The scoring function, quality estimates, and default weights are all in the repo. They're approximations — the question is whether they're useful enough to learn from. PRs welcome, especially to the model registry and rating methodology.
+The scoring engine, model evidence and policies are intentionally inspectable. Contributions are welcome, especially where they improve model freshness, evidence provenance, evaluation coverage or transparent decision logic.
 
 ## Licence
 
