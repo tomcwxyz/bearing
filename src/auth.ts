@@ -1,6 +1,6 @@
 import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
-import { getUserByEmail } from '@/lib/db'
+import { getUserByEmail } from '@/db/users'
 import { verifyPassword } from '@/lib/password'
 
 // Credentials provider + JWT session strategy, no database adapter. The DB
