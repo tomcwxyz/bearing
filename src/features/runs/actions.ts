@@ -8,13 +8,10 @@ import {
   getRoutedRunCountToday,
   setRoutedRunVerdict,
 } from '@/db/runs'
+import { getModelFromDb, getOpenRouterIdsBySlug } from '@/db/models'
+import { isUserAdmin } from '@/db/users'
 import { getCurrentUser } from '@/lib/auth'
-import {
-  getModelFromDb,
-  getOpenRouterIdsBySlug,
-  getTask,
-  isUserAdmin,
-} from '@/lib/db'
+import { getTask } from '@/lib/db'
 import { getLatestBenchmarkScores } from '@/lib/benchmarks'
 import { benchmarkEvidence, type BenchmarkEvidence } from '@/lib/benchmark-evidence'
 import { filterPrompt } from '@/lib/content-filter'
@@ -76,8 +73,6 @@ async function buildInformationRoute(taskId: string, formData: FormData, k: numb
       modelSlugs: ranked.map((model) => model.slug),
     })
   } catch (error) {
-    // Outcome evidence is optional experiment context. A reporting failure must
-    // not block Trio/Challenger or fabricate scarcity for every model.
     console.warn('[runs] outcome evidence unavailable for experiment selection', error)
   }
 
@@ -92,8 +87,6 @@ async function buildInformationRoute(taskId: string, formData: FormData, k: numb
       }),
     ]))
   } catch (error) {
-    // As with outcome scarcity, benchmark uncertainty is additive experiment
-    // context. Do not fabricate uncertainty when the evidence query fails.
     console.warn('[runs] benchmark evidence unavailable for experiment selection', error)
   }
 
