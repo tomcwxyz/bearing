@@ -1,400 +1,297 @@
 # How We Rate Models
 
-This page documents the research, sources, and decisions behind every model rating in the Bearing registry. We believe that a recommendation tool should be transparent about its own methodology — so here it all is.
+Bearing is a recommendation system, not a universal leaderboard. A model can be a strong choice for one job and a poor choice for another.
 
-Last updated: 1 July 2026 (Registry v0.7.0)
+This page explains the evidence used to rank models, how that evidence is kept fresh, and the limits of what the scores mean.
 
----
+**Last updated: 16 September 2026**
 
-## Scoring overview
+## The short version
 
-Every model is scored from 0.0 to 1.0 across seven factors. When you rank your priorities, Bearing converts your ranking into weights and produces a single match score for each model.
+Bearing works in layers:
 
-| Factor | What it measures | How it's scored |
-|--------|-----------------|----------------|
-| **Quality** | How well the model performs on your task type | Per-task fitness scores from benchmarks and evaluation data |
-| **Capability** | Whether the model can do what you need | Binary pass/fail for hard requirements (vision, code, tools), graduated for soft matches |
-| **Cost** | How much it costs relative to other models | Inverse log-scale against the cheapest model in the registry |
-| **Speed** | How fast responses come back | Based on latency tiers and inference benchmarks. 1.0 = sub-second |
-| **Privacy** | How your data is handled | Based on data retention policies. 1.0 = no retention, no training on inputs |
-| **Sustainability** | Environmental footprint | Composite of inference energy, training footprint, and provider infrastructure |
-| **Transparency** | How open the model and provider are | Composite of open weights, training data, methodology, licence, and provider disclosure |
+1. **Classify the task** into structured requirements.
+2. **Apply hard gates** for things the model must be able to do.
+3. **Score the remaining candidates** across task-relative factors.
+4. **Rank them** using the inferred or user-adjusted bearing.
+5. **Estimate recommendation confidence** separately from the ranking score.
+6. **Show meaningful alternatives** rather than only the next two ranks.
+7. **Collect outcome evidence** from real use without automatically rewriting ranking from small samples.
 
----
+A weighted model score is **not** a probability of success. Bearing deliberately does not present it as a match percentage.
 
-## Data sources and grounded scoring
+## The seven factors
 
-Wherever published benchmark data exists for a model, Bearing uses it directly rather than asking a language model to estimate. We currently ingest from three sources, all updated on a regular schedule, and combine them into per-task scores.
+| Factor | What it represents |
+| --- | --- |
+| **Quality** | Evidence that the model performs well for this task type |
+| **Capability** | Whether the model supports the capabilities this task needs |
+| **Cost** | Estimated cost for the workload |
+| **Speed** | Response-time performance where evidence is available |
+| **Privacy** | Data handling, retention and deployment constraints |
+| **Sustainability** | Available evidence about inference, training and provider infrastructure |
+| **Transparency** | Openness of weights, methodology, data, licensing and provider disclosure |
 
-### Benchmark sources
+The importance of these factors is task-relative. Bearing normally infers the order automatically; **Adjust bearing** lets a person override it.
 
-| Source | What it provides | Categories used |
-|--------|-----------------|-----------------|
-| **[Artificial Analysis](https://artificialanalysis.ai)** | Per-model evaluation indices (intelligence, coding, math) plus standard benchmarks (MMLU-Pro, GPQA, HLE, LiveCodeBench, SciCode, IFBench, Tau2, TerminalBench-Hard, AIME-25, LCR), output throughput, and time-to-first-token | All evaluation keys, plus `aa_speed` and `aa_ttft` for performance signals |
-| **[LMArena](https://lmarena.ai)** | Bradley–Terry ratings from human preference voting | Overall, hard prompts, coding, math, creative writing, instruction following, longer query, multi-turn, web-dev, vision |
-| **[LiveBench](https://livebench.ai)** | Contamination-resistant per-task benchmarks | Reasoning, coding, mathematics, language, data analysis, instruction following |
+## Hard requirements come first
 
-Each row is normalised linearly within its cohort (per source, per category, per snapshot date) so the highest-scoring model in the cohort lands at 1.0 and the lowest at 0.0. Latency rows are inverted at ingest so lower TTFT becomes a higher score.
+Some task requirements are not meaningfully tradable.
 
-### Mapping source categories to bearing tasks
+Examples include:
 
-The same source category can feed multiple bearing tasks where appropriate (LiveBench's `language` informs both `summarise` and `generate`, for example). The full mapping lives in `src/lib/benchmarks.ts` under `CATEGORY_TO_TASKS`. At recommendation time, the score for each `(model, bearing_task)` pair is the mean of every category that maps to it.
+- vision is required;
+- tool use is required;
+- code capability is required;
+- data must stay on-premise;
+- the job requires an embedding model rather than a chat model.
 
-### Many-to-one alias matching
+A candidate that cannot satisfy a hard requirement is excluded before weighted ranking. A cheap model does not compensate for being unable to do the job.
 
-Frontier models often appear in several source-side variants — Anthropic's Claude 4.6 Sonnet has separate Artificial Analysis entries for low / high / max effort and reasoning / non-reasoning, for example. Bearing's matcher (`src/lib/import-grounding.ts`) suggests candidates per source using a token-bag fuzzy match, and the admin confirms which represent the registry slug. All confirmed variants count as evidence and their normalised scores are averaged.
+## Capability is task-relative
 
-The matcher flags candidates that look like distinct sibling products — `mini`, `nano`, `flash-lite`, `vl`, `distill`, and similar size-disambiguator tokens — so the admin can decide rather than silently merging the wrong variant.
+Bearing does not reward a model simply for having a long list of features.
 
-### Provider profile lookup
+Required capabilities act as gates. Optional capabilities can add limited value when they are relevant to the task. Unrelated capability breadth is neutral.
 
-Some scoring fields don't have a published benchmark and depend mostly on the provider's policies, not the specific model. These are filled deterministically from a provider profile rather than by a language model:
+This avoids systematically favouring large general-purpose models for work that does not need their extra features.
 
-| Field | Drives |
-|-------|--------|
-| `privacy_score` | Data retention, training opt-out, jurisdictional considerations |
-| `transparency.open_weights` | Whether the provider publishes weights for this lineup |
-| `transparency.transparency_score` | Baseline FMTI-style aggregate (sub-fields refined by Haiku with the baseline as anchor) |
+## Task-fitness evidence
 
-Provider names with parenthetical suffixes (e.g. `Alibaba (via hosted providers)`) are normalised to their canonical form before lookup. Unknown providers fall back to a conservative default (privacy 0.6, open_weights 0, baseline transparency 0.4) and the admin can refine per model.
+The quality component uses task-fitness evidence for canonical task types such as summarisation, extraction, generation, communications, code, mathematics, reasoning, analysis, research, question answering, translation, conversation and embedding work.
 
-The profile table (`PROVIDER_PROFILE` in `src/lib/import-grounding.ts`) covers around 40 model-producing organisations, drawn from a mid-2026 catalogue of open-model labs. Each carries an `open_weights` verdict (0/1) and a `licence_openness` score set from the lineup's actual release licence — permissive OSI (MIT/Apache) sits at 0.85–0.95, vendor "open" licences with scale/geography caps at 0.55–0.8, weights-released-but-non-commercial (e.g. Cohere Command, LG EXAONE) at ~0.3, and proprietary at 0.1–0.2. Fully-open labs that also publish training data and code (Ai2/OLMo, EleutherAI, Marin, MAP) additionally anchor a higher baseline transparency.
+Bearing has two broad sources of task-fitness evidence:
 
-Some providers are **mixed** — a closed flagship alongside a separate open-weight line. These default to closed, and the specific open line is lifted back to open by a family-pattern override (`OPEN_WEIGHT_FAMILIES`): Google's Gemma (vs Gemini), OpenAI's gpt-oss (vs GPT), ByteDance's Seed-OSS/BAGEL (vs Doubao), Baidu's ERNIE 4.5 (vs ERNIE 5.0), and xAI's open older gens Grok-1/2 (vs current Grok). The override changes only `open_weights` and `licence_openness`; every other field still comes from the provider profile.
+### Curated evidence
 
-### Provenance
+Curated scores bootstrap the system where a clean benchmark signal is unavailable or incomplete. They are editorial judgements informed by published evidence, model documentation and observed capability.
 
-When you open the import modal or hit **Refresh from benchmarks** on an existing model, every score slider in the admin form carries a small coloured dot indicating where its value came from:
+They are not assumed to be permanent truth.
 
-- **Green (benchmark)** — averaged from one or more confirmed source variants. Hover shows the exact `(source, category)` pairs that contributed.
-- **Amber (derived)** — deterministic provider lookup or a rule (e.g. the `code` capability flag from grounded code fitness ≥ 0.5).
-- **Grey (haiku)** — estimated by Claude Haiku because no published signal was available. Used for `tier`, `sustainability`, transparency sub-fields, strengths, and weaknesses.
-- **Light grey (default)** — fallback because the provider isn't in the lookup table yet.
+### External benchmark evidence
 
-The grounded estimator passes the full benchmark evidence into Haiku's prompt as context for the fields it does still fill (e.g. transparency notes can reference the actual numbers), but Haiku is explicitly forbidden from overriding any grounded value.
+Bearing can ingest benchmark evidence and map source-side model names to canonical Bearing models.
 
-### Speed score caveat
+Current sources include:
 
-Artificial Analysis's speed cohort spans every model they track — including small fast distilled models that pull throughput averages upward. As a result, raw cohort positioning would push frontier flagships near the bottom (Gemini 3 Pro lands at 0.09, for example). For new imports this is the correct cohort signal; for existing models the curated within-tier scores are preserved by default. Run `scripts/reground-registry.ts --include-speed` to override and reset to cohort positioning across the whole registry.
+- **Artificial Analysis** — model evaluation, coding, mathematics and performance signals;
+- **LMArena** — human preference ratings across several categories;
+- **LiveBench** — contamination-resistant task benchmarks;
+- **MTEB** — embedding-model quality evidence;
+- **EcoLogits** — environmental evidence used for supported sustainability fields.
 
----
+Source categories are mapped onto Bearing task types and normalised within the relevant source cohort.
 
-## Sustainability methodology
+## Benchmark evidence does not automatically control production ranking
 
-Sustainability is scored across three sub-dimensions, each 0.0 to 1.0. The composite score is the mean of all available values (nulls are excluded, not treated as zero).
+External benchmarks are useful but imperfect. They can differ in task construction, cohort, model variant, recency and how closely they represent a user's real job.
 
-### Inference energy
+Bearing therefore keeps benchmark evidence and curated evidence inspectable as separate signals.
 
-How efficient is the model at inference time?
+The code supports evidence-weighted blending, but production ranking currently defaults to:
 
-| Score | Meaning |
-|-------|---------|
-| 1.0 | Published per-query energy metrics |
-| 0.8 | Very small or efficient model |
-| 0.6 | Mixture-of-Experts architecture |
-| 0.4 | Standard large model |
-| null | No data available |
+```text
+BENCHMARK_BLEND=0
+```
 
-### Training footprint
+That means benchmark evidence can inform uncertainty, review and shadow evaluation without silently changing the live ranking.
 
-How much is known about the environmental cost of training?
+A non-zero production blend should be justified by repeated evaluation evidence, not simply because benchmark data exists.
 
-| Score | Meaning |
-|-------|---------|
-| 1.0 | Published with carbon offsets |
-| 0.7 | Published training energy/compute data |
-| 0.4 | Estimated from model size and architecture |
-| 0.0 | No information at all |
-| null | No data available |
+## Benchmark disagreement is evidence
 
-### Provider infrastructure
+When benchmark evidence and curated task fitness disagree, Bearing treats the disagreement as uncertainty.
 
-How clean is the energy powering the model?
+It does not silently discard one source or force the two into agreement.
 
-| Score | Meaning |
-|-------|---------|
-| 1.0 | 100% renewable with heat recovery or additional efficiency measures |
-| 0.8 | 100% renewable energy |
-| 0.6 | Significant commitment with reporting |
-| 0.4 | Some renewable energy |
-| 0.2 | No commitment |
-| null | No data available |
+The breadth and recency of benchmark evidence can affect how much confidence we place in it. Large ranking changes can be replayed against the golden task corpus before any rollout.
 
----
+## Model aliases and variants
 
-## Transparency methodology
+Benchmark providers often name models differently, and the same model family can appear in several variants.
 
-Transparency is scored across five sub-dimensions, each 0.0 to 1.0. The composite score is the mean of all five.
+Bearing maintains aliases between external source names and canonical model slugs. The matching system can suggest likely aliases while flagging potentially important differences such as:
 
-We reference the [Stanford CRFM Foundation Model Transparency Index (FMTI) 2025](https://crfm.stanford.edu/fmti/), which evaluates 100 indicators across 13 companies. We also consider the criticism from EleutherAI that FMTI measures commercial documentation rather than genuine openness — so we weight actual accessibility alongside documentation.
+- reasoning versus non-reasoning variants;
+- mini, nano or lite variants;
+- vision-specific variants;
+- distilled models;
+- materially different generations or sizes.
 
-### FMTI company scores (2025)
+Ambiguous mappings are reviewable rather than silently merged.
 
-These inform the `provider_disclosure` dimension:
+## Cost
 
-| Company | FMTI Score | Our provider_disclosure |
-|---------|-----------|----------------------|
-| IBM | 95 | 1.0 |
-| AI21 Labs | 72 | 0.7 |
-| Writer | 67 | 0.7 |
-| Anthropic | 37 | 0.4 |
-| Google | 36 | 0.4 |
-| Amazon | 36 | 0.4 |
-| OpenAI | 35 | 0.4 |
-| DeepSeek | 30 | 0.2 |
-| Meta | 30 | 0.3 |
-| Alibaba | 30 | 0.2 |
-| Mistral | 15 | 0.2 |
-| xAI | 14 | 0.2 |
-| Midjourney | 14 | 0.2 |
+Cost is estimated from the model's current pricing and the expected workload shape.
 
-### Sub-dimension buckets
+Input length, output length and pipeline stages can affect the estimate. Cost is a relative ranking factor, not a guarantee of the exact invoice from a provider.
 
-| Dimension | 1.0 | 0.7 | 0.3 | 0.0 |
-|-----------|-----|-----|-----|-----|
-| **Open weights** | Fully downloadable | With registration required | API only | Closed |
-| **Open training data** | Documented and accessible | Documented but not accessible | Vague description | None |
-| **Open methodology** | Full reproducible paper | Substantial blog/model card | Marketing only | None |
-| **Licence openness** | MIT / Apache 2.0 | Open with restrictions | Proprietary, clear terms | Restrictive |
-| **Provider disclosure** | FMTI 80+ | FMTI 50–79 | FMTI 30–49 | FMTI <15 |
+Pricing is also freshness-sensitive and can be checked against live catalogues.
 
----
+## Speed
 
-## Provider sustainability research
+Speed uses available performance evidence such as throughput or latency signals, supplemented by curated values where necessary.
 
-Research conducted April 2026. All scores are based on publicly available information and may change as providers update their commitments and disclosures.
+Speed comparisons are particularly cohort-sensitive. A small distilled model and a frontier reasoning model may serve very different purposes, so a raw global speed rank is not automatically a useful task decision.
 
-### Google (Gemini models)
+## Privacy
 
-**Provider infrastructure: 0.8** — Google has maintained a 100% renewable energy match on a global basis every year since 2017. They are targeting 24/7 carbon-free energy on every grid they operate by 2030. Google is the only major cloud provider to publish per-query energy data: **0.24 watt-hours per median text prompt** for Gemini (August 2025).
+Privacy scores represent provider and deployment characteristics such as data retention, training use and whether local/on-premise execution is possible.
 
-Sources:
-- [Google Clean Energy](https://www.google.com/about/datacenters/cleanenergy/)
-- [5 years of 100% renewable energy — Google Cloud Blog](https://cloud.google.com/blog/topics/sustainability/5-years-of-100-percent-renewable-energy)
-- [Hannah Ritchie — AI carbon footprint update (August 2025)](https://hannahritchie.substack.com/p/ai-footprint-august-2025)
+Some privacy requirements become hard gates. For example, if the task requires on-premise execution, a hosted-only model is excluded rather than merely receiving a lower privacy score.
 
-### Anthropic (Claude models)
+Provider-level defaults can be refined by model-specific evidence.
 
-**Provider infrastructure: 0.4** — Anthropic committed to covering 100% of grid upgrade costs required by their data centres, water-efficient cooling, and energy price offsets for ratepayers. However, they have not published a renewable energy target or sustainability report. Data centres are located in Texas, New York, and Louisiana.
+## Transparency
 
-Sources:
-- [Anthropic — Covering electricity price increases](https://www.anthropic.com/news/covering-electricity-price-increases)
-- [Anthropic Emissions Breakdown — DitchCarbon](https://ditchcarbon.com/organizations/anthropic)
-- [Sustainability Magazine — Why is Anthropic pledging to offset its AI energy costs?](https://sustainabilitymag.com/news/why-anthropic-pledging-offset-ai-energy-costs)
+Transparency is a composite evidence area that can include:
 
-### OpenAI (GPT models)
+- open weights;
+- openness or availability of training data;
+- published methodology;
+- licence openness;
+- provider disclosure.
 
-**Provider infrastructure: 0.4** — OpenAI's CEO stated that ChatGPT uses approximately **0.34 watt-hours per average query**. OpenAI claims 100% renewable energy by 2027, but this currently flows through Microsoft Azure's Renewable Energy Certificates (RECs) rather than direct power purchase agreements. As of March 2026, OpenAI has published zero verified Scope 1, 2, or 3 emissions figures.
+The aim is not to collapse “open” into a single binary label. A model may publish weights while still having a restrictive licence or limited methodology disclosure.
 
-Sources:
-- [MIT Technology Review — AI energy usage](https://www.technologyreview.com/2025/05/20/1116327/ai-energy-usage-climate-footprint-big-tech/)
-- [The Sustainable Innovation — Open AI Sustainability](https://thesustainableinnovation.com/open-ai/)
-- [OpenAI, Oracle and Vantage — Green Energy Partnership](https://datacentremagazine.com/news/openai-oracle-and-vantage-forge-green-energy-partnership)
+Provider profiles give Bearing a deterministic baseline. Family-specific rules can distinguish open-weight lines from closed products made by the same company.
 
-### Meta (Llama models)
+## Sustainability
 
-**Provider infrastructure: 0.8** — Meta claims to run global operations with 100% renewable energy and aims for net-zero emissions across its value chain by 2030. They also target being water-positive by 2030 and use dry cooling at new facilities (no water demands for cooling). However, for API users accessing Llama through third-party providers, sustainability depends on the hosting provider's infrastructure.
+Sustainability evidence is kept in separate sub-dimensions where available, including:
 
-Sources:
-- [Meta — Delivering AI, Creating Community Benefits](https://about.fb.com/news/2025/11/metas-30th-data-center-delivering-ai-supporting-wetlands-restoration/)
-- [Fortune — Big tech climate goals and data centres](https://fortune.com/2026/03/29/big-tech-climate-change-goals-data-centers-ai-fossil-fuels/)
+- inference energy or carbon evidence;
+- training-footprint evidence;
+- provider infrastructure.
 
-### Mistral (Codestral, Devstral, Medium 3, OCR)
+Null or unknown evidence is not treated as zero performance.
 
-**Provider infrastructure: 0.55** — Mistral invested €1.2 billion in a partnership with EcoDataCenter to build an AI data centre in Borlänge, Sweden, running on renewable energy with advanced cooling. Their Paris facility runs on France's low-carbon nuclear grid. Mistral has also launched a sustainability auditing tool for industry-wide transparency. Scored between the "significant commitment" (0.6) and "some renewable" (0.4) buckets.
+For supported models, EcoLogits can provide a more grounded inference signal than a purely editorial estimate. Bearing keeps provenance so the interface and admin tools can distinguish measured/derived evidence from curated values.
 
-Sources:
-- [Mistral AI and EcoDataCenter — Sweden AI data centre](https://capacityglobal.com/news/mistral-ai-ecodatacenter-partner-ai-data-centre-sweden/)
-- [CNBC — Mistral secures $830 million for Paris data centre](https://www.cnbc.com/2026/03/30/mistral-ai-paris-data-center-cluster-debt-financing.html)
-- [Euronews — Mistral raises $830m for European AI infrastructure](https://www.euronews.com/next/2026/03/30/europe-needs-ai-cloud-infrastructure-mistral-raises-830m-for-data-centre-near-paris)
+Sustainability is inherently incomplete and changes as deployment infrastructure changes, so it should be interpreted as available evidence rather than a precise life-cycle assessment.
 
-### xAI (Grok)
+## Freshness is separate from quality
 
-**Provider infrastructure: 0.15** — xAI's Memphis Colossus data centre has been operating gas turbines without emission permits since August 2025. Plans call for 2 gigawatts of capacity (enough to power 1.5 million homes). An 88-acre solar array has been proposed but is not yet built. 168 Tesla Megapacks have been installed for battery storage. Despite this, the overall sustainability profile is among the worst of any major AI provider.
+A model's metadata can become stale even if its intrinsic capability has not changed.
 
-Sources:
-- [Tennessee Lookout — Data centre battle along Mississippi-Tennessee line](https://tennesseelookout.com/2026/03/18/a-battle-over-data-centers-heats-up-along-the-mississippi-tennessee-state-line/)
-- [Time — Elon Musk's Memphis AI Data Center raises pollution concerns](https://time.com/7021709/elon-musk-xai-grok-memphis/)
-- [TBA — Tech, Toxins, and Memphis: Environmental Footprint of the xAI Facility](https://www.tba.org/?pg=Hastings2025AIX)
+Bearing tracks catalogue freshness through fields such as verification status, verification source and last verification time. Provider-native catalogue evidence is preferred for canonical model information where available, with OpenRouter also useful for routing coverage.
 
-### GreenPT (GreenL, GreenR)
+Potential drift in price, context window or observable capability is reviewed before being applied to the canonical registry.
 
-**Provider infrastructure: 1.0** — GreenPT runs 100% on renewable energy with heat recovery (server waste heat is used for community heating). They publish real-time energy metrics per query (mWh per 100 tokens). Their Power Usage Effectiveness (PUE) is 1.37 versus an industry average of 1.57. Their Water Usage Effectiveness (WUE) is 0.067 versus an industry average of 1.8 — a 96% improvement. They achieve 20–30% compute reduction through model compression and quantization. EU-hosted with full GDPR compliance.
+## Runtime routability is a different evidence type
 
-The training of the underlying models (Mistral Small 3.2 for GreenL, GPT-OSS 120B for GreenR) was not done on GreenPT's green infrastructure, which is why the training footprint sub-score is lower.
+A model can be excellent for a task and temporarily impossible to call.
 
-Sources:
-- [GreenPT — AI impact on the environment](https://greenpt.com/blog/ai-impact-environment/)
-- [GreenPT — New API integrations: Scraper, OCR](https://greenpt.com/blog/new-api-integrations-scraper-ocr-now-available-in-the-greenpt-api/)
-- [EcoCompute — GreenPT presentation](https://www.eco-compute.io/files/slides_2025/01_Thursday/01_SoHa/08_Keus_GreenPT.pdf)
+Bearing therefore stores operational routability separately from capability scoring.
 
-### DeepSeek (R1, R1 0528, V3.1, V3.2)
+Runtime canaries observe whether an endpoint is:
 
-**Provider infrastructure: 0.2** — DeepSeek's MoE architecture is inherently efficient, activating only 37 billion of 671 billion parameters during inference, with 93.3% memory reduction techniques. However, China's energy grid is heavily coal-based, and DeepSeek publishes no sustainability data or commitments. Reasoning models (R1, R1 0528) consume significantly more energy per query due to long chains of thought — HuggingFace found reasoning models use 30x more energy on average.
+- healthy;
+- degraded;
+- unavailable.
 
-Sources:
-- [S&P Global — Potential impacts of DeepSeek on datacenters and energy demand](https://www.spglobal.com/market-intelligence/en/news-insights/research/potential-impacts-of-deepseek-on-datacenters-and-energy-demand)
-- [SingularityHub — Reasoning models use 30x more energy](https://singularityhub.com/2025/12/15/hugging-face-says-ai-models-with-reasoning-use-100x-more-energy-than-those-without/)
-- [ScienceDirect — Does DeepSeek curb data centre energy surge?](https://www.sciencedirect.com/science/article/pii/S266667582500147X)
+The current conservative guard requires at least two consecutive recent explicit `unavailable` observations before a model can qualify as blocking evidence. A single failure, degraded response, stale observation or malformed record does not qualify.
 
-### IBM (Granite)
+This guard is implemented and tested, but runtime state remains observational in production while more unattended evidence is collected. An outage is never converted into a claim that the model has lower intrinsic quality.
 
-**Provider infrastructure: 0.55** — IBM has the highest FMTI score (95/100), which includes disclosure on compute infrastructure. They publish training compute and energy data and provide smaller models that run on consumer hardware. Scored between "significant commitment" and "some renewable" buckets, weighted upward by their exceptional disclosure practices.
+## Recommendation confidence
 
-Sources:
-- [IBM — Granite 3.3 announcement](https://www.ibm.com/new/announcements/ibm-granite-3-3-speech-recognition-refined-reasoning-rag-loras)
-- [Signal65 — IBM Granite Benchmarking and Enterprise Readiness](https://signal65.com/wp-content/uploads/2025/02/Signal65-Validation_IBM-Granite-Benchmarking-and-Enterprise-Readiness.pdf)
+Recommendation confidence is separate from the ranking score.
 
-### Moonshot AI (Kimi K2, K2.5) and MiniMax (M2.5, M2.7)
+It can combine evidence such as:
 
-**Provider infrastructure: 0.2** — Both are China-based providers with no published sustainability data or renewable energy commitments. Scored at the minimum for operating providers.
+- classifier confidence;
+- separation between the top candidates;
+- freshness of catalogue evidence;
+- curated/benchmark disagreement;
+- supported human outcome evidence.
 
-### General energy context
+Confidence describes how well-supported the recommendation is. It is **not** a calibrated probability that the eventual answer will be correct.
 
-According to research, AI is responsible for approximately 100 terawatt-hours of electricity globally in 2025. The HuggingFace AI Energy Score project measures energy consumption across models using standardised hardware (NVIDIA H100 GPUs), finding that reasoning models consume 30x more energy on average than non-reasoning models.
+## Human outcome evidence
 
-Sources:
-- [HuggingFace AI Energy Score](https://huggingface.github.io/AIEnergyScore/)
-- [Earth911 — Your AI Carbon Footprint](https://earth911.com/business-policy/your-ai-carbon-footprint-what-every-query-really-costs/)
-- [Innovating with AI — How much energy does AI consume?](https://innovatingwithai.com/how-much-energy-does-ai-actually-consume/)
+Bearing can learn from real decisions and outcomes, including:
 
----
+- explicit recommendation success/failure;
+- failure reason categories;
+- pairwise comparison preferences;
+- Trio preferences;
+- Challenger preferences.
 
-## Model capability decisions
+Blind-judge verdicts are stored separately from human preferences.
 
-### DeepSeek V3.2 — vision removed
+Outcome evidence can contribute to recommendation confidence where there is enough support. It does not currently alter the production ranking automatically; small samples should not overpower the rest of the evidence model.
 
-DeepSeek V3.2 was previously listed with vision capability, but research confirmed it does **not** have native vision support. Vision is expected in DeepSeek V4, which was in limited testing as of April 2026. The vision capability and all vision task fitness scores have been removed.
+## Meaningful alternatives
 
-Sources:
-- [DeepSeek API Docs — V3.2 Release](https://api-docs.deepseek.com/news/news251201)
-- [TechNode — DeepSeek V4 test interface suggests Vision mode](https://technode.com/2026/04/08/deepseek-v4-may-launch-this-month-test-interface-suggests-vision-and-expert-modes/)
+After ranking, Bearing does not simply present the next two rows of a leaderboard.
 
-### GreenPT GreenL — vision added
+Alternatives are selected for useful trade-offs or information value. Depending on the task, that can include:
 
-GreenPT GreenL is powered by Mistral Small 3.2 (24B), which has native vision support — it can process and reason over both text and image inputs. The vision task fitness is set to 0.68 based on the underlying model's capabilities. GreenPT also offers dedicated OCR and Scraper APIs for document processing.
+- provider diversity;
+- lower cost;
+- local versus hosted execution;
+- a different capability/profile balance;
+- sparse outcome evidence worth testing;
+- benchmark uncertainty around two strong candidates.
 
-Sources:
-- [Mistral Small 3.2 — HuggingFace](https://huggingface.co/mistralai/Mistral-Small-3.2-24B-Instruct-2506)
-- [GreenPT — OCR and Scraper API integrations](https://greenpt.com/blog/new-api-integrations-scraper-ocr-now-available-in-the-greenpt-api/)
+This is why the visible result is recommendation-shaped rather than ranking-shaped.
 
-### GreenPT GreenR — extended thinking added
+## Evaluation
 
-GPT-OSS 120B (the model powering GreenR) has full chain-of-thought reasoning and adjustable reasoning effort, qualifying it for the `extended_thinking` capability.
+### Golden ranking corpus
 
-Sources:
-- [OpenAI — Introducing GPT-OSS](https://openai.com/index/introducing-gpt-oss/)
-- [OpenAI — GPT-OSS Model Card](https://openai.com/index/gpt-oss-model-card/)
+A versioned golden task corpus is part of CI. It protects deterministic ranking behaviour from accidental regression.
 
-### Kimi K2.5 — video added
+Candidate ranking changes can also run in shadow mode against an approved baseline to show how many top recommendations would change and how severe those changes are.
 
-Kimi K2.5 demonstrates strong video understanding capabilities, scoring 86.6% on VideoMMMU. It also supports agent swarm execution for parallel sub-task processing.
+### Live classifier evaluation
 
-Sources:
-- [Moonshot AI — Kimi K2.5 Tech Blog](https://www.kimi.com/blog/kimi-k2-5)
-- [InfoQ — Kimi K2.5 with Vision and Agent Swarm](https://www.infoq.com/news/2026/02/kimi-k25-swarm/)
+The task classifier has a separate live semantic evaluation harness that calls the real production classifier.
 
-### Qwen 3 235B — vision not included
+It covers golden task descriptions plus focused ambiguity and multi-stage pipeline probes and reports:
 
-The base Qwen3-235B-A22B is a text-only model. The vision-language variant (Qwen3-VL-235B-A22B) is a separate model. We represent the base text model in the registry. Note that Qwen 3.5 (the newer generation) is natively multimodal — vision is built into the base architecture.
+- checked-field accuracy;
+- task-type accuracy;
+- clarification accuracy;
+- pipeline-detection accuracy;
+- failed calls;
+- average classifier-reported confidence.
 
-Sources:
-- [Qwen3-235B-A22B — HuggingFace](https://huggingface.co/Qwen/Qwen3-235B-A22B)
-- [Qwen3-VL Technical Report](https://arxiv.org/abs/2511.21631)
+The first production baseline on **16 September 2026** ran 28 cases, of which 26 completed successfully. It recorded:
 
-### IBM Granite 3.3 — vision not in base, family noted
+- **80.7%** checked-field accuracy;
+- **83.3%** task-type accuracy;
+- **96.2%** clarification accuracy;
+- **0.84** average classifier-reported confidence.
 
-The Granite 3.3 8B Instruct model in our registry is a text-only model. IBM has separate vision models in the Granite family (granite-vision-3.3-2b, granite-4.0-3b-vision) designed for document understanding, OCR, and chart analysis. We note the family in the model's strengths but represent the 8B text model as the primary entry.
+Two pipeline calls failed runtime validation on the first full run. Focused diagnostics showed the pipeline mechanism itself worked; one remaining case returned a non-canonical top-level task type. The classifier prompt was tightened and one schema-repair attempt was added for validation failures, while keeping the runtime validator authoritative.
 
-Sources:
-- [IBM — Granite 3.3 8B Instruct — HuggingFace](https://huggingface.co/ibm-granite/granite-3.3-8b-instruct)
-- [IBM — Granite Vision models](https://www.ibm.com/granite/docs/models/vision)
-- [IBM — Granite 4.0 3B Vision — HuggingFace](https://huggingface.co/ibm-granite/granite-4.0-3b-vision)
+These figures are a baseline for investigation, not a release score. Some field disagreements may indicate a stale or debatable golden expectation rather than a classifier defect.
 
----
+## Provenance
 
-## Task fitness research
+Where practical, Bearing keeps track of where evidence came from. Common provenance classes include:
 
-Task fitness scores represent how well a model performs on specific task types, from 0.0 to 1.0. These are informed by benchmark data, public evaluations, and comparative analysis. Here are the key adjustments made in the v0.5.0 audit, with sources.
+- benchmark or source-derived;
+- deterministic provider/profile derived;
+- curated;
+- AI-assisted estimation where no grounded signal exists;
+- operational observation;
+- human outcome evidence.
 
-### MiniMax M2.7 — code: 0.78 → 0.86
+Keeping these separate is important because they answer different questions and deserve different levels of trust.
 
-MiniMax M2.7 achieved 56.22% on SWE-Pro (matching GPT-5.3-Codex), 78% on SWE-bench Verified (significantly outperforming Opus at 55%), and 86.2% on PinchBench (within 1.2 points of Opus). The model was also open-sourced in April 2026. Pricing was corrected from $1.00/$4.00 to $0.30/$1.20 per million tokens.
+## What the scores do not mean
 
-Sources:
-- [MiniMax — M2.7 announcement](https://www.minimax.io/news/minimax-m27-en)
-- [VentureBeat — MiniMax M2.7 is self-evolving](https://venturebeat.com/technology/new-minimax-m2-7-proprietary-ai-model-is-self-evolving-and-can-perform-30-50)
-- [MarkTechPost — MiniMax M2.7 open-sourced](https://www.marktechpost.com/2026/04/12/minimax-just-open-sourced-minimax-m2-7-a-self-evolving-agent-model-that-scores-56-22-on-swe-pro-and-57-0-on-terminal-bench-2/)
+Bearing scores do not mean:
 
-### MiniMax M2.5 — speed: 0.70 → 0.82
+- “this model is 87% likely to succeed”;
+- “this benchmark proves this model is universally better”;
+- “a temporarily unavailable endpoint is a low-quality model”;
+- “the blind judge is more important than the person doing the work”;
+- “past user preference should override current task requirements”.
 
-M2.5 is served natively at 100 tokens per second — nearly twice the rate of other frontier models. End-to-end runtime decreased by 37% through improvements like parallel tool calling.
+The system is intended to make an inspectable decision under uncertainty and improve as better evidence accumulates.
 
-Sources:
-- [MiniMax — M2.5 announcement](https://www.minimax.io/news/minimax-m25)
-
-### Kimi K2.5 — vision: 0.73 → 0.82, code: 0.84 → 0.86
-
-MMMU Pro: 78.5%. MathVision: 84.2%. VideoMMMU: 86.6%. BrowseComp: 74.9% (78.4% with agent swarm). These are competitive with frontier multimodal models.
-
-Sources:
-- [Moonshot AI — Kimi K2.5 Tech Blog](https://www.kimi.com/blog/kimi-k2-5)
-- [Complete Performance Analysis — Kimi K2.5 vs GPT, Claude, Gemini](https://kimi-k25.com/blog/kimi-k2-5-benchmark)
-
-### Llama 4 Maverick — vision: 0.75 → 0.82, code: 0.80 → 0.84
-
-MMMU: 73.4% (beats GPT-4o at 69.1%). MathVista: 73.7% (beats GPT-4o at 63.8%). LiveCodeBench: 43.4% (beats GPT-4o at 32.3%). Natively multimodal with early fusion, supporting up to 8 images per prompt.
-
-Sources:
-- [Llama 4 — Meta AI Blog](https://ai.meta.com/blog/llama-4-multimodal-intelligence/)
-- [Llama 4 — Official site](https://www.llama.com/models/llama-4/)
-- [Artificial Analysis — Llama 4 Maverick](https://artificialanalysis.ai/models/llama-4-maverick)
-
-### IBM Granite 3.3 — code: 0.75 → 0.78, extract: 0.78 → 0.80
-
-Granite 3.3 8B's MATH500 performance puts it ahead of Claude 3.5 Haiku (64.2%) and Llama 3.1 8B (44.4%), roughly in line with the 24B-parameter Mistral Small 3. Strong function calling, fill-in-the-middle coding, and RAG capabilities with dedicated LoRA adapters.
-
-Sources:
-- [IBM — Granite 3.3 8B Instruct — HuggingFace](https://huggingface.co/ibm-granite/granite-3.3-8b-instruct)
-- [IBM — Granite 3.3 announcement](https://www.ibm.com/new/announcements/ibm-granite-3-3-speech-recognition-refined-reasoning-rag-loras)
-- [Signal65 — Granite Benchmarking](https://signal65.com/wp-content/uploads/2025/02/Signal65-Validation_IBM-Granite-Benchmarking-and-Enterprise-Readiness.pdf)
-
-### Gemini 3 Flash — code: 0.85 → 0.88
-
-Gemini 3 Flash scored 78% on SWE-bench Verified — actually outperforming Gemini 3 Pro (76.2%) on coding tasks.
-
-Sources:
-- [Google — Gemini 3 Flash Preview](https://designforonline.com/ai-models/google-gemini-3-flash-preview/)
-
-### Gemini 3.1 Pro — analyse: 0.90 → 0.93
-
-GPQA Diamond: 94.3%. ARC-AGI-2: 77.1% (more than double Gemini 3 Pro). This justifies a very high analysis score.
-
-Sources:
-- [Google — Gemini 3.1 Pro announcement](https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-1-pro/)
-- [Google DeepMind — Gemini 3.1 Pro Model Card](https://deepmind.google/models/model-cards/gemini-3-1-pro/)
-
-### Qwen 3.5 397B — code: 0.80 → 0.85
-
-LiveCodeBench v6: 83.6%. SWE-bench Verified: 76.4%. AIME 2026: 91.3%. Natively multimodal with early fusion. 201 languages supported (up from 119 in Qwen 3). 60% cheaper to run than its predecessor.
-
-Sources:
-- [VentureBeat — Alibaba's Qwen 3.5](https://venturebeat.com/technology/alibabas-qwen-3-5-397b-a17-beats-its-larger-trillion-parameter-model-at-a)
-- [Qwen — Qwen3.5 Blog](https://qwen.ai/blog?id=qwen3.5)
-
----
-
-## What we don't know
-
-We try to be honest about the limits of our data:
-
-- **Quality scores are estimates** — task fitness is our weakest signal. It's informed by benchmarks, but benchmarks don't capture everything. As we collect outcome data from real Bearing users, these scores will improve. The strongest signal here is now the routed-run data — Trio and Challenger runs pair a blind LLM-judge verdict with the user's own preference on the same task, giving a per-task win/loss record between specific models that benchmarks can't provide.
-- **Sustainability data is sparse** — most providers don't publish per-query energy consumption. Google and GreenPT are exceptions. For many models, we're making informed estimates from model architecture and provider commitments.
-- **Pricing changes frequently** — we sync from OpenRouter where possible, but some models are priced outside that ecosystem. Check the provider's own pricing page for the latest.
-- **Benchmarks have limitations** — SWE-bench, MMMU, GPQA, and others are useful signals but don't perfectly predict real-world performance on your specific task. That's why Bearing also includes Compare mode for direct testing.
-
----
-
-## How to suggest corrections
-
-If you spot an error in our ratings or have a better source for a specific data point, please [open an issue on GitHub](https://github.com/dataforaction-tom/bearing/issues) with the model name, the score you think is wrong, and a link to the evidence. We review every suggestion.
+For the end-to-end product and architecture flow, see [How Bearing works](how-bearing-works.md).
