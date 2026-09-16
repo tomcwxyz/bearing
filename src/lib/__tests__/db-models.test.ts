@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { modelRowToModel } from '../db'
+import { modelRowToModel } from '../../db/models'
 
 describe('modelRowToModel', () => {
   it('converts a DB row to a Model object with slug', () => {
