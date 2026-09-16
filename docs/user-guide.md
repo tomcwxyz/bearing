@@ -1,321 +1,234 @@
 # User Guide
 
-This guide covers everything you need to know about using Bearing to find, validate, and compare AI models — including embedding models for search and retrieval.
+Bearing helps you choose, test and learn about AI routes for real work. The normal experience is deliberately simple: describe the job, let Bearing take a bearing automatically, then inspect or test the recommendation.
 
 ## Getting a recommendation
 
-This is the main way most people use Bearing. You describe what you want to do, and Bearing tells you which model is the best fit.
+### 1. Describe the job
 
-### Step 1: Describe your task
+On the home page, describe what you are trying to achieve. You do not need to name a model or manually choose a mode first.
 
-On the home page, type a description of what you want to use AI for. Be specific — "summarise long research papers into bullet points" works better than "help me with documents."
+Specific descriptions help. For example:
 
-### Step 2: Answer any follow-up questions
+> Summarise a 60-page research report into a two-page briefing for a charity board, preserving important caveats and statistics.
 
-If Bearing needs more context, you'll see a few quick questions with tappable options. Things like "Is this a one-off task or something you'll do regularly?" or "Does this involve images?" Answer them and tap **Continue**.
+is more useful than:
 
-If your description is clear enough, you'll skip this step entirely.
+> Help with a document.
 
-### Step 3: Rank your priorities
+Bearing extracts structured information about the task, such as task type, complexity, input size, required capabilities, privacy needs and likely output size.
 
-You'll see seven factors, each representing something that might matter to you:
+### 2. Clarify only when needed
 
-- **Quality** — best possible output for your task
-- **Capability** — specific features like vision, code generation, or long documents
-- **Cost** — keeping spend low
-- **Transparency** — open weights, published training data, methodology
-- **Privacy** — how your data is handled and retained
-- **Sustainability** — energy use and environmental footprint
-- **Speed** — how fast responses come back
+If the description leaves an important decision genuinely unclear, Bearing asks a small number of focused follow-up questions.
 
-Drag them into the order that matters to you. The factor at the top has the most influence on your results. Tap the up/down arrows if you prefer not to drag.
+If the description is already clear enough, this step is skipped.
 
-### Step 4: Review your results
+### 3. Bearing works out the priorities
 
-You'll see a ranked list of models, best fit first. Each model card shows:
+You no longer have to rank seven factors before seeing a recommendation. Bearing derives a sensible priority order from the task and applies hard requirements automatically.
 
-- A **match score** (percentage) showing how well it fits your task and priorities
-- A **one-sentence explanation** of why it ranked where it did
-- **Per-factor scores** so you can see exactly where each model is strong or weak
-- An **estimated cost** for your specific task type
+The factors are:
 
-The top recommendation is highlighted, but you can choose any model from the list.
+- **Quality** — likely task performance;
+- **Capability** — required or useful features such as vision, tools, code or long context;
+- **Cost** — estimated relative spend;
+- **Speed** — response-time performance;
+- **Privacy** — data handling and deployment constraints;
+- **Sustainability** — available evidence about environmental footprint;
+- **Transparency** — openness of weights, methodology, data and provider disclosure.
+
+If you want to change the inferred weighting, use **Adjust bearing**. That is an advanced control rather than a required step.
+
+### 4. Read the result
+
+The results page is organised around one recommended route, not a leaderboard.
+
+You will normally see:
+
+- the **best-fit recommendation**;
+- a concise explanation of why it fits;
+- factor and evidence detail you can inspect;
+- **meaningful alternatives** chosen because they represent useful trade-offs;
+- estimated task cost where available;
+- recommendation confidence where there is enough evidence to calculate it.
+
+Bearing does **not** show a “match percentage”. Its weighted score is internal ranking machinery, not a calibrated probability that the model will succeed.
+
+### Meaningful alternatives
+
+Alternatives are not simply ranks two and three. Bearing tries to surface candidates that teach you something useful about the decision — for example a lower-cost option, a different provider, a local model, or a strong candidate where the evidence is less certain.
 
 ### Pipeline recommendations
 
-If your task involves multiple steps — like extracting text from a PDF and then summarising it — Bearing may suggest a **pipeline alternative** below the main results. A pipeline recommends a different specialist model for each stage of your task, often resulting in better quality or lower cost than using a single model for everything.
+If the task naturally contains several different stages, Bearing may suggest a multi-stage pipeline as an alternative to one model doing everything.
 
-Each stage shows a recommended model and one alternative. The footer compares the total pipeline cost against the top single-model recommendation so you can see the trade-off at a glance.
+For example, a workflow could involve extracting information, analysing it, then writing a final briefing. Different stages can be scored independently and routed to specialist models.
 
-If a stage requires a capability (like vision or tool use) that the recommended model doesn't support, the stage card shows a warning so you know exactly where the gap is.
+A pipeline is suggested when it appears useful; it is not assumed to be better by default.
 
-Not every task gets a pipeline suggestion — only tasks where splitting the work across models would genuinely help.
+## Running a recommendation
 
-### Step 5: Select a model
+Where a recommended model is runnable, choose **Run this prompt**.
 
-Tap **Use this one** on the model you want to try. This records your choice (anonymously) and helps improve future recommendations.
+Enter the real prompt you want to test and, where supported, attach a file. Bearing runs the selected route and shows the result alongside practical information such as model identity, estimated cost and latency.
 
-After selecting, you'll see a link to give feedback later — bookmark it if you want to come back after trying the model.
+Running requires sign-in because it incurs API cost and has daily allowances.
 
-### Step 6: Run it
+Bearing preserves the recommendation rank of the model you chose. Running the third recommendation does not silently relabel it as “rank one”.
 
-You don't have to leave Bearing to try a recommendation — and you're not limited to the top pick. **Every model card in your results has its own "Run this prompt" action.** Tap it on whichever model you want to try, enter the prompt you actually want to run (and optionally attach a PDF or CSV), and Bearing runs it for you.
+## Trio
 
-You'll see the answer along with a short explanation of why that model scored well for you (which factor it was strongest on) and a footprint readout: estimated grams of CO₂e, cost per task, and how long the response took. Running requires a quick sign-in, and there's a small daily allowance.
+Trio is useful when a single recommendation is not enough and comparing answers could reduce uncertainty.
 
-### Trio and Challenger modes
+It keeps an anchor model and chooses additional candidates for **information value**. Those alternatives can differ by provider, cost profile, local/hosted status, benchmark uncertainty or the amount of human outcome evidence available.
 
-Next to **Run this prompt** on every model card, you'll find **Trio** and **Challenger** tabs — a head-to-head comparison anchored on that specific model, so you don't have to pick the models yourself:
+The aim is not “top three models at once”. It is a small experiment that can tell you something useful.
 
-- **Trio** sends your prompt to that model plus the next two runnable models by rank. A blind judge — a separate model that is shown the three answers under anonymous labels, so it can't tell which model wrote which — picks the best one and explains why.
-- **Challenger** uses that model as the primary answer, then asks the next-ranked model to critique and improve it. The blind judge then picks the stronger of the two.
+After the outputs return, a blind judge can provide a machine verdict and you can record the answer **you** preferred. Those are kept as different signals.
 
-Open Trio or Challenger from whichever card you're curious about — the top recommendation, or any other model in your list — and Bearing anchors the comparison there instead of always defaulting to the overall top ranking.
+## Challenger
 
-After the answers come back, you're asked **which answer you preferred**. Your pick and the judge's verdict both feed Bearing's open dataset — they're the highest-value signal Bearing collects about which models actually win on real tasks. As everywhere in Bearing, only hashes of your prompt and the responses are stored, never the text.
+Challenger starts from an existing answer.
 
-## Signing in
+Bearing selects an informative alternative model and asks it to identify material gaps, errors or assumptions in the first answer and then attempt an improved response.
 
-Viewing recommendations, browsing the registry, and validating a model never require signing in. **Running a prompt, Trio, Challenger, or a head-to-head comparison** do — each with a small daily allowance to manage costs.
+A blind judge can compare the two outputs, but your own preference remains the human outcome signal.
 
-Bearing uses a regular email and password, not a magic link. If you don't have an account yet, follow **Create an account** from the sign-in page — it only asks for an email and a password (at least 8 characters), and you're signed in immediately.
+Challenger is most useful after you already have an answer and want to test whether another model exposes something important.
 
-If you signed up before this or have forgotten your password, use the **Forgot your password, or never set one?** link on the sign-in page. Enter your email and, if it matches an account, you'll get an email with a link to set a new password — you're signed back in automatically as soon as you do.
+## Comparing two models directly
 
-Once signed in, the navigation bar shows your email address and a **Sign out** button, so you can always see your status and end your session from anywhere in Bearing.
+If you already know which two models you want to compare, use **Compare**.
 
-## Validating your current model
+Both models receive the same prompt and supported attachment. Their outputs are shown side by side and you can record which you preferred, or that they were about the same.
 
-Already using a model? Check if it's the best fit for what you're doing.
+Direct Compare is intentionally different from Trio: you choose the models yourself rather than asking Bearing to select an informative set.
 
-### How it works
+## Validating a model you already use
 
-1. Go to the **Validate** tab on the home page, or visit the Validate page directly
-2. Start typing your model's name — a dropdown will show matching models from the registry
-3. Describe what you use the model for
-4. Tap **Check my model**
+Use **Validate** when you already have a model and want to see how it fits a particular job.
 
-### What you'll see
+Choose the model, describe the task, and Bearing scores the task using the same underlying task-to-scoring mapping as normal recommendations.
 
-Bearing will show one of three assessments:
+The result explains where your current model sits relative to the alternatives. Treat labels such as “good fit” or “better options” as task-relative assessments, not universal statements about the model.
 
-- **Good fit** — your model is a strong choice for this task. You'll see why, with a scoring breakdown.
-- **Overpaying** — your model works fine, but you could get similar results for less. You'll see the cheaper alternative.
-- **Better options exist** — for this task type, other models would likely perform better. You'll see the top alternatives and where your current model ranks.
+## Embedding models
 
-In all cases, the full ranked list is shown below so you can explore.
+Bearing recognises embedding work through the normal task flow. You can describe a retrieval, semantic-search, RAG, clustering or similarity task without first choosing a special mode.
 
-## Finding an embedding model
+There is also a guided embedding finder for people who want to specify things such as:
 
-If you're building a search index, RAG pipeline, or anything that needs to convert text into vectors, Bearing will point you to the right embedding model — and you don't need to do anything special to get there.
+- retrieval versus similarity use case;
+- typical text length;
+- hosted versus open/self-hosted deployment;
+- language coverage;
+- latency needs.
 
-Embedding models are fundamentally different from chat models — they produce fixed-length vectors rather than text, they're priced on input tokens only, and the key quality signal is MTEB (Massive Text Embedding Benchmark) rather than chat-style evals. Bearing handles all of this automatically so you get relevant results.
-
-### Two ways to get there
-
-**Just describe your task.** Type what you're building into the normal box on the home page — for example, "build a search index over our support docs for semantic retrieval." Bearing recognises it as embedding work and takes you straight to ranked embedding models, skipping the chat-style priority questions that don't apply to a vector job.
-
-**Use the guided finder.** If you'd rather answer a few targeted questions, open the model registry, switch to the **Embedding** filter, and tap **Find an embedding model** (or visit `/embedding` directly). You'll answer five quick questions:
-
-- **What's it for?** — retrieval/RAG, semantic similarity, classification, clustering, or deduplication
-- **How long are the texts?** — short (queries, sentences), medium (paragraphs), or long (full documents)
-- **Hosting preference** — hosted API or open weights you can run yourself
-- **Languages** — English only, a handful of languages, or broad multilingual coverage
-- **Latency** — batch (building an index overnight), interactive (embedding queries at request time), or realtime
-
-### Reading the results
-
-Each model card shows:
-- **Match score** — weighted against your use case, hosting preference, and latency need
-- **Embedding dimension** — the size of the vectors produced (larger = more expressive, more storage)
-- **Matryoshka badge** — if present, you can truncate the vector to a smaller size without retraining, saving storage without much quality loss
-- **Max input** — the maximum number of tokens the model can embed in one call
-- **Price** — per million input tokens, or "Free (self-host)" for open-weight models
-
-### Open-weight options
-
-If you choose **Prefer open / self-hosted**, Bearing shows only models you can run locally: BGE-M3, Nomic-embed-v2-MoE, and GTE-Qwen2-7B. These can be served with Ollama, llama.cpp, or the `sentence-transformers` Python library. Useful when data cannot leave your infrastructure.
-
-### Embedding stages in pipelines
-
-When Bearing suggests a pipeline for a multi-step task (e.g. "process PDFs, build a search index, answer queries"), embedding stages are automatically routed to embedding models — not chat models. The stage card shows the embedding model's dimension, Matryoshka support, and per-million-token price.
-
-## Comparing two models
-
-For tasks where specs alone don't tell the full story — creative writing, nuanced analysis, tone-sensitive work — you can run a head-to-head comparison.
-
-### Requirements
-
-- You need to **sign in** with your email and password — see [Signing in](#signing-in) if you don't have an account yet
-- You get **4 comparisons per day** (admins have no daily limit)
-
-### How it works
-
-1. From your recommendation results, tap **Compare two models head-to-head**
-2. Select exactly two models from your ranked list
-3. Write or edit a prompt for your task
-4. Optionally **attach a file** (PDF or CSV, up to 5MB) — both models will process the same document alongside your prompt
-5. Tap **Run comparison** — both models receive the same prompt and file
-6. Read both responses side by side (model names are visible — this isn't blind testing)
-7. Vote: **Model A**, **Model B**, or **About the same**
-8. Optionally explain why
-
-### Attaching files
-
-When you attach a file, models that support vision (marked with a **Vision** badge) receive the raw document. Text-only models receive the extracted text content instead. This means you can compare how a vision model handles a PDF layout versus how a text model handles the same content as plain text.
-
-Your preference is recorded as pairwise data — the same format used by research benchmarks like Chatbot Arena, but anchored to your specific task type and priorities.
+Embedding models are kept separate from chat models in ranking because they solve a different kind of job.
 
 ## Browsing the model registry
 
-Visit the **Models** page to explore all 54 models in the registry — 44 chat models and 10 embedding models.
+The **Models** area lets you inspect the currently active registry rather than relying on a fixed model count in the documentation.
 
-### Filtering
+Model pages can include:
 
-- **Search** — type a model name, provider, or slug
-- **Type filter** — switch between **Chat** and **Embedding** models. When viewing embedding models, a "Find an embedding model" link takes you to the guided finder
-- **Provider filters** — tap a provider name to see only their models
-- **Capability filters** — tap Vision, Code, Tools, Long context, Reasoning, Audio, or Video to filter by capability
+- provider and model class;
+- pricing;
+- context window;
+- capabilities;
+- strengths and weaknesses;
+- task-fitness evidence;
+- transparency information;
+- sustainability information;
+- embedding-specific details where relevant.
 
-Tap any filter again to remove it, or use **Clear filters** to reset.
+Because model catalogues change, Bearing also tracks freshness and provider identifiers separately from the model's intrinsic scores.
 
-### Model detail pages
+## Freshness and availability
 
-Click any model card to see its full profile:
+A model can be a strong fit but temporarily unavailable. Bearing treats these as different questions.
 
-- Capabilities, strengths, and weaknesses
-- Pricing (per million tokens, input and output — embedding models show input-only)
-- Transparency scores (open weights, training data, methodology, licence, provider disclosure)
-- Sustainability data (inference energy, training footprint, provider infrastructure). For the major hosted models, the inference-energy figure is grounded in real per-request carbon estimates from [EcoLogits](https://ecologits.ai), and a label shows whether each value is measured or a curated estimate
-- Task fitness bars showing how well the model performs across different task types
-- For embedding models: embedding dimension, max input length, Matryoshka support, and MTEB quality score
+Catalogue verification checks current provider/OpenRouter evidence such as pricing, context size, capabilities and identifiers. Potential drift is reviewed before canonical model metadata is changed.
 
-Want to understand how these scores are calculated? See [How We Rate Models](model-ratings.md) for the full methodology, research sources, and decisions behind every rating.
+Runtime canaries separately observe whether model endpoints are healthy, degraded or unavailable. A single runtime failure is not treated as evidence that the model is poor, and production ranking is not currently hard-filtered from one or two observations while the policy is still being calibrated.
 
-## Giving feedback
+## Signing in and My bearings
 
-After trying a model, come back to give feedback using the bookmarkable link from your results page.
+The core recommendation journey can be used anonymously.
 
-- **Worked well** — great, this helps confirm the recommendation
-- **Not great** — select what went wrong: too slow, poor quality, too expensive, couldn't do what you needed, or other
-- Add an optional comment
+Sign-in is required for features that incur execution cost or need account continuity, such as Run, Trio, Challenger and direct comparisons.
 
-Feedback is the most valuable signal for improving recommendations. Even a thumbs up helps.
+Bearing uses email and password authentication, with password setup/reset by email where needed.
 
-## The public dataset
+When signed in, completed owned bearings can appear in **My bearings**. Bearing can provide this continuity without storing the raw task description: task ownership is attached to the structured task record instead.
 
-All anonymised data is available for download on the **Data** page.
+## Learned preferences
 
-- **Recommendation data** — task types, priorities, which models were recommended (with `model_class` so you can filter chat vs embedding recommendations), local inference alternatives, and outcomes
-- **Comparison data** — which model was preferred in head-to-head tests
-- **Routed-run data** — every auto-routed run (single route, Trio, or Challenger): the models routed to with their rank and score, the blind judge's verdict, and which answer you preferred. Available at `/api/dataset/routed-runs`.
+For signed-in users, Bearing can learn gentle preferences from repeated human choices.
 
-Available in JSON and CSV formats. The dataset covers every task that reached the recommendation stage, including tasks where no model was ultimately selected. Never includes raw descriptions, prompts, email addresses, or anything that could identify you.
+These preferences are:
 
-## Managing models (admin)
+- separate from explicit task priorities;
+- inspectable;
+- disableable;
+- resettable;
+- unable to override hard requirements for the current job.
 
-If you have admin access, you can add, edit, and deactivate models directly from the browser.
+The goal is to remove repeated friction, not to lock a person into past behaviour.
 
-### Accessing the admin panel
+## Feedback and learning
 
-Visit `/admin` while signed in with an admin account. You'll see a table listing every model in the registry with its name, provider, tier, speed score, and pricing.
+Human evidence is one of the most useful ways Bearing can improve.
 
-### Editing a model
+Signals can include:
 
-Click **Edit** next to any model to open the edit form. The form is organised into sections:
+- whether a recommendation worked;
+- why it failed when it did not;
+- pairwise comparison preferences;
+- Trio preferences;
+- Challenger preferences.
 
-- **Basic info** — name, provider, and tier category
-- **Pricing** — input and output cost per million tokens
-- **Performance** — context window size, speed score, and privacy score (sliders from 0 to 1)
-- **Capabilities** — toggle which capabilities the model supports (vision, code, tools, etc.)
-- **Task fitness** — adjust how well the model performs across different task types using sliders
-- **Transparency** — sub-scores for open weights, training data, methodology, licence, and provider disclosure
-- **Sustainability** — inference energy, training footprint, and provider infrastructure scores
-- **Strengths and weaknesses** — editable lists of plain-text descriptions
-
-Click **Save Model** when you're done. Changes appear immediately on the Models page. To update the recommendation engine's snapshot, run the registry generation step during the next deployment.
-
-### Adding a new model
-
-Click **Add Model** on the admin page to open a blank form. Choose a URL-safe slug (e.g. `my-new-model`) — this cannot be changed after creation.
-
-### Deactivating a model
-
-Deactivated models are hidden from the registry and recommendations but preserved in the database for historical data integrity. Deactivation is available through the admin server actions.
-
-### Usage and Insights dashboard
-
-The admin panel includes **Usage** and **Insights** tabs alongside the model list.
-
-**Usage** shows:
-- Total tasks, users, selections, and comparisons
-- Activity over time (tasks and selections per day, week, or month)
-- Mode breakdown (Recommend, Validate, Compare)
-- User signups over time
-
-**Insights** shows:
-- Outcome success rate and average selected rank
-- Task type distribution — what people are using AI for
-- Model leaderboard — which models are recommended and selected most
-- Outcome breakdown — success vs failure with failure reasons
-- Capability demand — how often tasks need vision, tools, or code
-
-Use the toggle in the top-right to switch between daily, weekly, and monthly views.
-
-### Discovering new models
-
-The **Discover** tab shows AI models available on OpenRouter that aren't yet in the Bearing registry. You can search by name or provider, then import individual models.
-
-When you import a model, scores are grounded in real benchmark data wherever possible. Haiku is only used for fields that have no published signal.
-
-1. **Click Import** — a form opens with the model's specs from OpenRouter (name, pricing, context window, capabilities). The `long_context` capability is auto-checked when the model's context window is 128K or larger.
-2. **Confirm benchmark matches** — at the top of the form, Bearing shows ranked candidate variants from each source it tracks: LMArena, LiveBench, and Artificial Analysis. A frontier model often appears in several variants (Reasoning vs Non-reasoning, different effort levels) — confirm the ones that represent this model. Bearing pre-checks the obvious matches; flagged candidates (`mini`, `nano`, `vl`, `distill`, etc.) are surfaced for you to decide. Matching looks past cosmetic differences — a vendor label in the name ("MoonshotAI: …"), hyphen-vs-dot version numbers ("claude-opus-4-8" ↔ "claude-opus-4.8"), and a model's generation versus its parameter count ("LFM2-24B") — so a model that's genuinely covered won't show an empty list just because the source spells it differently.
-3. **Click Generate Estimates** — Bearing computes task fitness from the confirmed benchmark variants, pulls speed score from Artificial Analysis throughput, and looks up privacy, open-weights status, licence openness, and a baseline transparency score from a per-provider table. This is what keeps an open-weight model (Liquid, GLM, Phi, Llama, DeepSeek, and many others) from being mislabelled as closed proprietary. A summary line tells you how many fields came from each source.
-4. **Review the form** — every score slider has a small dot showing where its value came from:
-    - **Green** — pulled directly from a benchmark snapshot
-    - **Amber** — derived from the provider profile (privacy, open weights, licence openness, baseline transparency)
-    - **Grey** — estimated by Haiku because no published signal was available
-5. **Click Save as Draft** — the model and confirmed aliases are saved together. The model is hidden from recommendations until you mark it active in the edit form.
-
-If you import a flagship-priced model with no benchmark coverage in any source, Bearing shows a warning banner — those are the cases where the recommendation engine is most likely to misroute users.
-
-### Refreshing scores from benchmarks
-
-Open any model's edit page and click **Refresh from benchmarks** in the top right. Bearing re-runs the grounding step against the model's confirmed benchmark aliases and the latest snapshots, then updates the relevant sliders in place. The provenance dots show which fields changed. Speed score is preserved (it's calibrated within tier rather than across the entire 513-model AA cohort) — everything else updates automatically. Click **Save Model** to persist.
-
-### Re-fetching benchmark sources
-
-The **Benchmarks** tab lists every source Bearing tracks. Each row shows the row count, how many rows are matched to a Bearing model, coverage, and the latest snapshot date.
-
-Two distinct actions:
-
-- **Reload view** (top right) only re-reads the database — use it to pick up changes after mapping aliases. It does *not* contact any benchmark source.
-- **Re-fetch** (per row) pulls fresh data live from that source and upserts new snapshots. Available for the three live sources — **lmarena**, **artificialanalysis**, and **ecologits**. A confirmation dialog appears first because it writes to the production database. When it finishes you'll see how many rows were upserted and how many were unmatched (no alias yet).
-
-`mteb` and `livebench` are shown disabled: MTEB is a curated seed (re-curate via `scripts/ingest-mteb.ts`) and LiveBench ingestion is pending a licence.
-
-#### Alias matching
-
-A source's model name (e.g. "Claude 4.5 Haiku (Reasoning)") has to be mapped to a Bearing model slug (`claude-haiku-4.5`) before its scores count. This is now largely automatic:
-
-- During a **Re-fetch**, any source name that has a single, exact match to an active model is **aliased automatically** (shown as "auto-matched N" in the result). Matching is deliberately strict — anything ambiguous (a version or sibling-variant difference, like a `VL` or `mini` flag) is never auto-applied.
-- Whatever's left appears in the **Unmatched source models** list with **ranked suggestions**: the most likely slug is pre-selected, with a confidence badge (`exact` / `likely` / `maybe`) and quick-pick chips for the alternatives. Confirm with **Map**, or override from the dropdown.
-
-Re-fetching is safe to repeat — each source ingests its whole cohort and upserts idempotently, so re-running the same day overwrites rather than duplicates. **Artificial Analysis** needs `ARTIFICIAL_ANALYSIS_API_KEY` set in the environment; without it the button returns a clear error rather than failing silently.
-
-### Syncing pricing
-
-Click **Sync Pricing** on the Discover tab to update pricing for all models from OpenRouter's latest data. You'll see a summary of how many models were updated.
+These signals can contribute to recommendation confidence and evidence summaries. They do not currently rewrite production rankings automatically; that requires enough support and calibration first.
 
 ## Privacy
 
-Bearing does not store your task descriptions or comparison prompts. What we store:
+Bearing is designed to learn from structured evidence without retaining raw work by default.
 
-- A hash of your description (for deduplication, not reversible)
-- Classified task attributes (type, complexity, input length)
-- Your priority ranking
-- Which model you chose and at what rank
-- Your outcome feedback (if you give it)
-- Your comparison preferences (if you compare models)
+Depending on the feature, persistence can include:
 
-For sign-in, we store your email address and your password — never in plain text, only as a securely hashed value that can't be reversed back into your actual password. Nothing else about you.
+- structured task attributes;
+- task ownership;
+- recommendation ranks and factor scores;
+- model selections;
+- outcome categories;
+- pairwise preferences;
+- hashes of prompts and responses rather than their text.
+
+Raw task descriptions are not retained simply to power My bearings.
+
+## Understanding the methodology
+
+For the product and architecture model, see [How Bearing works](how-bearing-works.md).
+
+For detailed scoring, benchmark, transparency and sustainability methodology, see [How we rate models](model-ratings.md).
+
+The important distinction is:
+
+- **ranking score** orders candidates;
+- **recommendation confidence** describes the strength of the evidence behind that ordering;
+- neither is a probability that an answer will be correct.
+
+## Admin and maintenance
+
+Administrators have additional tools for maintaining the registry and evidence system, including:
+
+- adding, editing and deactivating models;
+- managing provider and OpenRouter identifiers;
+- reviewing catalogue drift before applying changes;
+- checking freshness;
+- running catalogue, EcoLogits and routability maintenance;
+- inspecting benchmark aliases and ingestion;
+- reviewing usage and outcome aggregates.
+
+Model freshness and operational routability are deliberately kept separate from task-quality scoring so maintenance events do not silently become claims about model capability.
