@@ -5,16 +5,18 @@ import { createHash } from 'crypto'
 import { getCurrentUser } from '@/lib/auth'
 import {
   createComparison,
-  createTask,
-  getAllModelsFromDb,
   getComparison,
-  getModelFromDb,
-  getOpenRouterId,
   getUserComparisonCount,
   incrementUserComparisons,
-  isUserAdmin,
   updateComparisonPreference,
   updateComparisonPrompt,
+} from '@/db/comparisons'
+import {
+  createTask,
+  getAllModelsFromDb,
+  getModelFromDb,
+  getOpenRouterId,
+  isUserAdmin,
 } from '@/lib/db'
 import { filterPrompt } from '@/lib/content-filter'
 import { extractText, validateFile } from '@/lib/file-parser'
