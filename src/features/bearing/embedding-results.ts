@@ -1,4 +1,4 @@
-import { getTask } from '@/lib/db'
+import { getTask } from '@/db/tasks'
 import { getLatestBenchmarkScores } from '@/lib/benchmarks'
 import { scoreModelsDetailed } from '@/lib/scoring'
 import type { Factor } from '@/lib/registry'
