@@ -237,7 +237,7 @@ export function getDefaultWeights(): Record<Factor, number> {
 /** Try DB first, fall back to static JSON if DB unavailable. */
 export async function getAllModelsLive(): Promise<Model[]> {
   try {
-    const { getAllModelsFromDb } = await import('./db')
+    const { getAllModelsFromDb } = await import('@/db/models')
     return await getAllModelsFromDb()
   } catch {
     // DB unavailable (local dev, build time) — use static JSON
@@ -249,7 +249,7 @@ export async function getAllModelsLive(): Promise<Model[]> {
  *  fall back to static JSON. */
 export async function getModelLive(slug: string): Promise<Model | undefined> {
   try {
-    const { getModelForAdmin } = await import('./db')
+    const { getModelForAdmin } = await import('@/db/models')
     const fromDb = await getModelForAdmin(slug)
     // Drafts (active = false) shouldn't be publicly viewable.
     if (fromDb?.active) {
