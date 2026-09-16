@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { isRedirectError } from 'next/dist/client/components/redirect-error'
 
-import { updateTaskPriorities } from '@/lib/db'
+import { updateTaskPriorities } from '@/db/tasks'
 import type { Factor } from '@/lib/registry'
 
 export async function submitPriorities(

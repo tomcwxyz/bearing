@@ -32,6 +32,8 @@ export interface CreateOwnedTaskInput {
   pipelineStages?: object[] | null
 }
 
+export type TaskParams = Omit<CreateOwnedTaskInput, 'userId'>
+
 export interface OwnedTaskSummary {
   id: string
   createdAt: string
@@ -179,6 +181,31 @@ export async function createTaskWithOwner(input: CreateOwnedTaskInput): Promise<
     RETURNING id
   `
   return rows[0].id as string
+}
+
+/** Create an anonymous task through the canonical task repository. */
+export async function createTask(input: TaskParams): Promise<string> {
+  return createTaskWithOwner(input)
+}
+
+/** Fetch a single task by ID. Returns undefined if not found. */
+export async function getTask(taskId: string) {
+  const rows = await getDb()`SELECT * FROM tasks WHERE id = ${taskId}`
+  return rows[0] ?? undefined
+}
+
+/** Persist a user-adjusted priority order and any explicitly excluded factors. */
+export async function updateTaskPriorities(
+  taskId: string,
+  priorityOrder: string[],
+  excludedFactors: string[] = [],
+): Promise<void> {
+  await getDb()`
+    UPDATE tasks
+    SET priority_order = ${JSON.stringify(priorityOrder)},
+        excluded_factors = ${excludedFactors.length > 0 ? JSON.stringify(excludedFactors) : null}
+    WHERE id = ${taskId}
+  `
 }
 
 /** Persist a re-classification after a clarification round. */

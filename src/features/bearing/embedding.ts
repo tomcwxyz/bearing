@@ -1,7 +1,8 @@
 import { getLatestBenchmarkScores } from '@/lib/benchmarks'
 import { nudgePriorityOrder } from '@/lib/bearing-policy'
 import { scoreModelsDetailed } from '@/lib/scoring'
-import { saveRecommendations, updateTaskPriorities } from '@/lib/db'
+import { saveRecommendations } from '@/db/recommendations'
+import { updateTaskPriorities } from '@/db/tasks'
 import type { Classification } from '@/lib/classification'
 import type { Factor } from '@/lib/registry'
 

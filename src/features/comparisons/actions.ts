@@ -16,8 +16,8 @@ import {
   getModelFromDb,
   getOpenRouterId,
 } from '@/db/models'
+import { createTask } from '@/db/tasks'
 import { isUserAdmin } from '@/db/users'
-import { createTask } from '@/lib/db'
 import { filterPrompt } from '@/lib/content-filter'
 import { extractText, validateFile } from '@/lib/file-parser'
 import { callDirectProvider, callModel, DIRECT_PROVIDERS } from '@/lib/openrouter'
