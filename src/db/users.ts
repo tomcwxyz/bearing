@@ -28,6 +28,12 @@ export async function getUserByEmail(email: string): Promise<UserAuthRow | null>
   }
 }
 
+/** Check whether a user has admin privileges. */
+export async function isUserAdmin(userId: string): Promise<boolean> {
+  const rows = await getDb()`SELECT is_admin FROM users WHERE id = ${userId}`
+  return rows.length > 0 && rows[0].is_admin === true
+}
+
 /** Create a self-serve user with a password already set. */
 export async function createUserWithPassword(email: string, passwordHash: string): Promise<string> {
   const rows = await getDb()`
