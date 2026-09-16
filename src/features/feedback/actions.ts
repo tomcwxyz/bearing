@@ -1,6 +1,6 @@
 'use server'
 
-import { saveOutcome, saveSelection } from '@/lib/db'
+import { saveOutcome, saveSelection } from '@/db/feedback'
 
 export async function selectModel(taskId: string, modelSlug: string, rank: number) {
   try {
