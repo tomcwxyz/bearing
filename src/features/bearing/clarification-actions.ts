@@ -2,8 +2,7 @@
 
 import { classifyTask, type ClarificationAnswer } from '@/lib/classification'
 import { getCurrentUser } from '@/lib/auth'
-import { getTask } from '@/lib/db'
-import { updateTaskClassification } from '@/db/tasks'
+import { getTask, updateTaskClassification } from '@/db/tasks'
 import { getEffectiveBearingPreferenceFactors } from './preferences'
 import { prepareSingleStageEmbedding } from './embedding'
 import type { Factor } from '@/lib/registry'
