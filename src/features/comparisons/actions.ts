@@ -12,12 +12,12 @@ import {
   updateComparisonPrompt,
 } from '@/db/comparisons'
 import {
-  createTask,
   getAllModelsFromDb,
   getModelFromDb,
   getOpenRouterId,
-  isUserAdmin,
-} from '@/lib/db'
+} from '@/db/models'
+import { isUserAdmin } from '@/db/users'
+import { createTask } from '@/lib/db'
 import { filterPrompt } from '@/lib/content-filter'
 import { extractText, validateFile } from '@/lib/file-parser'
 import { callDirectProvider, callModel, DIRECT_PROVIDERS } from '@/lib/openrouter'

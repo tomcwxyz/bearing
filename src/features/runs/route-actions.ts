@@ -9,13 +9,10 @@ import {
   getRoutedRunCountToday,
   setRoutedRunPreference,
 } from '@/db/runs'
+import { getModelFromDb, getOpenRouterIdsBySlug } from '@/db/models'
+import { isUserAdmin } from '@/db/users'
 import { getCurrentUser } from '@/lib/auth'
-import {
-  getModelFromDb,
-  getOpenRouterIdsBySlug,
-  getTask,
-  isUserAdmin,
-} from '@/lib/db'
+import { getTask } from '@/lib/db'
 import { getLatestBenchmarkScores } from '@/lib/benchmarks'
 import { filterPrompt } from '@/lib/content-filter'
 import { extractText, validateFile } from '@/lib/file-parser'
