@@ -19,6 +19,7 @@ theme:
 nav:
   - Home: index.md
   - User Guide: user-guide.md
+  - How Bearing Works: how-bearing-works.md
   - How We Rate Models: model-ratings.md
   - Changelog: changelog.md
 extra_css:

@@ -1,13 +1,13 @@
 # Bearing 1.0 — reorientation roadmap
 
-**Status:** alpha foundations complete; beta continuity/calibration substantially landed  
+**Status:** core 1.0 product architecture substantially complete; remaining work is calibration, operational evidence and methodology truth  
 **Started:** 2026-09-13  
 **Last reviewed:** 2026-09-16  
 **Theme:** Infer → recommend → run → challenge → learn
 
 ## Product direction
 
-Bearing is no longer primarily a model-scoring website. It is becoming a decision and evaluation layer for AI work:
+Bearing is a decision and evaluation layer for AI work, not primarily a model-scoring website.
 
 > Tell Bearing what you are trying to do. Bearing takes a bearing, recommends the right route, lets you run it, tests uncertainty when useful, and learns from what actually worked.
 
@@ -21,18 +21,19 @@ The default journey is:
 6. **Challenge uncertainty when useful.**
 7. **Learn from human preference and outcomes.**
 
-Advanced users can still inspect and adjust priorities, evidence, exclusions and methodology. The machinery should support the decision rather than become the interface.
+Advanced users can inspect and adjust priorities, evidence, exclusions and methodology. The machinery should support the decision rather than become the interface.
 
 ## Product principles
 
 1. **Recommendation before configuration.** A useful default judgement should not require manual factor sorting.
-2. **A bearing is a reasoned route, not a percentage.** Weighted scores are internal ranking machinery, not calibrated probabilities.
+2. **A bearing is a reasoned route, not a percentage.** Weighted scores are ranking machinery, not calibrated probabilities.
 3. **Execution closes the loop.** A recommendation is more useful when Bearing can test it on the real task.
-4. **Uncertainty should trigger an experiment.** Trio and Challenger should teach us something rather than simply offer more buttons.
+4. **Uncertainty should trigger an experiment.** Trio and Challenger should teach us something rather than merely offer more buttons.
 5. **Freshness is part of correctness.** Availability, price, capability and endpoint data change continuously.
 6. **Outcome evidence should gradually replace editorial assumptions.** Curated scores bootstrap the system; they are not the final authority.
 7. **Privacy remains structural.** Learning should use structured task attributes and hashes rather than retaining raw prompts by default.
 8. **Operational evidence is not capability evidence.** A provider outage or missing endpoint must never become a claim that a model is intrinsically poor.
+9. **One decision engine.** Recommendation, validation, execution and future API/library surfaces should reuse the same task-to-scoring logic.
 
 ---
 
@@ -55,13 +56,7 @@ Advanced users can still inspect and adjust priorities, evidence, exclusions and
 
 ## P0.3 Freshness as first-class data — substantially complete
 
-Model freshness includes:
-
-- `last_verified_at`
-- `verification_status`
-- `verification_source`
-- `verification_note`
-- runtime routability observations in `model_routability`
+Model freshness includes catalogue verification and separate runtime routability observations.
 
 Live capabilities include provider/OpenRouter catalogue verification, reviewed field-level catalogue drift, admin freshness reporting, manual maintenance/recovery controls, daily runtime canaries and weekly catalogue/EcoLogits maintenance.
 
@@ -76,29 +71,48 @@ The first authenticated production runtime canary completed successfully on **20
 
 The production cron is **05:00 UTC daily**. `CRON_SECRET` is configured and verified end-to-end.
 
-Routability remains **observational**. A routing guard requires at least two consecutive recent explicit `unavailable` observations; degraded, stale, malformed or single observations do not qualify. The guard is not yet wired into live recommendation/execution filtering.
+A conservative routing guard exists and is tested:
+
+- status must be explicit `unavailable`;
+- at least two consecutive failures are required;
+- evidence must be recent within 24 hours;
+- degraded, stale, malformed, future-dated or single observations do not block.
+
+Routability remains **observational in production** while repeated unattended evidence is collected. Operational state remains separate from capability/quality scoring.
 
 See `docs/operations/2026-09-16-routability-baseline.md`.
 
 ## P0.4 CI as a merge gate — workflow complete, repository enforcement pending
 
-CI runs typecheck, lint, tests, golden ranking evaluation and production build. Recent implementation PRs are merged only after the full job is green.
+CI runs:
+
+- typecheck;
+- lint;
+- tests;
+- golden ranking evaluation;
+- production build.
+
+Implementation PRs are merged only after the full gate is green.
 
 Repository branch protection still needs to require CI technically rather than relying on convention. The current GitHub integration cannot administer branch protection.
 
-## P0.5 Documentation truth — substantially complete
+## P0.5 Documentation truth — current refresh complete
 
-Completed:
+The live MkDocs documentation now reflects:
 
-- production `CRON_SECRET` requirement;
-- first routability baseline;
-- current product/auth/architecture README;
-- canonical roadmap refresh.
+- automatic bearing;
+- no match percentages;
+- meaningful alternatives;
+- current Run, Trio and Challenger behaviour;
+- confidence versus ranking score;
+- freshness and routability;
+- benchmark rollout caution;
+- live classifier evaluation;
+- current feature/repository architecture.
 
-Remaining:
+A dedicated `How Bearing works` page exposes the architecture and evidence model publicly rather than leaving it only in the internal roadmap.
 
-- methodology freshness/evidence section;
-- remove any residual stale counts or monolith descriptions as they are found.
+Remaining documentation work is ongoing maintenance rather than a known large truth gap.
 
 ---
 
@@ -106,7 +120,9 @@ Remaining:
 
 ## P1.1 Recommendation-shaped results — complete
 
-The results surface prioritises **Best fit**, meaningful trade-off alternatives, concise reasoning, inspectable factor/evidence detail and **Run it** as the main next action. Alternatives are selected for useful differences rather than simply ranks 2 and 3.
+The results surface prioritises **Best fit**, meaningful trade-off alternatives, concise reasoning, inspectable factor/evidence detail and **Run it** as the main next action.
+
+Alternatives are selected for useful differences rather than simply ranks two and three.
 
 ## P1.2 Task-relative capability scoring — complete
 
@@ -114,7 +130,7 @@ The results surface prioritises **Best fit**, meaningful trade-off alternatives,
 - Relevant optional capabilities receive limited contextual value.
 - Unrelated capability breadth is neutral.
 
-## P1.3 Benchmark disagreement — complete for the current architecture
+## P1.3 Benchmark disagreement — complete for current architecture
 
 - Curated/benchmark disagreement is explicit uncertainty rather than a hidden discard rule.
 - Evidence breadth and recency taper benchmark influence when blending is enabled.
@@ -133,7 +149,9 @@ Outcome support can affect displayed recommendation confidence but does **not** 
 
 ## P1.5 Information-seeking Trio — complete
 
-Trio keeps the chosen recommendation anchor and selects alternatives for information value, including provider diversity, cost/profile trade-offs, local versus hosted execution, sparse human outcome evidence and benchmark uncertainty. Selection rationale and original recommendation rank are persisted separately.
+Trio keeps the chosen recommendation anchor and selects alternatives for information value, including provider diversity, cost/profile trade-offs, local versus hosted execution, sparse human outcome evidence and benchmark uncertainty.
+
+Selection rationale and original recommendation rank are persisted separately.
 
 ## P1.6 Contextual Challenger — complete
 
@@ -165,9 +183,11 @@ A single Route run records the selected model's **original recommendation rank**
 
 # P1 — architecture
 
-## P1.10 Break up `src/app/actions.ts` — substantially landed
+## P1.10 Feature action architecture — complete
 
-The active product is organised increasingly by capability:
+The legacy `src/app/actions.ts` monolith has been removed completely.
+
+The active product is organised by capability under:
 
 ```text
 src/features/
@@ -180,57 +200,54 @@ src/features/
   validation/
 ```
 
-Completed active-path extractions include task submission/ownership/clarification, recommendation results, validation, embeddings, Route/Trio/Challenger, routed preference capture, comparisons, account/password auth and recommendation feedback.
+Recommendation results, validation, embeddings, Route/Trio/Challenger, comparisons, feedback and authentication all use feature-owned boundaries. The former monolith was deleted only after CI proved there were no remaining typed callers.
 
-The Run surface, direct Compare and task-based Compare use the extracted auth feature. Task-based Compare uses the shared recommendation service rather than legacy `getResults`.
+## P1.11 Database access by aggregate — complete for the current application
 
-### Remaining action-monolith work
+The legacy `src/lib/db.ts` monolith has been removed completely.
 
-- verify remaining `src/app/actions.ts` callers directly;
-- remove confirmed-dead legacy implementations and imports in small CI-gated PRs;
-- keep server actions thin and reusable business logic in services.
-
-The next step is **deletion and dependency verification**, not creating another parallel layer.
-
-## P1.11 Split database access by aggregate — substantially landed
-
-Dedicated persistence modules now cover:
+Persistence now lives in explicit repository modules under `src/db/`, including:
 
 - tasks;
+- models/catalogue;
+- users/auth-related access;
 - comparisons;
-- recommendation feedback/selections/outcomes;
-- recommendation writes, including local recommendations;
-- routed runs for Route, Trio and Challenger;
+- feedback/selections/outcomes;
+- recommendations and local recommendations;
+- routed runs;
 - catalogue verification and drift;
 - routability;
+- model/provider mappings;
 - routed-selection rationale;
 - outcome evidence;
 - preference settings;
 - benchmark evidence.
 
-The main active feature paths for comparisons, feedback, recommendations and runs no longer use `lib/db.ts` for their owned persistence.
-
-Remaining aggregate work is principally model/catalogue reads, users/auth/admin persistence and safe deletion of duplicated legacy exports. UI/server-action modules should not accumulate direct SQL.
+The deletion was used as a dependency test: all public product paths, scripts and the admin surface were migrated before the full CI gate passed with `src/lib/db.ts` absent.
 
 ## P1.12 Runtime classifier validation — complete
 
 Classifier output is validated against the canonical runtime shape before it becomes application state. TypeScript types and runtime expectations no longer silently diverge.
 
+The classifier also has one validation-triggered repair attempt for malformed structured output. The strict runtime validator remains authoritative.
+
 ---
 
 # P2 — evaluation system
 
-## P2.1 Golden task corpus and live classifier evaluation — harness complete, baseline pending
+## P2.1 Golden task corpus and live classifier evaluation — first baseline captured
 
 The versioned golden corpus covers ranking and task-shape regressions. CI uses it as a deterministic guard.
 
-A non-blocking live semantic classifier evaluation harness is now implemented through:
+A non-blocking live semantic classifier evaluation harness is implemented through:
 
 ```bash
 npm run eval:classifier
 ```
 
-It reuses the production classifier and the synthetic golden task descriptions, plus focused ambiguity and multi-stage pipeline probes. It reports:
+It reuses the production classifier and synthetic golden task descriptions plus focused ambiguity and multi-stage pipeline probes.
+
+It reports:
 
 - overall checked-field accuracy;
 - task-type accuracy;
@@ -239,9 +256,34 @@ It reuses the production classifier and the synthetic golden task descriptions, 
 - provider/call failures separately;
 - average classifier-reported confidence separately from measured accuracy.
 
-Live evaluation requires `ANTHROPIC_API_KEY` and is intentionally **not a CI merge gate** yet. Optional regression thresholds exist for controlled environments after a useful baseline has been established.
+### First production baseline — 16 September 2026
 
-Next: run and retain repeated live baselines, inspect disagreements case-by-case, and only then decide whether any metric is stable enough to gate changes.
+The first protected production run covered 28 cases:
+
+- 26 completed;
+- 2 failed structured calls;
+- 362 checked fields;
+- 292 passed fields;
+- field accuracy: **80.7%**;
+- task-type accuracy: **83.3%**;
+- clarification accuracy: **96.2%**;
+- average model-reported confidence: **0.84**.
+
+The two pipeline failures were isolated with a focused production diagnostic:
+
+- `pipeline-invoices-to-report` passed with a three-stage pipeline;
+- `pipeline-research-to-comms` failed because the model returned an invalid non-canonical top-level `task_type`.
+
+The classifier was then tightened with an explicit rule that pipeline tasks must still return one canonical top-level task type describing the final user-facing deliverable, plus one schema-repair retry only when validation fails.
+
+The baseline is **evidence for review, not a release threshold**. Field mismatches need case-by-case inspection because some may indicate a questionable golden expectation rather than a classifier defect.
+
+### Next classifier work
+
+- retain repeated production baselines;
+- add useful latency/cost visibility where it improves diagnosis;
+- review disagreement by field and task family;
+- only define gating thresholds after repeated evidence shows a metric is stable and meaningful.
 
 ## P2.2 Shadow ranking evaluation — complete
 
@@ -249,7 +291,9 @@ Candidate ranking changes can be replayed against the approved baseline and repo
 
 ## P2.3 Recommendation confidence — complete for current evidence sources
 
-Confidence incorporates classification confidence, top-two separation, catalogue freshness, curated/benchmark disagreement and supported human outcome evidence. Confidence describes evidence strength, not answer correctness probability.
+Confidence incorporates classification confidence, top-two separation, catalogue freshness, curated/benchmark disagreement and supported human outcome evidence.
+
+Confidence describes evidence strength, not answer correctness probability.
 
 ---
 
@@ -257,7 +301,11 @@ Confidence incorporates classification confidence, top-two separation, catalogue
 
 ## P2.4 Provider/catalogue adapters — substantially complete
 
-Implemented sources include OpenRouter, OpenAI, Anthropic, Google and Mistral. Provider-primary evidence is preferred for canonical model status/capability where available; OpenRouter remains useful for routing availability. Add direct-provider adapters when they materially improve coverage.
+Implemented sources include OpenRouter, OpenAI, Anthropic, Google and Mistral.
+
+Provider-primary evidence is preferred for canonical model status/capability where available; OpenRouter remains useful for routing availability.
+
+Add direct-provider adapters when they materially improve coverage rather than simply increasing connector count.
 
 ## P2.5 Scheduled verification — live
 
@@ -271,7 +319,7 @@ Current operating cadence:
 
 ### Before enabling hard routability suppression
 
-- confirm repeated unattended production runs;
+- confirm multiple unattended production runs;
 - investigate repeated explicit 404s against current endpoint/catalogue evidence;
 - only suppress recent, repeated `unavailable` observations;
 - never suppress from `degraded` observations;
@@ -282,7 +330,9 @@ Current operating cadence:
 
 # P3 — Bearing as a reusable decision layer
 
-Once the product loop and evidence model are stable, expose the same decision engine through an API/library so other tools can call something like:
+The application architecture is now ready for this to become a real next-phase design task.
+
+The goal is to expose the same decision engine through an API/library so another product can call something like:
 
 ```ts
 const bearing = await takeBearing({ task, constraints, preferences })
@@ -302,6 +352,8 @@ and receive a transport-independent result such as:
 ```
 
 This must reuse the same services as the web application rather than create a second recommendation implementation.
+
+Before freezing that contract, the web product and evidence model need enough operational/calibration evidence to show which fields are genuinely stable.
 
 ---
 
@@ -331,8 +383,7 @@ This must reuse the same services as the web application rather than create a se
 - [x] first production routability baseline recorded;
 - [x] conservative repeated-failure guard implemented and tested;
 - [ ] verify multiple unattended daily canaries;
-- [ ] decide when/if routability should become a live execution filter;
-- [ ] finish methodology freshness/evidence cleanup.
+- [ ] decide when/if routability should become a live execution filter.
 
 ## 1.0-alpha.3 — challenge and learn — complete
 
@@ -344,7 +395,7 @@ This must reuse the same services as the web application rather than create a se
 - [x] benchmark disagreement as uncertainty;
 - [x] evidence-weighted benchmark blend path behind rollout ceiling.
 
-## 1.0-beta — continuity and calibration — substantially landed
+## 1.0-beta — continuity, architecture and calibration — substantially complete
 
 - [x] optional task ownership;
 - [x] My bearings;
@@ -353,28 +404,28 @@ This must reuse the same services as the web application rather than create a se
 - [x] golden corpus;
 - [x] shadow ranking evaluation;
 - [x] outcome evidence displayed;
-- [x] active recommendation/run/compare/validation/feedback/auth boundaries extracted;
-- [x] comparison persistence repository;
-- [x] feedback persistence repository;
-- [x] recommendation persistence repository;
-- [x] routed-run persistence repository;
+- [x] feature action boundaries extracted;
+- [x] legacy `src/app/actions.ts` deleted;
+- [x] database access split by aggregate;
+- [x] legacy `src/lib/db.ts` deleted;
 - [x] non-blocking live semantic classifier evaluation harness;
-- [ ] collect and review live classifier baseline evidence;
-- [ ] delete confirmed-dead legacy action/DB implementations;
-- [ ] finish remaining model/user aggregate split;
-- [ ] decide whether real benchmark evidence justifies non-zero `BENCHMARK_BLEND` in production;
-- [ ] require CI through branch protection when permissions allow;
-- [ ] finish methodology truth cleanup.
+- [x] first protected production classifier baseline captured;
+- [x] pipeline classifier failure isolated and structured-output repair added;
+- [x] live documentation refreshed to current product truth;
+- [ ] collect and review repeated classifier evidence;
+- [ ] collect repeated unattended routability evidence;
+- [ ] decide whether evidence justifies non-zero `BENCHMARK_BLEND` in production;
+- [ ] decide whether evidence justifies live routability filtering;
+- [ ] require CI through branch protection when permissions allow.
 
 ---
 
 # Immediate next work
 
-1. **Observe routability; do not rush the gate.** Confirm unattended 05:00 UTC canaries and inspect whether `devstral` / `grok-4` repeat or recover.
-2. **Delete legacy duplication carefully.** Verify remaining `src/app/actions.ts` and `lib/db.ts` callers, then remove migrated implementations in small CI-gated PRs.
-3. **Finish the database split.** Move remaining model/catalogue reads and user/auth/admin persistence into clear aggregate repositories where this reduces active coupling.
-4. **Collect live classifier evidence.** Run `npm run eval:classifier` in an environment with `ANTHROPIC_API_KEY`, retain the baseline and inspect disagreement rather than setting thresholds immediately.
-5. **Finish methodology documentation.** Document freshness, operational evidence, classifier evaluation and the distinction between ranking score, evidence confidence and correctness probability.
-6. **Review benchmark rollout evidence.** Keep `BENCHMARK_BLEND` at zero until shadow/live evidence supports a change.
-7. **Require CI in branch protection** when repository permissions allow it.
-8. **Prepare the reusable decision-layer boundary** only after the web product and evidence loop have enough operational evidence to freeze a stable contract.
+1. **Observe routability; do not rush the gate.** Confirm unattended 05:00 UTC canaries and inspect whether repeated unavailable models remain genuine provider/mapping failures or recover.
+2. **Collect repeated classifier evidence.** Retain production baselines, inspect disagreement by case, and avoid inventing thresholds from one run.
+3. **Review benchmark rollout evidence.** Keep `BENCHMARK_BLEND` at zero until shadow/live evidence supports a change.
+4. **Decide when operational evidence is strong enough to affect execution.** If routability becomes a live filter, keep the existing conservative repeated-failure/recovery policy.
+5. **Prepare the reusable decision-layer contract.** Define a stable transport-independent `takeBearing` interface using the existing services rather than duplicating decision logic.
+6. **Require CI in branch protection** when repository permissions allow it.
+7. **Keep the live docs current as product behaviour changes.** Documentation truth is now part of the release discipline rather than a catch-up task.
