@@ -11,7 +11,7 @@ import {
   getUserByEmail,
   getUserEmailById,
   setUserPasswordHash,
-} from '@/lib/db'
+} from '@/db/users'
 import { hashPassword } from '@/lib/password'
 import { consumeResetToken, generateResetToken } from '@/lib/tokens'
 
