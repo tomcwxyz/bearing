@@ -32,6 +32,12 @@ export function buildClassificationMessages(
       userMessage += `- ${clarification.question}: ${clarification.answer}\n`
     }
   }
+
+  userMessage += [
+    '',
+    'Important schema rule: even when pipeline_recommended is true, the top-level task_type must still be exactly one canonical task type and should describe the final user-facing deliverable. Never use "pipeline", a compound type, or a new task type.',
+  ].join('\n')
+
   return { system, userMessage }
 }
 
@@ -43,13 +49,11 @@ export function parseClassificationResponse(raw: string): Classification {
   return validateClassification(JSON.parse(cleaned) as unknown)
 }
 
-export async function classifyTask(
-  description: string,
-  clarifications?: ClarificationAnswer[],
-): Promise<Classification> {
-  const client = new Anthropic()
-  const { system, userMessage } = buildClassificationMessages(description, clarifications)
-
+async function requestToolInput(
+  client: Anthropic,
+  system: string,
+  userMessage: string,
+): Promise<unknown> {
   const response = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 1024,
@@ -64,5 +68,33 @@ export async function classifyTask(
     throw new Error('Classifier did not return a tool_use block')
   }
 
-  return validateClassification(toolUse.input)
+  return toolUse.input
+}
+
+export async function classifyTask(
+  description: string,
+  clarifications?: ClarificationAnswer[],
+): Promise<Classification> {
+  const client = new Anthropic()
+  const { system, userMessage } = buildClassificationMessages(description, clarifications)
+
+  // API/network failures are allowed to propagate normally. The repair attempt
+  // is only for a response that arrived but violated Bearing's runtime schema.
+  const firstInput = await requestToolInput(client, system, userMessage)
+
+  try {
+    return validateClassification(firstInput)
+  } catch (error) {
+    const validationMessage = error instanceof Error ? error.message : 'structured output was invalid'
+    const repairMessage = [
+      userMessage,
+      '',
+      `Your previous structured output failed Bearing's runtime validation: ${validationMessage}.`,
+      'Return the classification again using only the allowed schema values. Do not explain the correction.',
+      'For pipeline tasks in particular, keep top-level task_type canonical and put stage-specific task types only inside pipeline_stages.',
+    ].join('\n')
+
+    const repairedInput = await requestToolInput(client, system, repairMessage)
+    return validateClassification(repairedInput)
+  }
 }
