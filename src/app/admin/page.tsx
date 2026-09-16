@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
-import { isUserAdmin, getAllModelsForAdmin, getOpenRouterIds } from '@/lib/db'
+import { getAllModelsForAdmin, getOpenRouterIds } from '@/db/models'
+import { isUserAdmin } from '@/db/users'
 import { getModelVerificationSummaries } from '@/db/model-verification'
 import { getRoutabilitySummaries } from '@/db/model-routability'
 import {
