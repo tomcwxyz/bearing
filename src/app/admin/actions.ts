@@ -4,7 +4,17 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import Anthropic from '@anthropic-ai/sdk'
 import { getCurrentUser } from '@/lib/auth'
-import { isUserAdmin, getAllModelsFromDb, getAllModelsForAdmin, getModelForAdmin, upsertModel, deactivateModel, updateModelPricing, getOpenRouterIds, type AdminModel } from '@/lib/db'
+import {
+  getAllModelsFromDb,
+  getAllModelsForAdmin,
+  getModelForAdmin,
+  upsertModel,
+  deactivateModel,
+  updateModelPricing,
+  getOpenRouterIds,
+  type AdminModel,
+} from '@/db/models'
+import { isUserAdmin } from '@/db/users'
 import { fetchOpenRouterModels, convertPricing, inferCapabilities, extractProvider, type OpenRouterModel } from '@/lib/openrouter'
 import {
   getBenchmarkSummary, getUnmatchedSourceModels, listAliases, upsertAlias, deleteAlias,
