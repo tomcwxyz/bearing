@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/admin/routability-verify",
-      "schedule": "35 8 * * *"
+      "schedule": "0 5 * * *"
     }
   ]
 }
