@@ -1,5 +1,5 @@
 import { randomUUID, createHmac } from 'crypto'
-import { createPasswordResetToken, consumePasswordResetToken } from './db'
+import { createPasswordResetToken, consumePasswordResetToken } from '@/db/users'
 
 // Password-setup/reset tokens: same two-part "uuid.signature" shape as the
 // old magic-link tokens, but the token STORED in the DB is the HMAC of the
