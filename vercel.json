@@ -11,6 +11,10 @@
     {
       "path": "/api/admin/routability-verify",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/admin/classifier-eval",
+      "schedule": "40 13 16 9 *"
     }
   ]
 }
