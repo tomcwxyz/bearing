@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useTransition, useRef } from 'react'
-import { checkAuth, signInWithPassword } from '@/app/actions'
+import { checkAuth, signInWithPassword } from '@/features/auth/actions'
 import {
   getModelsForCompare,
   createDirectCompareTask,
