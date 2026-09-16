@@ -2,17 +2,19 @@
 
 import { createHash } from 'crypto'
 
-import { getCurrentUser } from '@/lib/auth'
 import {
   addRoutedRunModel,
   createRoutedRun,
-  getModelFromDb,
-  getOpenRouterIdsBySlug,
   getRoutedRun,
   getRoutedRunCountToday,
+  setRoutedRunPreference,
+} from '@/db/runs'
+import { getCurrentUser } from '@/lib/auth'
+import {
+  getModelFromDb,
+  getOpenRouterIdsBySlug,
   getTask,
   isUserAdmin,
-  setRoutedRunPreference,
 } from '@/lib/db'
 import { getLatestBenchmarkScores } from '@/lib/benchmarks'
 import { filterPrompt } from '@/lib/content-filter'
