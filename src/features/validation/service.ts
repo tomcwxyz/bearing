@@ -1,5 +1,5 @@
 import { getLatestBenchmarkScores } from '@/lib/benchmarks'
-import { getTask } from '@/lib/db'
+import { getTask } from '@/db/tasks'
 import type { ScoredModel } from '@/lib/scoring'
 import { scoreModels } from '@/lib/scoring'
 import { scoringInputFromTask } from '@/features/recommendations/scoring-input'
