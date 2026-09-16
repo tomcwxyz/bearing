@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { isRedirectError } from 'next/dist/client/components/redirect-error'
 
 import { classifyTask } from '@/lib/classification'
-import { createTask, updateTaskPriorities } from '@/lib/db'
+import { createTask, updateTaskPriorities } from '@/db/tasks'
 import type { Factor } from '@/lib/registry'
 
 const VALIDATION_PRIORITY_ORDER: Factor[] = [

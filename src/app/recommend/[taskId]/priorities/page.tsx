@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getTask, updateTaskPriorities } from '@/lib/db'
+import { getTask, updateTaskPriorities } from '@/db/tasks'
 import { getCurrentUser } from '@/lib/auth'
 import { deriveBearingPriorities } from '@/lib/bearing-policy'
 import { getEffectiveBearingPreferenceFactors } from '@/features/bearing/preferences'

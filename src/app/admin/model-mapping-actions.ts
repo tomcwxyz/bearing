@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
-import { isUserAdmin } from '@/lib/db'
+import { isUserAdmin } from '@/db/users'
 import {
   getModelExternalIds,
   saveModelExternalIds,

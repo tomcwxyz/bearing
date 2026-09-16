@@ -1,7 +1,7 @@
 'use server'
 
 import { getCurrentUser } from '@/lib/auth'
-import { isUserAdmin } from '@/lib/db'
+import { isUserAdmin } from '@/db/users'
 import { runCatalogueVerification, type CatalogueVerificationRunReport } from '@/lib/verify-catalogue'
 
 async function requireAdmin(): Promise<void> {

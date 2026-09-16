@@ -1,7 +1,7 @@
 'use server'
 
 import { getCurrentUser } from '@/lib/auth'
-import { isUserAdmin } from '@/lib/db'
+import { isUserAdmin } from '@/db/users'
 import { getRoutabilitySummaries, type RoutabilitySummary } from '@/db/model-routability'
 import { runRoutabilityCanary } from '@/lib/routability-canary'
 import { runCatalogueVerification } from '@/lib/verify-catalogue'

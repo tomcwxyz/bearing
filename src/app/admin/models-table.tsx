@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import type { AdminModel } from '@/lib/db'
+import type { AdminModel } from '@/db/models'
 import type { ModelVerificationSummary } from '@/db/model-verification'
 import { assessModelFreshness, freshnessLabel } from '@/lib/model-freshness'
 import { verifyCatalogueAdmin } from './freshness-actions'
