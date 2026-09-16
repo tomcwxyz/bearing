@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { getCurrentUser } from '@/lib/auth'
-import { isUserAdmin } from '@/lib/db'
+import { isUserAdmin } from '@/db/users'
 import { applyCatalogueDriftPatch } from '@/db/catalogue-drift'
 import {
   buildCatalogueDriftPatch,
@@ -56,8 +56,6 @@ export async function acceptCatalogueDriftAdmin(formData: FormData): Promise<voi
   const patch = buildCatalogueDriftPatch(current.model, current.item, acceptedFields)
   await applyCatalogueDriftPatch(slug, patch)
 
-  // A failed re-check must not undo the accepted metadata. The DB helper has
-  // already reset freshness to unknown, which is the safe degraded state.
   await runCatalogueVerification().catch(() => null)
 
   revalidatePath('/admin')
