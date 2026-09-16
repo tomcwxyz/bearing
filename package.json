@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "eval:ranking": "tsx scripts/evaluate-ranking.ts",
     "eval:ranking:update": "tsx scripts/evaluate-ranking.ts --write-baseline",
+    "eval:classifier": "tsx scripts/evaluate-classifier.ts",
     "db:seed": "tsx scripts/seed-models.ts",
     "db:generate": "tsx scripts/generate-registry.ts",
     "prebuild": "tsx scripts/generate-registry.ts"
