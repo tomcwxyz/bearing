@@ -1,5 +1,10 @@
 import { neon } from '@neondatabase/serverless'
 
+import {
+  ROUTABILITY_BLOCK_WINDOW_HOURS,
+  ROUTABILITY_MIN_CONSECUTIVE_FAILURES,
+} from '@/lib/routability-policy'
+
 export type RoutabilityStatus = 'unknown' | 'healthy' | 'degraded' | 'unavailable'
 
 export interface RoutabilityCandidate {
@@ -19,8 +24,6 @@ export interface RoutabilityObservation {
 export interface RoutabilitySummary extends RoutabilityObservation {
   consecutiveFailures: number
 }
-
-const ROUTABILITY_BLOCK_WINDOW_HOURS = 24
 
 function getDb() {
   const url = process.env.NEON_DATABASE_URL
@@ -122,9 +125,11 @@ export async function getRoutabilitySummaries(): Promise<RoutabilitySummary[]> {
 }
 
 /**
- * Only explicit, recently-confirmed model unavailability blocks auto-routing.
- * Degraded observations (rate limits, 5xx, auth/config/network failures) never
- * suppress a model because they do not establish that the model itself is gone.
+ * Only repeated, explicit and recently-confirmed model unavailability can block
+ * auto-routing. Degraded observations (rate limits, 5xx, auth/config/network
+ * failures) never suppress a model because they do not establish that the
+ * model itself is gone. This helper remains fail-open if persistence is
+ * unavailable.
  */
 export async function getRecentlyUnavailableModelSlugs(): Promise<Set<string>> {
   try {
@@ -132,6 +137,7 @@ export async function getRecentlyUnavailableModelSlugs(): Promise<Set<string>> {
       SELECT model_slug
       FROM model_routability
       WHERE status = 'unavailable'
+        AND consecutive_failures >= ${ROUTABILITY_MIN_CONSECUTIVE_FAILURES}
         AND last_checked_at >= NOW() - (${ROUTABILITY_BLOCK_WINDOW_HOURS} * INTERVAL '1 hour')
     `
     return new Set(rows.map((row) => row.model_slug as string))
