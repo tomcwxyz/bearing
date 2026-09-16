@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition, useRef, use } from 'react'
 import Link from 'next/link'
-import { checkAuth } from '@/app/actions'
+import { checkAuth } from '@/features/auth/actions'
 import {
   getComparisonRecommendations,
   startComparison,
@@ -186,9 +186,12 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
           &larr; Back to results
         </Link>
         <h2 className="text-2xl font-bold mb-2 font-display text-navy">Compare models</h2>
-        <p className="text-navy/70 mb-6">
+        <p className="text-navy/70 mb-2">
           Pick two models to test head-to-head with the same prompt.
           <span className="text-grey-blue text-sm ml-2">(4 comparisons per day)</span>
+        </p>
+        <p className="mb-6 text-xs leading-relaxed text-grey-blue">
+          Recommendation order is relative to this task and your priorities. It is not a probability that a model will succeed.
         </p>
 
         {error && (
@@ -202,7 +205,6 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
           {models.map((model, index) => {
             const rank = index + 1
             const isSelected = selected.includes(model.slug)
-            const matchPercent = Math.min(100, Math.round(model.weightedScore * 100))
 
             return (
               <button
@@ -241,7 +243,7 @@ export default function ComparePage({ params }: { params: Promise<{ taskId: stri
                       </span>
                     </div>
                   </div>
-                  <span className="font-mono text-lg font-bold text-navy">{matchPercent}%</span>
+                  <span className="text-xs font-medium text-navy/45">Recommendation #{rank}</span>
                 </div>
               </button>
             )
