@@ -13,8 +13,8 @@
       "schedule": "0 5 * * *"
     },
     {
-      "path": "/api/admin/classifier-eval",
-      "schedule": "40 13 16 9 *"
+      "path": "/api/admin/classifier-eval/pipeline",
+      "schedule": "50 13 16 9 *"
     }
   ]
 }
