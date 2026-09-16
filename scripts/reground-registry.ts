@@ -22,7 +22,7 @@
 import { config } from 'dotenv'
 config({ path: '.env.local' })
 
-import { getAllModelsFromDb, upsertModel, getOpenRouterIds } from '../src/lib/db'
+import { getAllModelsFromDb, upsertModel, getOpenRouterIds } from '../src/db/models'
 import { getAliasesForBearingSlug } from '../src/lib/benchmarks'
 import { groundFromAliases, CODE_CAPABILITY_THRESHOLD } from '../src/lib/import-grounding'
 
@@ -58,7 +58,6 @@ async function main() {
     const grounded = await groundFromAliases(aliases, m.provider)
 
     const diffs: Diff[] = []
-    // task_fitness
     const newTaskFitness = { ...m.task_fitness }
     for (const [task, gf] of Object.entries(grounded.taskFitness)) {
       if (!gf) continue
@@ -68,8 +67,6 @@ async function main() {
       if (d) diffs.push(d)
     }
 
-    // speed_score: opt-in. AA's cohort spans 513 models so raw positioning
-    // would clobber curated within-tier expectations on existing models.
     let newSpeed = m.speed_score
     if (includeSpeed && grounded.speedScore) {
       newSpeed = grounded.speedScore.value
@@ -77,12 +74,10 @@ async function main() {
       if (d) diffs.push(d)
     }
 
-    // privacy_score: always overwrite from provider profile
     const newPrivacy = grounded.privacyScore.value
     const dp = diffField('privacy_score', m.privacy_score, newPrivacy)
     if (dp) diffs.push(dp)
 
-    // transparency anchors
     const newTransparency = {
       ...m.transparency,
       open_weights: grounded.openWeights.value,
@@ -93,7 +88,6 @@ async function main() {
     const dts = diffField('transparency.transparency_score', m.transparency.transparency_score, newTransparency.transparency_score)
     if (dts) diffs.push(dts)
 
-    // capabilities — code derived from grounded score
     let newCaps = [...m.capabilities]
     const gCode = grounded.taskFitness.code
     if (gCode != null) {
