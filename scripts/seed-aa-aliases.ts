@@ -13,7 +13,7 @@ import { config } from 'dotenv'
 config({ path: '.env.local' })
 
 import { upsertAlias } from '../src/lib/benchmarks'
-import { getAllModelsFromDb } from '../src/lib/db'
+import { getAllModelsFromDb } from '../src/db/models'
 import { suggestBenchmarkAliases } from '../src/lib/import-grounding'
 
 const AA_URL = 'https://artificialanalysis.ai/api/v2/data/llms/models'
@@ -59,8 +59,6 @@ async function main() {
     }
     modelsWithMatches++
 
-    // Seed only the unflagged matches automatically — flagged ones (mini/nano,
-    // VL, distill, etc.) need admin judgment so we surface them but skip.
     const clean = suggestions.filter(s => s.flags.length === 0)
     const flagged = suggestions.filter(s => s.flags.length > 0)
 
