@@ -2,7 +2,7 @@
 
 import { useState, useRef, useTransition } from 'react'
 import { useParams } from 'next/navigation'
-import { submitPriorities } from '@/app/actions'
+import { submitPriorities } from '@/features/bearing/priority-actions'
 import { StepProgress } from '@/components/step-progress'
 import { LoadingIndicator } from '@/components/loading-indicator'
 import type { Factor } from '@/lib/registry'
