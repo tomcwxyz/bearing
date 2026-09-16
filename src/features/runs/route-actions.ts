@@ -10,9 +10,9 @@ import {
   setRoutedRunPreference,
 } from '@/db/runs'
 import { getModelFromDb, getOpenRouterIdsBySlug } from '@/db/models'
+import { getTask } from '@/db/tasks'
 import { isUserAdmin } from '@/db/users'
 import { getCurrentUser } from '@/lib/auth'
-import { getTask } from '@/lib/db'
 import { getLatestBenchmarkScores } from '@/lib/benchmarks'
 import { filterPrompt } from '@/lib/content-filter'
 import { extractText, validateFile } from '@/lib/file-parser'
