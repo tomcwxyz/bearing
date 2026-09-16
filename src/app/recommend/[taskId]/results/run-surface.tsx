@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { checkAuth, signInWithPassword } from '@/app/actions'
+import { checkAuth, signInWithPassword } from '@/features/auth/actions'
 import { challengeAnswer, runInformationTrio } from '@/features/runs/actions'
 import { routeAndRun, submitRoutedPreference } from '@/features/runs/route-actions'
 import type { Factor } from '@/lib/registry'
