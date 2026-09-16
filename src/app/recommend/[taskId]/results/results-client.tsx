@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
-import { selectModel } from '@/app/actions'
+import { selectModel } from '@/features/feedback/actions'
 import type { ScoredModel } from '@/lib/scoring'
 import type { Factor } from '@/lib/registry'
 import type { PipelineResult } from '@/lib/pipeline'

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
-import { submitOutcome } from '@/app/actions'
+import { submitOutcome } from '@/features/feedback/actions'
 
 const FAILURE_REASONS = [
   'Too slow',
