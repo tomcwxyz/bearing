@@ -1,10 +1,22 @@
 'use server'
 
 import { saveOutcome, saveSelection } from '@/db/feedback'
+import { sanitiseSelectionChoiceContext } from '@/lib/selection-context'
 
-export async function selectModel(taskId: string, modelSlug: string, rank: number) {
+export async function selectModel(
+  taskId: string,
+  modelSlug: string,
+  rank: number,
+  choiceContext?: unknown,
+) {
   try {
-    const selectionId = await saveSelection(taskId, modelSlug, rank)
+    const selectionId = await saveSelection(
+      taskId,
+      modelSlug,
+      rank,
+      'recommend',
+      sanitiseSelectionChoiceContext(choiceContext),
+    )
     return { selectionId }
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Failed to select model.' }
