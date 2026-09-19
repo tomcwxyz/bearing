@@ -7,7 +7,7 @@ import { getRoutabilitySummaries } from '@/db/model-routability'
 import {
   getUsageSummary, getActivityOverTime, getModeBreakdown, getSignupsOverTime,
   getInsightsSummary, getTaskTypeDistribution, getModelLeaderboard,
-  getOutcomeBreakdown, getCapabilityDemand,
+  getOutcomeBreakdown, getCapabilityDemand, getLocalFitCalibration,
 } from '@/lib/dashboard'
 import { fetchOpenRouterModels, convertPricing, inferCapabilities, extractProvider } from '@/lib/openrouter'
 import { getBenchmarkSummary, getUnmatchedSourceModels, listAliases } from '@/lib/benchmarks'
@@ -30,7 +30,7 @@ export default async function AdminPage() {
   const [
     models, verification, routability,
     usageSummary, activity, modes, signups,
-    insightsSummary, taskTypes, leaderboard, outcomes, capabilities,
+    insightsSummary, taskTypes, leaderboard, outcomes, capabilities, localFitCalibration,
     orModels, existingIds,
     benchmarkSummary, benchmarkAliases, benchmarkUnmatched,
   ] = await Promise.all([
@@ -48,6 +48,16 @@ export default async function AdminPage() {
     getModelLeaderboard(),
     getOutcomeBreakdown(),
     getCapabilityDemand(),
+    getLocalFitCalibration().catch(() => ({
+      summary: {
+        totalProbes: 0,
+        measuredVram: 0,
+        predictedFit: 0,
+        succeededDespiteNoFit: 0,
+        avgVramDeltaGb: null,
+      },
+      observations: [],
+    })),
     fetchOpenRouterModels().catch(() => []),
     getOpenRouterIds(),
     getBenchmarkSummary().catch(() => []),
@@ -107,7 +117,14 @@ export default async function AdminPage() {
           verification={verification}
           initialDiscover={{ newModels, matchedCount }}
           initialUsage={{ summary: usageSummary, activity, modes, signups }}
-          initialInsights={{ summary: insightsSummary, taskTypes, leaderboard, outcomes, capabilities }}
+          initialInsights={{
+            summary: insightsSummary,
+            taskTypes,
+            leaderboard,
+            outcomes,
+            capabilities,
+            localFitCalibration,
+          }}
           initialBenchmarks={{
             summary: benchmarkSummary,
             aliases: benchmarkAliases,
