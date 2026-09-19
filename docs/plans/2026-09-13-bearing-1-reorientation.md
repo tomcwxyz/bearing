@@ -348,8 +348,10 @@ The current implementation includes:
   metadata;
 - a corrected open-weight total of 29 after Qwen3.6 Plus was reviewed as a
   provider-hosted product rather than an official downloadable-weight release;
-- a browser-local hardware profile and **Likely fits this device** filter using
-  conservative runtime headroom;
+- a browser-local hardware profile and device-aware recommendation view using
+  conservative runtime headroom; a fresh hardware check switches from the
+  overall ranking to the highest-ranked models likely to run on that machine,
+  while preserving each model's original overall rank;
 - privacy-safe selection context that can record whether open/local/hardware-fit
   filters influenced a person's choice;
 - a separate execution-observation schema for measured local evidence such as
@@ -361,6 +363,12 @@ The current implementation includes:
   user task executions;
 - an Admin → Insights calibration view comparing current predicted fit/quant/
   memory with observed Ollama VRAM, context and throughput.
+
+The recommendation flow now treats device fit as user-facing decision context,
+not a detached diagnostic: overall recommendations remain available, but every
+local-capable model is explicitly marked as runnable or not runnable on the
+checked machine, and the local section is split into fits-this-device versus
+needs-more-memory groups.
 
 Hardware fit remains an estimate until an actual runtime observation exists.
 Ollama verification now provides the first measured evidence path; the next
