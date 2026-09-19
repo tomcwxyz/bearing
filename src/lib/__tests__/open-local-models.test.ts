@@ -121,10 +121,25 @@ describe('open/local model primitives', () => {
     expect(fit.confidence).toBe('medium')
   })
 
-  it('returns no fit when the smallest acceptable quant exceeds the budget', () => {
+  it('returns no fit and explains the minimum requirement when the smallest acceptable quant exceeds the budget', () => {
     const fit = assessLocalMemoryFit(localInfo, 5)
     expect(fit.fits).toBe(false)
     expect(fit.bestQuant).toBeNull()
+    expect(fit.minimumQuant?.quant).toBe('Q4_K_M')
+    expect(fit.minimumRuntimeGb).toBe(7.4)
+  })
+
+  it('marks the same local model as unsuitable for a generic 8 GB Linux device', () => {
+    const fit = assessHardwareFit(localInfo, {
+      platform: 'linux',
+      architecture: 'x64',
+      memoryGb: 8,
+      gpu: { vendor: 'intel' },
+    })
+    expect(fit.memoryBudgetGb).toBe(5.6)
+    expect(fit.fits).toBe(false)
+    expect(fit.minimumRuntimeGb).toBe(7.4)
+    expect(fit.confidence).toBe('low')
   })
 
   it('uses qualitative local fit language rather than fake match percentages', () => {
