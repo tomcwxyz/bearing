@@ -1,6 +1,7 @@
 'use client'
 
 import type { LocalInferenceResult, LocalModelRecommendation, HardwareTier } from '@/lib/local-inference'
+import { describeLocalTaskFit } from '@/lib/open-local-models'
 
 interface LocalSectionProps {
   local: LocalInferenceResult
@@ -35,7 +36,7 @@ function TierGroup({
 
       <div className="space-y-3">
         {recommendations.map((rec) => {
-          const matchPct = Math.min(100, Math.round(rec.effectiveQuality * 100))
+          const fitLabel = describeLocalTaskFit(rec.effectiveQuality)
           return (
             <div key={rec.model.slug} className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
@@ -53,9 +54,8 @@ function TierGroup({
                 <p className="font-mono text-xs text-navy/50">
                   {rec.bestQuant.quant} · ~{rec.bestQuant.vram_gb} GB
                 </p>
-                <p className="font-mono text-sm font-bold text-navy">
-                  {matchPct}%
-                  <span className="text-navy/40 font-normal text-xs ml-0.5">match</span>
+                <p className="text-xs font-semibold text-navy">
+                  {fitLabel}
                 </p>
               </div>
             </div>
@@ -93,7 +93,7 @@ export function LocalSection({ local }: LocalSectionProps) {
         <div>
           <h2 className="font-display text-xl font-bold text-navy">Run it locally</h2>
           <p className="mt-0.5 text-navy/60 text-sm leading-relaxed">
-            These open-weight models can run on your own hardware — your data never leaves your machine.
+            These models have concrete local execution metadata. Hardware fit is based on the listed quantisation and memory requirement, not a guarantee for every runtime or context length.
           </p>
         </div>
       </div>
