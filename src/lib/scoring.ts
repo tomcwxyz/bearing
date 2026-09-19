@@ -47,6 +47,9 @@ export interface ScoredModel {
   strengths: string[]
   weaknesses: string[]
   contextWindow: number
+  openWeights: number
+  licenceOpenness: number
+  localCapable: boolean
 }
 
 // Phase 4.6: input and output token estimates are decoupled because the two
@@ -432,6 +435,9 @@ export function scoreModelsDetailed(input: ScoringInput): ScoringResult {
       strengths: model.strengths,
       weaknesses: model.weaknesses,
       contextWindow: model.context_window,
+      openWeights: model.transparency.open_weights,
+      licenceOpenness: model.transparency.licence_openness,
+      localCapable: Boolean(model.local_info?.quant_options?.length),
     })
   }
 
