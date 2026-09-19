@@ -175,6 +175,13 @@ const DEFAULT_PROFILE: ProviderProfile = { privacy: 0.6, openWeights: 0, licence
  * `provider` matches a PROVIDER_PROFILE key so a coincidental name elsewhere
  * (a non-Google "gemma") can't trigger the override.
  */
+const CLOSED_WEIGHT_FAMILIES: { provider: string; pattern: RegExp; licenceOpenness: number }[] = [
+  // Qwen's provider profile is open by default because most size-named releases
+  // publish weights. Product/API lines such as Plus/Max/Flash/Turbo are
+  // provider-hosted unless there is explicit model-specific weight evidence.
+  { provider: 'Alibaba', pattern: /\bqwen(?:\d+(?:\.\d+)?)?[- ]?(?:plus|max|flash|turbo)\b/i, licenceOpenness: 0.1 },
+]
+
 const OPEN_WEIGHT_FAMILIES: { provider: string; pattern: RegExp; licenceOpenness: number }[] = [
   { provider: 'Google', pattern: /\bgemma\b/i, licenceOpenness: 0.7 },            // Gemma Terms of Use — open weights, permissive custom licence
   { provider: 'OpenAI', pattern: /\bgpt-?oss\b/i, licenceOpenness: 0.9 },         // gpt-oss — Apache 2.0
@@ -266,14 +273,24 @@ export function aggregateGroundedFields(
 
   // A closed provider's open-weight family (Gemma, gpt-oss) overrides the
   // provider-level open/closed verdict for this model only.
-  const override = modelId
+  const closedOverride = modelId
+    ? CLOSED_WEIGHT_FAMILIES.find(f => normaliseProvider(f.provider) === normalised && f.pattern.test(modelId))
+    : undefined
+  const openOverride = !closedOverride && modelId
     ? OPEN_WEIGHT_FAMILIES.find(f => normaliseProvider(f.provider) === normalised && f.pattern.test(modelId))
     : undefined
-  const owProvenance: Provenance = override ? 'derived' : provenance
+  const familyOverride = closedOverride ?? openOverride
+  const owProvenance: Provenance = familyOverride ? 'derived' : provenance
 
   const privacyScore: GroundedField<number> = { value: profile.privacy, provenance }
-  const openWeights: GroundedField<0 | 1> = { value: override ? 1 : profile.openWeights, provenance: owProvenance }
-  const licenceOpenness: GroundedField<number> = { value: override ? override.licenceOpenness : profile.licenceOpenness, provenance: owProvenance }
+  const openWeights: GroundedField<0 | 1> = {
+    value: closedOverride ? 0 : openOverride ? 1 : profile.openWeights,
+    provenance: owProvenance,
+  }
+  const licenceOpenness: GroundedField<number> = {
+    value: familyOverride ? familyOverride.licenceOpenness : profile.licenceOpenness,
+    provenance: owProvenance,
+  }
   const baselineTransparency: GroundedField<number> = { value: profile.baselineTransparency, provenance }
 
   const taskBuckets = new Map<TaskType, { scores: number[]; evidence: Set<string> }>()

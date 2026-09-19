@@ -144,18 +144,53 @@ production ranking.
 - [x] Ollama cloud/local catalogue adapter;
 - [x] observational audit script;
 - [x] opt-in execution probe;
-- [ ] surface open/local metadata on `ScoredModel`;
-- [ ] add Open models only filter to results;
-- [ ] add Runs locally filter to results;
-- [ ] remove the remaining local "% match" presentation.
+- [x] surface open/local metadata on `ScoredModel`;
+- [x] add Open models only filter to results;
+- [x] add Runs locally filter to results;
+- [x] remove the remaining local "% match" presentation.
 
-### O2 — backfill evidence
+### O2 — backfill evidence — in progress
 
-- [ ] add reviewed Hugging Face IDs for open models;
-- [ ] backfill the 14 strongly open-weight models currently missing local evidence;
-- [ ] record provenance and checked-at timestamps for local/open evidence;
-- [ ] distinguish official weights from third-party quantisations;
-- [ ] capture available GGUF/MLX/runtime variants;
+A versioned reviewed-evidence registry now records identity mappings, evidence status,
+source URLs and review dates. The first reviewed tranche now covers all 14 models that were missing local evidence:
+
+- eight **confirmed local** mappings ready for safe `local_info` backfill:
+  Gemma 3 27B, Llama 3.3 70B Instruct, Hermes 3 70B, Hermes 4 405B,
+  LFM2-24B-A2B, Qwen 3.5 9B, Qwen 3.6 27B and the Qwen3-Embedding-4B
+  backbone behind GreenPT green-embedding;
+- GLM-5.2 and DeepSeek V4 Pro are **hosted open models** in the reviewed
+  Ollama routes even though official weights also exist;
+- Qwen3.6 Plus is **provider-only** in reviewed evidence and is therefore
+  excluded from the Open models only filter despite its stale editorial row;
+- Kimi K2.7 Code, Kimi K3 and MiMo V2.5 Pro are **weights available** without
+  pretending that publication of very large weights implies ordinary local feasibility.
+
+Hermes 4 demonstrates why hardware evidence matters: its reviewed LM Studio GGUF
+runs through llama.cpp, but the artefacts range from roughly 213 GB at Q3 to
+431 GB at Q8. "Can self-host" and "fits my machine" must remain separate claims.
+
+The backfill command only writes reviewed `confirmed_local` entries and only
+when `models.local_info` is currently null:
+
+```bash
+npm run db:backfill-local-evidence
+npm run db:backfill-local-evidence -- --apply
+
+# Reviewed corrections where old editorial openness conflicts with source evidence
+npm run db:apply-open-weight-corrections
+npm run db:apply-open-weight-corrections -- --apply
+```
+
+- [x] add initial reviewed Hugging Face IDs for open models;
+- [x] complete reviewed identity mappings across the original 14-model gap set;
+- [ ] backfill the eight confirmed-local models currently missing `local_info`;
+- [x] record provenance and checked-at timestamps for reviewed local/open evidence;
+- [x] distinguish weights available / hosted-only / confirmed-local evidence;
+- [x] let reviewed provider-only evidence override stale open-weight filter metadata;
+- [x] add a dry-run-first path to correct stale canonical transparency rows;
+- [x] add model-family grounding so Alibaba Plus/Max/Flash/Turbo do not inherit the provider-wide open default;
+- [ ] distinguish official weights from third-party quantisations at variant level;
+- [ ] capture broader GGUF/MLX/runtime variants;
 - [ ] capture licence identifiers without collapsing them into a binary open/closed label.
 
 ### O3 — hardware-aware recommendations
@@ -183,3 +218,5 @@ production ranking.
 - Never let a temporary hosted-provider outage reduce intrinsic model scores.
 - External catalogue data starts observational; reviewed mappings are required
   before it affects production behaviour.
+- Downloadable weights do not make a model local-capable. The local filter
+  requires a reviewed execution footprint/quantisation or equivalent runtime evidence.

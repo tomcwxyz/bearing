@@ -5,6 +5,11 @@ import {
   benchmarkBlendReliability,
   type BenchmarkScoreMap,
 } from './benchmark-evidence'
+import {
+  getReviewedOpenLocalEvidence,
+  type OpenLocalEvidenceStatus,
+  type OpenWeightAccess,
+} from './open-local-evidence'
 
 export interface ScoringInput {
   taskType: string
@@ -50,6 +55,11 @@ export interface ScoredModel {
   openWeights?: number
   licenceOpenness?: number
   localCapable?: boolean
+  localEvidenceStatus?: OpenLocalEvidenceStatus
+  weightAccess?: OpenWeightAccess
+  huggingFaceId?: string
+  ollamaModelId?: string
+  localEvidenceCheckedAt?: string
 }
 
 // Phase 4.6: input and output token estimates are decoupled because the two
@@ -423,6 +433,12 @@ export function scoreModelsDetailed(input: ScoringInput): ScoringResult {
       (sum, [factor, score]) => sum + score * weights[factor as Factor], 0
     )
 
+    const openLocalEvidence = getReviewedOpenLocalEvidence(model.slug)
+    const localEvidenceCheckedAt = openLocalEvidence?.sources
+      .map((source) => source.checkedAt)
+      .sort()
+      .at(-1)
+
     scored.push({
       slug: model.slug,
       name: model.name,
@@ -435,9 +451,16 @@ export function scoreModelsDetailed(input: ScoringInput): ScoringResult {
       strengths: model.strengths,
       weaknesses: model.weaknesses,
       contextWindow: model.context_window,
-      openWeights: model.transparency.open_weights,
+      openWeights: openLocalEvidence?.weightAccess === 'provider_only'
+        ? 0
+        : model.transparency.open_weights,
       licenceOpenness: model.transparency.licence_openness,
       localCapable: Boolean(model.local_info?.quant_options?.length),
+      localEvidenceStatus: openLocalEvidence?.status,
+      weightAccess: openLocalEvidence?.weightAccess,
+      huggingFaceId: openLocalEvidence?.huggingFaceId,
+      ollamaModelId: openLocalEvidence?.ollamaModelId,
+      localEvidenceCheckedAt,
     })
   }
 

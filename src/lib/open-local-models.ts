@@ -1,4 +1,5 @@
 import type { LocalInfo, Model, QuantOption } from './registry'
+import { getReviewedOpenLocalEvidence } from './open-local-evidence'
 
 /**
  * "Open" is deliberately narrower than Bearing's overall transparency score.
@@ -33,8 +34,10 @@ export interface LocalMemoryFit {
 
 /** True when Bearing has strong evidence that model weights are open. */
 export function isOpenWeightModel(
-  model: Pick<Model, 'transparency'>,
+  model: Pick<Model, 'slug' | 'transparency'>,
 ): boolean {
+  const reviewed = getReviewedOpenLocalEvidence(model.slug)
+  if (reviewed?.weightAccess === 'provider_only') return false
   return model.transparency.open_weights >= OPEN_WEIGHTS_THRESHOLD
 }
 

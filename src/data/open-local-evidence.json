@@ -1,0 +1,477 @@
+[
+  {
+    "slug": "gemma-3-27b-it",
+    "status": "confirmed_local",
+    "huggingFaceId": "google/gemma-3-27b-it",
+    "ollamaModelId": "gemma3:27b-it-q4_K_M",
+    "localInfo": {
+      "total_params_b": 27.4,
+      "active_params_b": null,
+      "is_moe": false,
+      "quant_options": [
+        {
+          "quant": "Q4_K_M",
+          "vram_gb": 17,
+          "quality_penalty": 0.05
+        },
+        {
+          "quant": "Q8_0",
+          "vram_gb": 30,
+          "quality_penalty": 0
+        },
+        {
+          "quant": "FP16",
+          "vram_gb": 55,
+          "quality_penalty": 0
+        }
+      ]
+    },
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/google/gemma-3-27b-it",
+        "checkedAt": "2026-09-19",
+        "note": "Official Google model identity."
+      },
+      {
+        "kind": "ollama",
+        "url": "https://ollama.com/library/gemma3/tags",
+        "checkedAt": "2026-09-19",
+        "note": "Official 27B Q4_K_M, Q8_0 and FP16 variants with concrete sizes."
+      }
+    ],
+    "note": "Concrete Ollama variants confirm practical local execution.",
+    "weightAccess": "official_weights"
+  },
+  {
+    "slug": "llama-3.3-70b-instruct",
+    "status": "confirmed_local",
+    "huggingFaceId": "meta-llama/Llama-3.3-70B-Instruct",
+    "ollamaModelId": "llama3.3:70b-instruct-q4_K_M",
+    "localInfo": {
+      "total_params_b": 70.6,
+      "active_params_b": null,
+      "is_moe": false,
+      "quant_options": [
+        {
+          "quant": "Q4_K_M",
+          "vram_gb": 43,
+          "quality_penalty": 0.05
+        },
+        {
+          "quant": "Q6_K",
+          "vram_gb": 58,
+          "quality_penalty": 0.02
+        },
+        {
+          "quant": "Q8_0",
+          "vram_gb": 75,
+          "quality_penalty": 0
+        }
+      ]
+    },
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct",
+        "checkedAt": "2026-09-19",
+        "note": "Official Meta model identity."
+      },
+      {
+        "kind": "ollama",
+        "url": "https://ollama.com/library/llama3.3/tags",
+        "checkedAt": "2026-09-19",
+        "note": "Q4_K_M, Q6_K and Q8_0 variants expose 43 GB, 58 GB and 75 GB artefacts."
+      }
+    ],
+    "note": "Local, but workstation-class rather than laptop-class at the reviewed quantisations.",
+    "weightAccess": "official_weights"
+  },
+  {
+    "slug": "hermes-3-llama-3.1-70b",
+    "status": "confirmed_local",
+    "huggingFaceId": "NousResearch/Hermes-3-Llama-3.1-70B",
+    "ollamaModelId": "hermes3:70b-llama3.1-q4_K_M",
+    "localInfo": {
+      "total_params_b": 70.6,
+      "active_params_b": null,
+      "is_moe": false,
+      "quant_options": [
+        {
+          "quant": "Q4_K_M",
+          "vram_gb": 43,
+          "quality_penalty": 0.05
+        },
+        {
+          "quant": "Q6_K",
+          "vram_gb": 58,
+          "quality_penalty": 0.02
+        },
+        {
+          "quant": "Q8_0",
+          "vram_gb": 75,
+          "quality_penalty": 0
+        }
+      ]
+    },
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-70B",
+        "checkedAt": "2026-09-19",
+        "note": "Nous Research model card identifies official GGUF quantisations."
+      },
+      {
+        "kind": "ollama",
+        "url": "https://ollama.com/library/hermes3/tags",
+        "checkedAt": "2026-09-19",
+        "note": "70B Q4_K_M, Q6_K and Q8_0 variants with concrete sizes."
+      }
+    ],
+    "note": "Confirmed local execution with a large memory footprint.",
+    "weightAccess": "official_weights"
+  },
+  {
+    "slug": "lfm-2-24b-a2b",
+    "status": "confirmed_local",
+    "huggingFaceId": "LiquidAI/LFM2-24B-A2B",
+    "ollamaModelId": "lfm2:24b",
+    "localInfo": {
+      "total_params_b": 23.8,
+      "active_params_b": 2,
+      "is_moe": true,
+      "quant_options": [
+        {
+          "quant": "Q4_K_M",
+          "vram_gb": 14,
+          "quality_penalty": 0.05
+        },
+        {
+          "quant": "Q8_0",
+          "vram_gb": 25,
+          "quality_penalty": 0
+        },
+        {
+          "quant": "BF16",
+          "vram_gb": 48,
+          "quality_penalty": 0
+        }
+      ]
+    },
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/LiquidAI/LFM2-24B-A2B",
+        "checkedAt": "2026-09-19",
+        "note": "Official Liquid AI model identity."
+      },
+      {
+        "kind": "ollama",
+        "url": "https://ollama.com/library/lfm2/tags",
+        "checkedAt": "2026-09-19",
+        "note": "24B-A2B Q4_K_M, Q8_0 and BF16 variants expose 14 GB, 25 GB and 48 GB artefacts."
+      }
+    ],
+    "note": "Only about 2B parameters are active per token; reviewed Ollama artefacts make local execution concrete.",
+    "weightAccess": "official_weights"
+  },
+  {
+    "slug": "qwen3.5-9b",
+    "status": "confirmed_local",
+    "huggingFaceId": "Qwen/Qwen3.5-9B",
+    "ollamaModelId": "qwen3.5:9b",
+    "localInfo": {
+      "total_params_b": 9,
+      "active_params_b": null,
+      "is_moe": false,
+      "quant_options": [
+        {
+          "quant": "Q4_K_M",
+          "vram_gb": 6.6,
+          "quality_penalty": 0.05
+        },
+        {
+          "quant": "Q8_0",
+          "vram_gb": 11,
+          "quality_penalty": 0
+        },
+        {
+          "quant": "BF16",
+          "vram_gb": 19,
+          "quality_penalty": 0
+        }
+      ]
+    },
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/Qwen/Qwen3.5-9B",
+        "checkedAt": "2026-09-19",
+        "note": "Official Qwen model card and safetensors release."
+      },
+      {
+        "kind": "ollama",
+        "url": "https://ollama.com/library/qwen3.5/tags",
+        "checkedAt": "2026-09-19",
+        "note": "9B Q4_K_M, Q8_0 and BF16 variants expose 6.6 GB, 11 GB and 19 GB artefacts."
+      }
+    ],
+    "note": "Strong candidate for ordinary local hardware; the reviewed Ollama variants are multimodal.",
+    "weightAccess": "official_weights"
+  },
+  {
+    "slug": "glm-5.2",
+    "status": "hosted_only",
+    "huggingFaceId": "zai-org/GLM-5.2",
+    "ollamaModelId": "glm-5.2:cloud",
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/zai-org/GLM-5.2",
+        "checkedAt": "2026-09-19",
+        "note": "Official MIT-licensed weights are published on Hugging Face."
+      },
+      {
+        "kind": "ollama",
+        "url": "https://ollama.com/library/glm-5.2",
+        "checkedAt": "2026-09-19",
+        "note": "Ollama currently exposes GLM-5.2 as cloud-only; the catalogue lists 756B parameters."
+      }
+    ],
+    "note": "Do not mark local-capable without concrete local runtime and footprint evidence.",
+    "weightAccess": "official_weights"
+  },
+  {
+    "slug": "kimi-k2.7-code",
+    "status": "weights_available",
+    "huggingFaceId": "moonshotai/Kimi-K2.7-Code",
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/moonshotai/Kimi-K2.7-Code",
+        "checkedAt": "2026-09-19",
+        "note": "Official weights; model card documents native INT4 and vLLM/SGLang/KTransformers deployment."
+      }
+    ],
+    "note": "Runnable on suitable infrastructure, but no reviewed consumer/local footprint is encoded yet.",
+    "weightAccess": "official_weights"
+  },
+  {
+    "slug": "kimi-k3",
+    "status": "weights_available",
+    "huggingFaceId": "moonshotai/Kimi-K3",
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/moonshotai/Kimi-K3",
+        "checkedAt": "2026-09-19",
+        "note": "Official 2.8T-parameter release with safetensors."
+      }
+    ],
+    "note": "Weights are available, but Bearing does not yet have a reviewed local runtime footprint.",
+    "weightAccess": "official_weights"
+  },
+  {
+    "slug": "qwen3.6-27b",
+    "status": "confirmed_local",
+    "huggingFaceId": "Qwen/Qwen3.6-27B",
+    "ollamaModelId": "qwen3.6:27b-q4_K_M",
+    "localInfo": {
+      "total_params_b": 27.8,
+      "active_params_b": null,
+      "is_moe": false,
+      "quant_options": [
+        {
+          "quant": "Q4_K_M",
+          "vram_gb": 17,
+          "quality_penalty": 0.05
+        },
+        {
+          "quant": "Q8_0",
+          "vram_gb": 30,
+          "quality_penalty": 0
+        },
+        {
+          "quant": "BF16",
+          "vram_gb": 56,
+          "quality_penalty": 0
+        }
+      ]
+    },
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/Qwen/Qwen3.6-27B",
+        "checkedAt": "2026-09-19",
+        "note": "Official Apache-2.0 Qwen model weights and 27B model card."
+      },
+      {
+        "kind": "ollama",
+        "url": "https://ollama.com/library/qwen3.6/tags",
+        "checkedAt": "2026-09-19",
+        "note": "First-party 27B Q4_K_M, Q8_0 and BF16 variants expose 17 GB, 30 GB and 56 GB artefacts."
+      }
+    ],
+    "note": "Confirmed first-party Ollama local execution with 256K context and multimodal input.",
+    "weightAccess": "official_weights"
+  },
+  {
+    "slug": "deepseek-v4-pro",
+    "status": "hosted_only",
+    "huggingFaceId": "deepseek-ai/DeepSeek-V4-Pro",
+    "ollamaModelId": "deepseek-v4-pro:cloud",
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro",
+        "checkedAt": "2026-09-19",
+        "note": "Official MIT-licensed DeepSeek weights are published on Hugging Face."
+      },
+      {
+        "kind": "ollama",
+        "url": "https://ollama.com/library/deepseek-v4-pro",
+        "checkedAt": "2026-09-19",
+        "note": "Ollama currently exposes only a cloud route; catalogue lists 1.6T total and 49B activated parameters."
+      }
+    ],
+    "note": "Official weights exist, but the reviewed Ollama route is cloud-only. Keep out of local-capable results until a concrete supported local footprint is reviewed.",
+    "weightAccess": "official_weights"
+  },
+  {
+    "slug": "greenpt-green-embedding",
+    "status": "confirmed_local",
+    "weightAccess": "official_weights",
+    "huggingFaceId": "Qwen/Qwen3-Embedding-4B-GGUF",
+    "ollamaModelId": "qwen3-embedding:4b",
+    "localInfo": {
+      "total_params_b": 4,
+      "active_params_b": 4,
+      "is_moe": false,
+      "quant_options": [
+        {
+          "quant": "Q4_K_M",
+          "vram_gb": 2.5,
+          "quality_penalty": 0.05
+        },
+        {
+          "quant": "Q6_K",
+          "vram_gb": 3.31,
+          "quality_penalty": 0.02
+        },
+        {
+          "quant": "Q8_0",
+          "vram_gb": 4.28,
+          "quality_penalty": 0
+        },
+        {
+          "quant": "F16",
+          "vram_gb": 8.05,
+          "quality_penalty": 0
+        }
+      ]
+    },
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/Qwen/Qwen3-Embedding-4B-GGUF",
+        "checkedAt": "2026-09-19",
+        "note": "Official Qwen GGUF release supports llama.cpp, Ollama and other local runtimes; reviewed artefacts expose exact Q4/Q6/Q8/F16 sizes."
+      },
+      {
+        "kind": "ollama",
+        "url": "https://ollama.com/library/qwen3-embedding",
+        "checkedAt": "2026-09-19",
+        "note": "Official Ollama library includes qwen3-embedding:4b at about 2.5 GB."
+      },
+      {
+        "kind": "provider_docs",
+        "url": "https://docs.greenpt.ai/embeddings",
+        "checkedAt": "2026-09-19",
+        "note": "GreenPT documents green-embedding as backed by Qwen3-Embedding-4B."
+      }
+    ],
+    "note": "GreenPT green-embedding is a hosted alias backed by Qwen3-Embedding-4B; the local route uses the documented upstream backbone."
+  },
+  {
+    "slug": "hermes-4-405b",
+    "status": "confirmed_local",
+    "weightAccess": "official_weights",
+    "huggingFaceId": "NousResearch/Hermes-4-405B",
+    "localInfo": {
+      "total_params_b": 406,
+      "active_params_b": null,
+      "is_moe": false,
+      "quant_options": [
+        {
+          "quant": "Q3_K_L",
+          "vram_gb": 213,
+          "quality_penalty": 0.1
+        },
+        {
+          "quant": "Q4_K_M",
+          "vram_gb": 243,
+          "quality_penalty": 0.05
+        },
+        {
+          "quant": "Q6_K",
+          "vram_gb": 333,
+          "quality_penalty": 0.02
+        },
+        {
+          "quant": "Q8_0",
+          "vram_gb": 431,
+          "quality_penalty": 0
+        }
+      ]
+    },
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/NousResearch/Hermes-4-405B",
+        "checkedAt": "2026-09-19",
+        "note": "Official Nous model card points to the LM Studio GGUF quantisation."
+      },
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/lmstudio-community/Hermes-4-405B-GGUF",
+        "checkedAt": "2026-09-19",
+        "note": "LM Studio community GGUF supports llama.cpp; reviewed hardware footprint is 213 GB Q3, 243 GB Q4, 333 GB Q6 and 431 GB Q8."
+      }
+    ],
+    "note": "Self-hostable, but requires multi-GPU/server-class memory. Quantisation is third-party LM Studio output explicitly linked by the official Nous model card."
+  },
+  {
+    "slug": "mimo-v2.5-pro",
+    "status": "weights_available",
+    "weightAccess": "official_weights",
+    "huggingFaceId": "XiaomiMiMo/MiMo-V2.5-Pro",
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/XiaomiMiMo/MiMo-V2.5-Pro",
+        "checkedAt": "2026-09-19",
+        "note": "Official MIT-licensed FP8 weights; model card documents 1.02T total, 42B active parameters and vLLM/SGLang self-hosting."
+      }
+    ],
+    "note": "Official self-hostable weights exist, but Bearing does not yet have a reviewed quantised memory footprint suitable for the local-capable filter."
+  },
+  {
+    "slug": "qwen3.6-plus",
+    "status": "hosted_only",
+    "weightAccess": "provider_only",
+    "sources": [
+      {
+        "kind": "provider_docs",
+        "url": "https://www.alibabacloud.com/help/en/model-studio/qwen3-6-plus",
+        "checkedAt": "2026-09-19",
+        "note": "Official Alibaba documentation identifies Alibaba Cloud Model Studio as the inference service provider and documents API capabilities/pricing."
+      }
+    ],
+    "note": "Reviewed as a provider model rather than an open-weight release. No official Qwen weight repository was found; keep it out of Open models only and Runs locally.",
+    "transparencyCorrection": {
+      "open_weights": 0,
+      "licence_openness": 0.1,
+      "notes": "Provider-hosted Qwen3.6 Plus model. Official Alibaba documentation exposes it through Model Studio inference services; no official downloadable weight release was found in the reviewed Qwen catalogue as of 2026-09-19."
+    }
+  }
+]
