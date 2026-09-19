@@ -2,7 +2,7 @@
 
 **Status:** core 1.0 product architecture substantially complete; remaining work is calibration, operational evidence and methodology truth  
 **Started:** 2026-09-13  
-**Last reviewed:** 2026-09-16  
+**Last reviewed:** 2026-09-19  
 **Theme:** Infer → recommend → run → challenge → learn
 
 ## Product direction
@@ -328,6 +328,30 @@ Current operating cadence:
 
 ---
 
+# P2 — open and local model evidence
+
+## P2.6 Open/local execution evidence — implementation started
+
+Bearing now treats openness, local feasibility and hosted availability as separate evidence layers rather than a single model label.
+
+The first implementation slice adds:
+
+- a strong open-weight threshold helper without claiming full open-source status;
+- separate open-model and local-capable result filters;
+- open/local metadata on scored recommendation objects;
+- qualitative local task-fit language instead of another pseudo-probability;
+- a hardware-profile contract plus deterministic memory-budget fit helper;
+- Hugging Face model/provider catalogue adapters;
+- Ollama Cloud and local catalogue adapters;
+- an observational `npm run audit:open-models` command;
+- an opt-in `npm run eval:open-models` execution probe for Ollama Cloud or Hugging Face.
+
+Current production registry evidence on 2026-09-19 shows 30 strongly open-weight models, but only 16 of those have local execution metadata. The next step is evidence backfill and reviewed model/source mappings, not automatic ranking influence.
+
+See `docs/plans/2026-09-19-open-local-models.md`.
+
+---
+
 # P3 — Bearing as a reusable decision layer
 
 The application architecture is now ready for this to become a real next-phase design task.
@@ -426,6 +450,8 @@ Before freezing that contract, the web product and evidence model need enough op
 2. **Collect repeated classifier evidence.** Retain production baselines, inspect disagreement by case, and avoid inventing thresholds from one run.
 3. **Review benchmark rollout evidence.** Keep `BENCHMARK_BLEND` at zero until shadow/live evidence supports a change.
 4. **Decide when operational evidence is strong enough to affect execution.** If routability becomes a live filter, keep the existing conservative repeated-failure/recovery policy.
-5. **Prepare the reusable decision-layer contract.** Define a stable transport-independent `takeBearing` interface using the existing services rather than duplicating decision logic.
-6. **Require CI in branch protection** when repository permissions allow it.
-7. **Keep the live docs current as product behaviour changes.** Documentation truth is now part of the release discipline rather than a catch-up task.
+5. **Backfill open/local evidence.** Review Hugging Face and Ollama mappings, fill the 14 strongly open-weight models currently missing local metadata, and retain provenance/freshness rather than hand-copying opaque values.
+6. **Run the first open-model execution probes.** Use Ollama Cloud and/or Hugging Face on a small versioned task set, keeping routability/latency evidence observational until repeated runs justify policy changes.
+7. **Prepare the reusable decision-layer contract.** Include openness and execution constraints before freezing a stable transport-independent `takeBearing` interface.
+8. **Require CI in branch protection** when repository permissions allow it.
+9. **Keep the live docs current as product behaviour changes.** Documentation truth is now part of the release discipline rather than a catch-up task.
