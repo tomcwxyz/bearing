@@ -21,6 +21,7 @@ const localInfo: LocalInfo = {
 describe('open/local model primitives', () => {
   it('treats strongly open weights as open without conflating other transparency dimensions', () => {
     expect(isOpenWeightModel({
+      slug: 'test-open-model',
       transparency: {
         open_weights: 1,
         open_training_data: 0,
@@ -36,6 +37,7 @@ describe('open/local model primitives', () => {
 
   it('does not treat weakly open weights as open', () => {
     expect(isOpenWeightModel({
+      slug: 'test-closed-model',
       transparency: {
         open_weights: 0.5,
         open_training_data: 1,
@@ -44,6 +46,22 @@ describe('open/local model primitives', () => {
         provider_disclosure: 1,
         fmti_company_score: null,
         transparency_score: 0.9,
+        notes: '',
+      },
+    })).toBe(false)
+  })
+
+  it('reviewed provider-only evidence overrides a stale editorial open-weight score', () => {
+    expect(isOpenWeightModel({
+      slug: 'qwen3.6-plus',
+      transparency: {
+        open_weights: 1,
+        open_training_data: 0,
+        open_methodology: 0.7,
+        licence_openness: 0.8,
+        provider_disclosure: 0.7,
+        fmti_company_score: null,
+        transparency_score: 0.6,
         notes: '',
       },
     })).toBe(false)
