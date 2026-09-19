@@ -14,9 +14,13 @@ describe('reviewed open/local evidence', () => {
     for (const entry of REVIEWED_OPEN_LOCAL_EVIDENCE) {
       if (entry.status === 'confirmed_local') {
         expect(entry.localInfo?.quant_options.length).toBeGreaterThan(0)
-        expect(entry.ollamaModelId).toBeTruthy()
+        expect(entry.sources.length).toBeGreaterThan(0)
       }
     }
+  })
+
+  it('records provider-only weight access explicitly', () => {
+    expect(getReviewedOpenLocalEvidence('qwen3.6-plus')?.weightAccess).toBe('provider_only')
   })
 
   it('does not turn hosted-only or weights-only evidence into local capability', () => {
