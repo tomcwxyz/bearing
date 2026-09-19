@@ -358,7 +358,9 @@ The current implementation includes:
   fixed non-user prompt and recording runtime metrics only after a real local
   execution succeeds;
 - explicit execution purpose so verification probes remain distinct from real
-  user task executions.
+  user task executions;
+- an Admin → Insights calibration view comparing current predicted fit/quant/
+  memory with observed Ollama VRAM, context and throughput.
 
 Hardware fit remains an estimate until an actual runtime observation exists.
 Ollama verification now provides the first measured evidence path; the next
@@ -468,9 +470,10 @@ Before freezing that contract, the web product and evidence model need enough op
 3. **Review benchmark rollout evidence.** Keep `BENCHMARK_BLEND` at zero until shadow/live evidence supports a change.
 4. **Decide when operational evidence is strong enough to affect execution.** If routability becomes a live filter, keep the existing conservative repeated-failure/recovery policy.
 5. **Collect measured local execution evidence.** Use the new Ollama
-   verification path to compare predicted fit with actual VRAM, context and
-   throughput across hardware classes; add other runtimes only when the
-   evidence contract is stable.
+   verification path and calibration view to compare predicted fit with actual
+   VRAM, context and throughput across hardware classes; tune the estimator only
+   after enough repeated observations exist, and add other runtimes only when
+   the evidence contract is stable.
 6. **Run a versioned open-model execution corpus.** Compare selected open models
    across local and hosted routes while keeping operational evidence separate
    from intrinsic capability.
