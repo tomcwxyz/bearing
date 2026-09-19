@@ -20,7 +20,7 @@ Endpoints:
 - `/api/dataset?format=json`
 - `/api/dataset?format=csv`
 
-Current schema: **2.0**.
+Current schema: **2.1**.
 
 Each record represents a task that reached the recommendation stage. It can
 contain:
@@ -175,16 +175,23 @@ It still does **not** tell us that the model actually ran.
 Actual execution evidence belongs in `execution_observations`, not in
 `choice_context`.
 
+`execution_purpose` distinguishes a real user workload (`task_execution`)
+from a small runtime check (`verification_probe`). Bearing's first local
+runtime integration uses a fixed, non-user prompt to verify that a reviewed
+model genuinely loads and runs in the person's own Ollama installation.
+
 The execution schema can represent:
 
 ```json
 {
   "model_slug": "qwen3.5-9b",
   "execution_location": "user_local",
+  "execution_purpose": "verification_probe",
   "runtime": "ollama",
+  "runtime_version": "0.32.15",
   "runtime_model_id": "qwen3.5:9b",
   "quant": "Q4_K_M",
-  "context_length": 32768,
+  "context_length": 2048,
   "hardware_profile": {
     "platform": "macos",
     "architecture": "arm64",
@@ -194,6 +201,11 @@ The execution schema can represent:
   "measured_vram_gb": 7.4,
   "tokens_per_second": 34.2,
   "latency_ms": 1280,
+  "prompt_tokens": 20,
+  "output_tokens": 16,
+  "total_duration_ms": 1280,
+  "load_duration_ms": 420,
+  "prompt_eval_duration_ms": 110,
   "evidence_source": "runtime_api"
 }
 ```
@@ -205,8 +217,10 @@ Supported evidence-source categories are:
 - `user_report` — explicitly reported by the person;
 - `imported` — imported from another reviewed evidence source.
 
-The table exists before every source is implemented so future local-runtime
-integration does not require changing the meaning of older selection records.
+For Ollama verification probes, the fixed probe text stays on the local
+machine; Bearing receives only the structured runtime measurements and coarse
+hardware context. A failed or unreachable local probe is not stored as
+successful execution evidence.
 
 ## Current task dimensions
 
@@ -257,4 +271,5 @@ requires otherwise.
   evidence. It does not mean the model fits every machine.
 - `predicted_hardware_fit` is an estimate.
 - `execution_observations` are reserved for actual execution evidence.
+- `verification_probe` means a fixed runtime check, not the user's real task.
 - Operational provider availability is separate from intrinsic model quality.
