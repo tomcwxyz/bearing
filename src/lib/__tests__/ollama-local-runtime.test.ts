@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
-  OllamaProbeError,
   probeLocalOllama,
 } from '../ollama-local-runtime'
 
@@ -76,7 +75,7 @@ describe('probeLocalOllama', () => {
 
     await expect(
       probeLocalOllama('qwen3.5:9b', { fetchImpl }),
-    ).rejects.toMatchObject<OllamaProbeError>({
+    ).rejects.toMatchObject({
       code: 'model_not_installed',
     })
 
@@ -90,7 +89,7 @@ describe('probeLocalOllama', () => {
 
     await expect(
       probeLocalOllama('qwen3.5:9b', { fetchImpl }),
-    ).rejects.toMatchObject<OllamaProbeError>({
+    ).rejects.toMatchObject({
       code: 'unreachable',
     })
   })
