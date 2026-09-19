@@ -175,6 +175,10 @@ when `models.local_info` is currently null:
 ```bash
 npm run db:backfill-local-evidence
 npm run db:backfill-local-evidence -- --apply
+
+# Reviewed corrections where old editorial openness conflicts with source evidence
+npm run db:apply-open-weight-corrections
+npm run db:apply-open-weight-corrections -- --apply
 ```
 
 - [x] add initial reviewed Hugging Face IDs for open models;
@@ -183,6 +187,8 @@ npm run db:backfill-local-evidence -- --apply
 - [x] record provenance and checked-at timestamps for reviewed local/open evidence;
 - [x] distinguish weights available / hosted-only / confirmed-local evidence;
 - [x] let reviewed provider-only evidence override stale open-weight filter metadata;
+- [x] add a dry-run-first path to correct stale canonical transparency rows;
+- [x] add model-family grounding so Alibaba Plus/Max/Flash/Turbo do not inherit the provider-wide open default;
 - [ ] distinguish official weights from third-party quantisations at variant level;
 - [ ] capture broader GGUF/MLX/runtime variants;
 - [ ] capture licence identifiers without collapsing them into a binary open/closed label.
