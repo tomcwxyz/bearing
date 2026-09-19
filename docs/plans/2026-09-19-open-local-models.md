@@ -152,14 +152,22 @@ production ranking.
 ### O2 — backfill evidence — in progress
 
 A versioned reviewed-evidence registry now records identity mappings, evidence status,
-source URLs and review dates. The first reviewed tranche contains ten models:
+source URLs and review dates. The first reviewed tranche now covers all 14 models that were missing local evidence:
 
-- six **confirmed local** mappings ready for safe `local_info` backfill:
-  Gemma 3 27B, Llama 3.3 70B Instruct, Hermes 3 70B, LFM2-24B-A2B,
-  Qwen 3.5 9B and Qwen 3.6 27B;
-- GLM-5.2 and DeepSeek V4 Pro recorded as **hosted-only** for their reviewed Ollama routes;
-- Kimi K2.7 Code and Kimi K3 recorded as **weights available** without pretending
-  that publication of very large weights implies ordinary local feasibility.
+- eight **confirmed local** mappings ready for safe `local_info` backfill:
+  Gemma 3 27B, Llama 3.3 70B Instruct, Hermes 3 70B, Hermes 4 405B,
+  LFM2-24B-A2B, Qwen 3.5 9B, Qwen 3.6 27B and the Qwen3-Embedding-4B
+  backbone behind GreenPT green-embedding;
+- GLM-5.2 and DeepSeek V4 Pro are **hosted open models** in the reviewed
+  Ollama routes even though official weights also exist;
+- Qwen3.6 Plus is **provider-only** in reviewed evidence and is therefore
+  excluded from the Open models only filter despite its stale editorial row;
+- Kimi K2.7 Code, Kimi K3 and MiMo V2.5 Pro are **weights available** without
+  pretending that publication of very large weights implies ordinary local feasibility.
+
+Hermes 4 demonstrates why hardware evidence matters: its reviewed LM Studio GGUF
+runs through llama.cpp, but the artefacts range from roughly 213 GB at Q3 to
+431 GB at Q8. "Can self-host" and "fits my machine" must remain separate claims.
 
 The backfill command only writes reviewed `confirmed_local` entries and only
 when `models.local_info` is currently null:
@@ -170,10 +178,11 @@ npm run db:backfill-local-evidence -- --apply
 ```
 
 - [x] add initial reviewed Hugging Face IDs for open models;
-- [ ] complete reviewed identity mappings across the open-model set;
-- [ ] backfill confirmed-local models currently missing `local_info`;
+- [x] complete reviewed identity mappings across the original 14-model gap set;
+- [ ] backfill the eight confirmed-local models currently missing `local_info`;
 - [x] record provenance and checked-at timestamps for reviewed local/open evidence;
 - [x] distinguish weights available / hosted-only / confirmed-local evidence;
+- [x] let reviewed provider-only evidence override stale open-weight filter metadata;
 - [ ] distinguish official weights from third-party quantisations at variant level;
 - [ ] capture broader GGUF/MLX/runtime variants;
 - [ ] capture licence identifiers without collapsing them into a binary open/closed label.
