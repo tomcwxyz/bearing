@@ -28,7 +28,7 @@ describe('Hugging Face catalogue adapter', () => {
   })
 
   it('requests expanded model evidence from the Hub API', async () => {
-    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL) => new Response(JSON.stringify({
       id: 'google/gemma-test',
     }), { status: 200 }))
 
@@ -42,7 +42,7 @@ describe('Hugging Face catalogue adapter', () => {
   })
 
   it('reads current router provider evidence', async () => {
-    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL) => new Response(JSON.stringify({
       data: [{
         id: 'Qwen/example',
         providers: [{
