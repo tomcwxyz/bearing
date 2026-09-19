@@ -15,6 +15,7 @@
     "audit:open-models": "tsx scripts/audit-open-models.ts",
     "eval:open-models": "tsx scripts/evaluate-open-models.ts",
     "db:backfill-local-evidence": "tsx scripts/backfill-reviewed-local-evidence.ts",
+    "db:apply-open-weight-corrections": "tsx scripts/apply-reviewed-open-weight-corrections.ts",
     "db:seed": "tsx scripts/seed-models.ts",
     "db:generate": "tsx scripts/generate-registry.ts",
     "prebuild": "tsx scripts/generate-registry.ts"
