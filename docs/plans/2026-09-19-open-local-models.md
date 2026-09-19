@@ -183,7 +183,7 @@ npm run db:apply-open-weight-corrections -- --apply
 
 - [x] add initial reviewed Hugging Face IDs for open models;
 - [x] complete reviewed identity mappings across the original 14-model gap set;
-- [ ] backfill the eight confirmed-local models currently missing `local_info`;
+- [x] backfill the eight confirmed-local models previously missing `local_info`;
 - [x] record provenance and checked-at timestamps for reviewed local/open evidence;
 - [x] distinguish weights available / hosted-only / confirmed-local evidence;
 - [x] let reviewed provider-only evidence override stale open-weight filter metadata;
@@ -193,12 +193,48 @@ npm run db:apply-open-weight-corrections -- --apply
 - [ ] capture broader GGUF/MLX/runtime variants;
 - [ ] capture licence identifiers without collapsing them into a binary open/closed label.
 
-### O3 — hardware-aware recommendations
+### O3 — hardware-aware recommendations — implementation started
 
-- [ ] optional saved hardware profile;
-- [ ] detect/local-import Ollama hardware/runtime evidence where the user opts in;
-- [ ] account for task context length and runtime overhead;
-- [ ] show "fits your hardware" as evidence, not a guarantee;
+The first browser-side slice uses a deliberately lightweight progressive probe,
+inspired by the capability work in SwarmLLM but without its allocate-until-failure
+memory test.
+
+On explicit user action Bearing can inspect, locally in the browser:
+
+- WebGPU availability;
+- browser-exposed GPU vendor / architecture / description where available;
+- WebGPU buffer and storage-binding limits;
+- logical processor count;
+- the coarse `navigator.deviceMemory` hint where supported;
+- a high-entropy architecture hint where the browser elects to provide it.
+
+The probe does **not** treat WebGPU limits as VRAM and does not upload the
+detected details. The user confirms or corrects total memory with a small set of
+memory choices. The resulting profile is stored only in browser local storage.
+
+Hardware fit then:
+
+1. derives a conservative model-memory budget rather than assuming all reported
+   memory is available;
+2. gives Apple unified memory and explicit discrete VRAM stronger confidence
+   than generic system RAM;
+3. adds runtime/context headroom above the raw quantised artefact size;
+4. selects the highest-quality reviewed quantisation that fits that budget;
+5. labels the result **Likely fits this device** rather than promising execution.
+
+The SwarmLLM-style active allocation probe remains a possible advanced
+diagnostic, not a default recommendation step, because deliberately filling GPU
+memory creates avoidable pressure for an ordinary Bearing visit.
+
+- [x] optional browser-local saved hardware profile;
+- [x] opt-in lightweight WebGPU / CPU / coarse-memory detection;
+- [x] manual memory correction when browser memory evidence is absent or coarse;
+- [x] conservative runtime-memory overhead;
+- [x] add Likely fits this device filter and per-model fit evidence;
+- [ ] account for model-specific KV/context overhead rather than the initial generic reserve;
+- [ ] allow an optional explicit discrete-GPU VRAM correction;
+- [ ] detect/import Ollama runtime evidence where the user opts in;
+- [ ] add an advanced active device test only if passive evidence proves insufficient;
 - [ ] record measured tokens/sec separately from estimated fit.
 
 ### O4 — observed open-model performance
