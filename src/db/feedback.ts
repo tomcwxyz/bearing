@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless'
+import type { SelectionChoiceContext } from '@/lib/selection-context'
 
 function getDb() {
   const url = process.env.NEON_DATABASE_URL
@@ -12,10 +13,40 @@ export async function saveSelection(
   modelSlug: string,
   recommendedRank: number | null,
   source: string = 'recommend',
+  choiceContext: SelectionChoiceContext | null = null,
 ): Promise<string> {
-  const rows = await getDb()`
-    INSERT INTO selections (task_id, model_slug, recommended_rank, source)
-    VALUES (${taskId}, ${modelSlug}, ${recommendedRank}, ${source})
+  const sql = getDb()
+  const modelRows = await sql`
+    SELECT provider, model_class, transparency, local_info
+    FROM models
+    WHERE slug = ${modelSlug}
+  `
+  const model = modelRows[0]
+  const transparency = model?.transparency as Record<string, unknown> | undefined
+  const openWeights = Number(transparency?.open_weights ?? 0)
+  const licenceOpenness = Number(transparency?.licence_openness ?? 0)
+  const modelSnapshot = model
+    ? {
+        provider: String(model.provider ?? ''),
+        model_class: String(model.model_class ?? 'chat'),
+        open_weights: Number.isFinite(openWeights) ? openWeights : 0,
+        licence_openness: Number.isFinite(licenceOpenness) ? licenceOpenness : 0,
+        is_open_weight: Number.isFinite(openWeights) && openWeights >= 0.8,
+        local_capable: Boolean(model.local_info),
+        snapshot_source: 'selection_time_catalogue',
+      }
+    : null
+
+  const rows = await sql`
+    INSERT INTO selections (
+      task_id, model_slug, recommended_rank, source,
+      model_metadata_snapshot, choice_context
+    )
+    VALUES (
+      ${taskId}, ${modelSlug}, ${recommendedRank}, ${source},
+      ${modelSnapshot ? JSON.stringify(modelSnapshot) : null}::jsonb,
+      ${choiceContext ? JSON.stringify(choiceContext) : null}::jsonb
+    )
     RETURNING id
   `
   return rows[0].id as string

@@ -330,25 +330,36 @@ Current operating cadence:
 
 # P2 — open and local model evidence
 
-## P2.6 Open/local execution evidence — implementation started
+## P2.6 Open/local execution evidence — substantially complete for discovery and fit
 
-Bearing now treats openness, local feasibility and hosted availability as separate evidence layers rather than a single model label.
+Bearing treats openness, local feasibility, hosted availability and observed
+execution as separate evidence layers rather than a single model label.
 
-The first implementation slice adds:
+The current implementation includes:
 
-- a strong open-weight threshold helper without claiming full open-source status;
-- separate open-model and local-capable result filters;
-- open/local metadata on scored recommendation objects;
-- qualitative local task-fit language instead of another pseudo-probability;
-- a hardware-profile contract plus deterministic memory-budget fit helper;
-- Hugging Face model/provider catalogue adapters;
-- Ollama Cloud and local catalogue adapters;
-- an observational `npm run audit:open-models` command;
-- an opt-in `npm run eval:open-models` execution probe for Ollama Cloud or Hugging Face.
+- a strong open-weight threshold without claiming full open-source status;
+- separate **Open models only** and **Runs locally** result filters;
+- reviewed model/source provenance distinguishing confirmed-local,
+  hosted-only, provider-only and weights-available evidence;
+- Hugging Face and Ollama catalogue adapters plus observational audit and
+  opt-in execution probes;
+- concrete local quantisation/memory evidence for 30 active models;
+- 24 models that are both strongly open-weight and backed by local execution
+  metadata;
+- a corrected open-weight total of 29 after Qwen3.6 Plus was reviewed as a
+  provider-hosted product rather than an official downloadable-weight release;
+- a browser-local hardware profile and **Likely fits this device** filter using
+  conservative runtime headroom;
+- privacy-safe selection context that can record whether open/local/hardware-fit
+  filters influenced a person's choice;
+- a separate execution-observation schema for future measured local evidence
+  such as runtime, quant, context, VRAM, tokens/sec and latency.
 
-Current production registry evidence on 2026-09-19 shows 30 strongly open-weight models, but only 16 of those have local execution metadata. The next step is evidence backfill and reviewed model/source mappings, not automatic ranking influence.
+Hardware fit remains an estimate until an actual runtime observation exists.
+The next evidence step is to verify local execution through runtimes such as
+Ollama and keep those measurements separate from predicted fit.
 
-See `docs/plans/2026-09-19-open-local-models.md`.
+See `docs/plans/2026-09-19-open-local-models.md` and `docs/public-data.md`.
 
 ---
 
@@ -450,8 +461,16 @@ Before freezing that contract, the web product and evidence model need enough op
 2. **Collect repeated classifier evidence.** Retain production baselines, inspect disagreement by case, and avoid inventing thresholds from one run.
 3. **Review benchmark rollout evidence.** Keep `BENCHMARK_BLEND` at zero until shadow/live evidence supports a change.
 4. **Decide when operational evidence is strong enough to affect execution.** If routability becomes a live filter, keep the existing conservative repeated-failure/recovery policy.
-5. **Backfill open/local evidence.** Review Hugging Face and Ollama mappings, fill the 14 strongly open-weight models currently missing local metadata, and retain provenance/freshness rather than hand-copying opaque values.
-6. **Run the first open-model execution probes.** Use Ollama Cloud and/or Hugging Face on a small versioned task set, keeping routability/latency evidence observational until repeated runs justify policy changes.
-7. **Prepare the reusable decision-layer contract.** Include openness and execution constraints before freezing a stable transport-independent `takeBearing` interface.
+5. **Collect measured local execution evidence.** Connect optional runtime
+   evidence (starting with Ollama) so predicted hardware fit can be compared
+   with what actually ran, at what quant/context and performance.
+6. **Run a versioned open-model execution corpus.** Compare selected open models
+   across local and hosted routes while keeping operational evidence separate
+   from intrinsic capability.
+7. **Prepare the reusable decision-layer contract.** Include openness and
+   execution constraints before freezing a stable transport-independent
+   `takeBearing` interface.
 8. **Require CI in branch protection** when repository permissions allow it.
-9. **Keep the live docs current as product behaviour changes.** Documentation truth is now part of the release discipline rather than a catch-up task.
+9. **Keep the live docs and public-data schema current as product behaviour
+   changes.** Documentation and data provenance are release disciplines rather
+   than catch-up tasks.

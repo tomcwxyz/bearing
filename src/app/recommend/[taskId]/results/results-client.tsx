@@ -11,6 +11,7 @@ import type { ModelOutcomeEvidence } from '@/lib/outcome-evidence'
 import type { RecommendationEvidence } from '@/lib/recommendation-evidence'
 import type { RecommendationConfidence } from '@/lib/recommendation-confidence'
 import type { FeaturedAlternative } from '@/lib/tradeoff-alternatives'
+import { buildSelectionChoiceContext } from '@/lib/selection-context'
 import {
   OPEN_WEIGHTS_THRESHOLD,
   assessHardwareFit,
@@ -289,8 +290,15 @@ export function ResultsClient({
 
   function handleSelect(modelSlug: string, rank: number) {
     setError(null)
+    const choiceContext = buildSelectionChoiceContext({
+      openOnly,
+      localOnly,
+      hardwareFitOnly,
+      hardwareProfile,
+      hardwareFit: hardwareFitBySlug.get(modelSlug),
+    })
     startTransition(async () => {
-      const result = await selectModel(taskId, modelSlug, rank)
+      const result = await selectModel(taskId, modelSlug, rank, choiceContext)
       if (result.error) {
         setError(result.error)
       } else {

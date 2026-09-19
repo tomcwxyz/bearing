@@ -13,6 +13,10 @@ interface CandidateRow {
   weighted_score: number | null
   role: string
   is_error: boolean
+  open_weights: number
+  is_open_weight: boolean
+  local_capable: boolean
+  model_class: string
 }
 
 export async function GET(request: NextRequest) {
@@ -33,6 +37,13 @@ export async function GET(request: NextRequest) {
       r.created_at::date AS run_date,
       t.task_type,
       t.complexity,
+      t.data_sensitivity,
+      t.latency_target,
+      t.volume,
+      t.needs_long_context,
+      t.needs_multilingual,
+      t.is_agentic,
+      t.output_length,
       t.classification_schema_version
     FROM routed_runs r
     INNER JOIN tasks t ON t.id = r.task_id
@@ -40,9 +51,20 @@ export async function GET(request: NextRequest) {
   `
 
   const modelRows = await sql`
-    SELECT routed_run_id, model_slug, route_rank, weighted_score, role, is_error
-    FROM routed_run_models
-    ORDER BY routed_run_id, route_rank
+    SELECT
+      rrm.routed_run_id,
+      rrm.model_slug,
+      rrm.route_rank,
+      rrm.weighted_score,
+      rrm.role,
+      rrm.is_error,
+      COALESCE((m.transparency->>'open_weights')::numeric, 0) AS open_weights,
+      COALESCE((m.transparency->>'open_weights')::numeric, 0) >= 0.8 AS is_open_weight,
+      m.local_info IS NOT NULL AS local_capable,
+      COALESCE(m.model_class, 'chat') AS model_class
+    FROM routed_run_models rrm
+    LEFT JOIN models m ON m.slug = rrm.model_slug
+    ORDER BY rrm.routed_run_id, rrm.route_rank
   `
 
   const candidatesByRun = new Map<string, CandidateRow[]>()
@@ -55,6 +77,10 @@ export async function GET(request: NextRequest) {
       weighted_score: (m.weighted_score as number | null) ?? null,
       role: m.role as string,
       is_error: m.is_error as boolean,
+      open_weights: Number(m.open_weights ?? 0),
+      is_open_weight: Boolean(m.is_open_weight),
+      local_capable: Boolean(m.local_capable),
+      model_class: String(m.model_class ?? 'chat'),
     })
   }
 
@@ -62,6 +88,14 @@ export async function GET(request: NextRequest) {
     mode: row.mode,
     task_type: row.task_type,
     complexity: row.complexity,
+    data_sensitivity: row.data_sensitivity,
+    latency_target: row.latency_target,
+    volume: row.volume,
+    needs_long_context: row.needs_long_context,
+    needs_multilingual: row.needs_multilingual,
+    is_agentic: row.is_agentic,
+    output_length: row.output_length,
+    execution_location: 'bearing_hosted',
     classification_schema_version: row.classification_schema_version,
     candidates: candidatesByRun.get(row.id as string) ?? [],
     judged_winner: row.judged_winner ?? null,
@@ -75,7 +109,9 @@ export async function GET(request: NextRequest) {
 
   if (format === 'csv') {
     const csvHeaders = [
-      'mode', 'task_type', 'complexity', 'classification_schema_version',
+      'mode', 'task_type', 'complexity', 'data_sensitivity', 'latency_target',
+      'volume', 'needs_long_context', 'needs_multilingual', 'is_agentic',
+      'output_length', 'execution_location', 'classification_schema_version',
       'candidates', 'judged_winner', 'judge_model', 'human_preferred',
       'preference_reason', 'run_date',
     ]
@@ -84,6 +120,14 @@ export async function GET(request: NextRequest) {
         esc(r.mode),
         esc(r.task_type),
         esc(r.complexity),
+        esc(r.data_sensitivity),
+        esc(r.latency_target),
+        esc(r.volume),
+        r.needs_long_context,
+        r.needs_multilingual,
+        r.is_agentic,
+        esc(r.output_length),
+        esc(r.execution_location),
         esc(r.classification_schema_version),
         esc(JSON.stringify(r.candidates)),
         esc(r.judged_winner),
@@ -107,7 +151,7 @@ export async function GET(request: NextRequest) {
     {
       meta: {
         name: 'Bearing Routed-Run Dataset',
-        version: '1.0',
+        version: '1.1',
         exported_at: new Date().toISOString(),
         record_count: records.length,
         description:
@@ -117,8 +161,16 @@ export async function GET(request: NextRequest) {
           mode: 'Routing mode: "route" (single best model), "trio" (top 3, blind-judged), or "challenger" (top model then a reviewer)',
           task_type: 'Primary task category for the underlying task',
           complexity: 'Estimated task complexity',
+          data_sensitivity: 'Task data-sensitivity class used by routing',
+          latency_target: 'Task latency target',
+          volume: 'Expected task volume',
+          needs_long_context: 'Whether the task requires long context',
+          needs_multilingual: 'Whether the task requires multilingual capability',
+          is_agentic: 'Whether the task is an agentic workload',
+          output_length: 'Estimated output length',
+          execution_location: 'All records in this dataset are Bearing-hosted provider executions',
           classification_schema_version: 'Task-type enum version used to classify the task',
-          candidates: 'Array of {model_slug, route_rank, weighted_score, role, is_error}. route_rank 1 = top-ranked; role is "primary" | "candidate" | "challenger".',
+          candidates: 'Array of {model_slug, route_rank, weighted_score, role, is_error, open_weights, is_open_weight, local_capable, model_class}. Openness/local fields reflect the catalogue at export time.',
           judged_winner: 'model_slug the blind LLM judge picked (trio/challenger); null for single routes or when judging was skipped',
           judge_model: 'The model that produced the verdict',
           human_preferred: 'model_slug the user preferred, or "tie"; null if the user did not say',

@@ -43,23 +43,47 @@ export async function GET(request: NextRequest) {
     ORDER BY l.task_id, l.rank, l.created_at DESC
   `
 
-  const modelClasses = await sql`
-    SELECT slug, model_class FROM models
+  const modelCatalogue = await sql`
+    SELECT slug, model_class, transparency, local_info FROM models
   `
-  const classBySlug = new Map<string, string>()
-  for (const m of modelClasses) {
-    classBySlug.set(m.slug as string, m.model_class as string)
+  const catalogueBySlug = new Map<string, {
+    model_class: string
+    open_weights: number
+    is_open_weight: boolean
+    local_capable: boolean
+  }>()
+  for (const m of modelCatalogue) {
+    const transparency = m.transparency as Record<string, unknown> | null
+    const openWeights = Number(transparency?.open_weights ?? 0)
+    catalogueBySlug.set(m.slug as string, {
+      model_class: m.model_class as string,
+      open_weights: Number.isFinite(openWeights) ? openWeights : 0,
+      is_open_weight: Number.isFinite(openWeights) && openWeights >= 0.8,
+      local_capable: Boolean(m.local_info),
+    })
   }
 
-  const recsByTask = new Map<string, { slug: string; rank: number; weighted_score: number; model_class: string }[]>()
+  const recsByTask = new Map<string, Array<{
+    slug: string
+    rank: number
+    weighted_score: number
+    model_class: string
+    open_weights: number
+    is_open_weight: boolean
+    local_capable: boolean
+  }>>()
   for (const r of recs) {
     const taskId = r.task_id as string
     if (!recsByTask.has(taskId)) recsByTask.set(taskId, [])
+    const catalogue = catalogueBySlug.get(r.model_slug as string)
     recsByTask.get(taskId)!.push({
       slug: r.model_slug as string,
       rank: r.rank as number,
       weighted_score: r.weighted_score as number,
-      model_class: classBySlug.get(r.model_slug as string) ?? 'chat',
+      model_class: catalogue?.model_class ?? 'chat',
+      open_weights: catalogue?.open_weights ?? 0,
+      is_open_weight: catalogue?.is_open_weight ?? false,
+      local_capable: catalogue?.local_capable ?? false,
     })
   }
 
@@ -84,7 +108,7 @@ export async function GET(request: NextRequest) {
       vram_gb: l.vram_gb as number,
       quality_penalty: l.quality_penalty as number,
       hardware_tier_id: l.hardware_tier_id as string,
-      model_class: classBySlug.get(l.model_slug as string) ?? 'chat',
+      model_class: catalogueBySlug.get(l.model_slug as string)?.model_class ?? 'chat',
     })
   }
 
@@ -94,7 +118,9 @@ export async function GET(request: NextRequest) {
   // accumulate on revisit; outcomes don't dup today but we guard against it).
   const rowsWithId = await sql`
     WITH latest_selection AS (
-      SELECT DISTINCT ON (task_id) task_id, model_slug, recommended_rank, created_at
+      SELECT DISTINCT ON (task_id)
+        task_id, model_slug, recommended_rank,
+        model_metadata_snapshot, choice_context, created_at
       FROM selections
       ORDER BY task_id, created_at DESC
     ),
@@ -114,6 +140,13 @@ export async function GET(request: NextRequest) {
       t.needs_code,
       t.needs_reasoning,
       t.is_recurring,
+      t.data_sensitivity,
+      t.latency_target,
+      t.volume,
+      t.needs_long_context,
+      t.needs_multilingual,
+      t.is_agentic,
+      t.output_length,
       t.priority_order,
       t.excluded_factors,
       t.pipeline_stages,
@@ -122,6 +155,8 @@ export async function GET(request: NextRequest) {
       t.created_at::date AS task_date,
       s.model_slug   AS selected_model,
       s.recommended_rank,
+      s.model_metadata_snapshot AS selected_model_metadata,
+      s.choice_context AS selection_choice_context,
       o.success      AS outcome_success,
       o.failure_reason
     FROM tasks t
@@ -131,6 +166,47 @@ export async function GET(request: NextRequest) {
        OR t.pipeline_stages IS NOT NULL
     ORDER BY t.created_at DESC
   `
+
+  const executionRows = await sql`
+    SELECT
+      task_id,
+      model_slug,
+      model_metadata_snapshot,
+      execution_location,
+      runtime,
+      runtime_model_id,
+      quant,
+      context_length,
+      hardware_profile,
+      measured_vram_gb,
+      tokens_per_second,
+      latency_ms,
+      evidence_source,
+      created_at::date AS execution_date
+    FROM execution_observations
+    ORDER BY created_at
+  `
+
+  const executionsByTask = new Map<string, Array<Record<string, unknown>>>()
+  for (const observation of executionRows) {
+    const taskId = observation.task_id as string
+    if (!executionsByTask.has(taskId)) executionsByTask.set(taskId, [])
+    executionsByTask.get(taskId)!.push({
+      model_slug: observation.model_slug,
+      model_metadata: observation.model_metadata_snapshot ?? null,
+      execution_location: observation.execution_location,
+      runtime: observation.runtime ?? null,
+      runtime_model_id: observation.runtime_model_id ?? null,
+      quant: observation.quant ?? null,
+      context_length: observation.context_length ?? null,
+      hardware_profile: observation.hardware_profile ?? null,
+      measured_vram_gb: observation.measured_vram_gb ?? null,
+      tokens_per_second: observation.tokens_per_second ?? null,
+      latency_ms: observation.latency_ms ?? null,
+      evidence_source: observation.evidence_source,
+      execution_date: observation.execution_date,
+    })
+  }
 
   const records = rowsWithId.map((row) => {
     const priorityOrder = (row.priority_order as Factor[] | null) ?? []
@@ -156,6 +232,13 @@ export async function GET(request: NextRequest) {
       needs_code: row.needs_code,
       needs_reasoning: row.needs_reasoning,
       is_recurring: row.is_recurring,
+      data_sensitivity: row.data_sensitivity,
+      latency_target: row.latency_target,
+      volume: row.volume,
+      needs_long_context: row.needs_long_context,
+      needs_multilingual: row.needs_multilingual,
+      is_agentic: row.is_agentic,
+      output_length: row.output_length,
       mode: row.mode,
       priority_order: priorityOrder,
       excluded_factors: excludedFactors,
@@ -165,8 +248,14 @@ export async function GET(request: NextRequest) {
       models_recommended: recsByTask.get(row.task_id as string) ?? [],
       local_recommendations: localByTask.get(row.task_id as string) ?? [],
       model_selected: row.selected_model
-        ? { slug: row.selected_model, recommended_rank: row.recommended_rank }
+        ? {
+            slug: row.selected_model,
+            recommended_rank: row.recommended_rank,
+            model_metadata: row.selected_model_metadata ?? null,
+            choice_context: row.selection_choice_context ?? null,
+          }
         : null,
+      execution_observations: executionsByTask.get(row.task_id as string) ?? [],
       outcome_success: row.outcome_success ?? null,
       failure_reason: row.failure_reason ?? null,
       task_date: row.task_date,
@@ -188,6 +277,13 @@ export async function GET(request: NextRequest) {
       'needs_code',
       'needs_reasoning',
       'is_recurring',
+      'data_sensitivity',
+      'latency_target',
+      'volume',
+      'needs_long_context',
+      'needs_multilingual',
+      'is_agentic',
+      'output_length',
       'mode',
       'priority_order',
       'excluded_factors',
@@ -198,6 +294,9 @@ export async function GET(request: NextRequest) {
       'local_recommendations',
       'selected_model',
       'selected_recommended_rank',
+      'selected_model_metadata',
+      'selection_choice_context',
+      'execution_observations',
       'outcome_success',
       'failure_reason',
       'task_date',
@@ -214,6 +313,13 @@ export async function GET(request: NextRequest) {
         r.needs_code,
         r.needs_reasoning,
         r.is_recurring,
+        esc(r.data_sensitivity),
+        esc(r.latency_target),
+        esc(r.volume),
+        r.needs_long_context,
+        r.needs_multilingual,
+        r.is_agentic,
+        esc(r.output_length),
         esc(r.mode),
         esc(JSON.stringify(r.priority_order)),
         esc(JSON.stringify(r.excluded_factors)),
@@ -224,6 +330,9 @@ export async function GET(request: NextRequest) {
         esc(JSON.stringify(r.local_recommendations)),
         esc(r.model_selected?.slug),
         r.model_selected?.recommended_rank ?? '',
+        esc(r.model_selected?.model_metadata ? JSON.stringify(r.model_selected.model_metadata) : ''),
+        esc(r.model_selected?.choice_context ? JSON.stringify(r.model_selected.choice_context) : ''),
+        esc(JSON.stringify(r.execution_observations)),
         r.outcome_success,
         esc(r.failure_reason),
         esc(r.task_date),
@@ -245,11 +354,11 @@ export async function GET(request: NextRequest) {
     {
       meta: {
         name: 'Bearing Public Dataset',
-        version: '1.4',
+        version: '2.0',
         exported_at: new Date().toISOString(),
         record_count: records.length,
         description:
-          'Anonymised task-to-model recommendation data from Bearing. One row per task that reached the recommendation stage (selection optional).',
+          'Anonymised task-to-model decision data from Bearing. One row per task that reached the recommendation stage, with recommendation, selection, openness/local context and observed execution evidence kept distinct.',
         licence: 'CC BY-NC 4.0',
         // Each record carries the classification_schema_version under which
         // task_type was assigned. Filter or interpret accordingly.
@@ -268,6 +377,7 @@ export async function GET(request: NextRequest) {
           },
         },
         changelog: {
+          '2.0': 'Adds the full current task-classification dimensions; adds openness/local-capability metadata to recommended models; expands model_selected with a selection-time model metadata snapshot and privacy-safe choice context (active filters, coarse hardware profile, predicted hardware fit); adds execution_observations for actual runtime evidence such as local runtime, quant, context, VRAM and tokens/sec. Choice/fit evidence and observed execution are intentionally separate.',
           '1.4': 'Adds model_class to every entry in models_recommended and local_recommendations ("chat" or "embedding"). Adds v0.9 classification_schema_version with the 13-value task type enum.',
           '1.3': 'Adds local_recommendations — the open-weight models the recommender suggested for local hardware, with quant / VRAM / hardware tier per candidate. Persisted from 2026-05-23; empty array for earlier tasks.',
           '1.2': 'Includes every task that reached the recommendation stage (not just tasks with a selection). Adds excluded_factors, factor_weights (normalised per-factor weights actually applied by the recommender), pipeline_stages (the classifier-produced multi-stage plan when one was generated), and mode (recommend / pipeline / validate). model_selected is now nullable.',
@@ -284,15 +394,23 @@ export async function GET(request: NextRequest) {
           needs_code: 'Whether the task requires code generation or execution',
           needs_reasoning: 'Whether the task requires multi-step reasoning / extended thinking',
           is_recurring: 'Whether this is a recurring/repeated task',
+          data_sensitivity: 'Task data-sensitivity class used by privacy/on-prem routing',
+          latency_target: 'Task latency target such as realtime, interactive or batch',
+          volume: 'Expected task volume',
+          needs_long_context: 'Whether the task requires a long context window',
+          needs_multilingual: 'Whether the task requires multilingual capability',
+          is_agentic: 'Whether the task is an agentic/multi-step tool-using workload',
+          output_length: 'Estimated output length: short, medium, long, very_long',
           mode: 'Bearing mode used: "recommend", "pipeline", or "validate"',
           priority_order: 'User-ranked priority factors in order of importance',
           excluded_factors: 'Factors the user explicitly opted out of (force zero weight)',
           factor_weights: 'Normalised per-factor weights actually applied by the recommender (after complexity boost + low-priority damping + exclusion zeroing). null if the user did not provide a priority order.',
           pipeline_stages: 'Classifier-produced multi-stage pipeline plan when one was recommended; null otherwise',
           classification_schema_version: 'Which version of the task-type enum was used to assign task_type — v0.7, v0.8, or v0.9',
-          models_recommended: 'Array of {slug, rank, weighted_score, model_class} for each recommended model. model_class is "chat" or "embedding". Empty for pure pipeline-mode tasks.',
+          models_recommended: 'Array of {slug, rank, weighted_score, model_class, open_weights, is_open_weight, local_capable}. Openness/local fields reflect the catalogue at export time; selection-time state is snapshotted separately in model_selected.model_metadata.',
           local_recommendations: 'Array of {slug, rank, effective_quality, quant, vram_gb, quality_penalty, hardware_tier_id, model_class} for open-weight models recommendable on local hardware. model_class is "chat" or "embedding". Empty array means either no viable local candidate OR (for tasks before 2026-05-23) that the local set was computed but not persisted.',
-          model_selected: '{slug, recommended_rank} of the model the user chose. null if no selection was made.',
+          model_selected: '{slug, recommended_rank, model_metadata, choice_context} for the chosen model. model_metadata is snapshotted at selection time for new choices; older rows are explicitly marked as backfilled from the current catalogue. choice_context may include the filters active when chosen, a coarse hardware profile and predicted fit. null if no selection was made.',
+          execution_observations: 'Array of actual execution observations. Kept separate from predicted hardware fit. May include execution_location, runtime, quant, context_length, a coarse hardware_profile, measured_vram_gb, tokens_per_second, latency_ms and evidence_source. Empty until an actual run is observed/reported.',
           outcome_success: 'Whether the user reported success (true/false/null)',
           failure_reason: 'User-reported failure reason if applicable',
           task_date: 'Date the task was created',
