@@ -352,12 +352,18 @@ The current implementation includes:
   conservative runtime headroom;
 - privacy-safe selection context that can record whether open/local/hardware-fit
   filters influenced a person's choice;
-- a separate execution-observation schema for future measured local evidence
-  such as runtime, quant, context, VRAM, tokens/sec and latency.
+- a separate execution-observation schema for measured local evidence such as
+  runtime, quant, context, VRAM, tokens/sec and latency;
+- an opt-in **Verify in Ollama** probe for reviewed local chat models, using a
+  fixed non-user prompt and recording runtime metrics only after a real local
+  execution succeeds;
+- explicit execution purpose so verification probes remain distinct from real
+  user task executions.
 
 Hardware fit remains an estimate until an actual runtime observation exists.
-The next evidence step is to verify local execution through runtimes such as
-Ollama and keep those measurements separate from predicted fit.
+Ollama verification now provides the first measured evidence path; the next
+step is to collect enough observations to compare predicted memory fit with
+actual VRAM/context/performance across hardware classes.
 
 See `docs/plans/2026-09-19-open-local-models.md` and `docs/public-data.md`.
 
@@ -461,9 +467,10 @@ Before freezing that contract, the web product and evidence model need enough op
 2. **Collect repeated classifier evidence.** Retain production baselines, inspect disagreement by case, and avoid inventing thresholds from one run.
 3. **Review benchmark rollout evidence.** Keep `BENCHMARK_BLEND` at zero until shadow/live evidence supports a change.
 4. **Decide when operational evidence is strong enough to affect execution.** If routability becomes a live filter, keep the existing conservative repeated-failure/recovery policy.
-5. **Collect measured local execution evidence.** Connect optional runtime
-   evidence (starting with Ollama) so predicted hardware fit can be compared
-   with what actually ran, at what quant/context and performance.
+5. **Collect measured local execution evidence.** Use the new Ollama
+   verification path to compare predicted fit with actual VRAM, context and
+   throughput across hardware classes; add other runtimes only when the
+   evidence contract is stable.
 6. **Run a versioned open-model execution corpus.** Compare selected open models
    across local and hosted routes while keeping operational evidence separate
    from intrinsic capability.
