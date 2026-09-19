@@ -102,7 +102,6 @@ export default function DataPage() {
                 </a>
               </div>
             </div>
-          </section>
 
             <div className="mt-6">
               <h3 className="font-display text-sm font-semibold text-navy">
@@ -126,6 +125,7 @@ export default function DataPage() {
                 </a>
               </div>
             </div>
+          </section>
 
           {/* Methodology */}
           <section>
@@ -274,6 +274,8 @@ export default function DataPage() {
                   </tbody>
                 </table>
               </div>
+            </div>
+
             <div className="mt-6">
               <h3 className="mb-2 font-display text-sm font-semibold text-navy">
                 Routed-run dataset
