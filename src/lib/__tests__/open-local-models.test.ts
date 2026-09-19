@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  assessHardwareFit,
   assessLocalMemoryFit,
   describeLocalTaskFit,
+  estimateQuantRuntimeMemoryGb,
+  estimateSafeModelBudgetGb,
   isLocalCapableModel,
   isOpenWeightModel,
 } from '../open-local-models'
@@ -72,11 +75,50 @@ describe('open/local model primitives', () => {
     expect(isLocalCapableModel({ local_info: undefined })).toBe(false)
   })
 
-  it('selects the highest-quality quant that fits an explicit memory budget', () => {
-    const fit = assessLocalMemoryFit(localInfo, 8)
+  it('selects the highest-quality quant that fits after runtime overhead', () => {
+    const fit = assessLocalMemoryFit(localInfo, 10)
     expect(fit.fits).toBe(true)
     expect(fit.bestQuant?.quant).toBe('Q6_K')
-    expect(fit.headroomGb).toBe(0)
+    expect(fit.estimatedRuntimeGb).toBe(9.6)
+    expect(fit.headroomGb).toBe(0.4)
+  })
+
+  it('keeps runtime memory above the raw model artefact size', () => {
+    expect(estimateQuantRuntimeMemoryGb(localInfo.quant_options[0])).toBe(7.4)
+  })
+
+  it('uses a conservative device budget rather than all reported memory', () => {
+    expect(estimateSafeModelBudgetGb({
+      platform: 'macos',
+      architecture: 'arm64',
+      memoryGb: 16,
+      gpu: { vendor: 'apple' },
+    })).toBe(12.8)
+
+    expect(estimateSafeModelBudgetGb({
+      platform: 'windows',
+      architecture: 'x64',
+      memoryGb: 16,
+    })).toBe(11.2)
+
+    expect(estimateSafeModelBudgetGb({
+      platform: 'windows',
+      architecture: 'x64',
+      memoryGb: 64,
+      gpu: { vendor: 'nvidia', vramGb: 24 },
+    })).toBe(21.6)
+  })
+
+  it('labels Apple unified-memory fit as medium confidence without runtime telemetry', () => {
+    const fit = assessHardwareFit(localInfo, {
+      platform: 'macos',
+      architecture: 'arm64',
+      memoryGb: 16,
+      gpu: { vendor: 'apple' },
+    })
+    expect(fit.fits).toBe(true)
+    expect(fit.bestQuant?.quant).toBe('Q6_K')
+    expect(fit.confidence).toBe('medium')
   })
 
   it('returns no fit when the smallest acceptable quant exceeds the budget', () => {
