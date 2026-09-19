@@ -262,5 +262,69 @@
       }
     ],
     "note": "Weights are available, but Bearing does not yet have a reviewed local runtime footprint."
+  },
+  {
+    "slug": "qwen3.6-27b",
+    "status": "confirmed_local",
+    "huggingFaceId": "Qwen/Qwen3.6-27B",
+    "ollamaModelId": "qwen3.6:27b-q4_K_M",
+    "localInfo": {
+      "total_params_b": 27.8,
+      "active_params_b": null,
+      "is_moe": false,
+      "quant_options": [
+        {
+          "quant": "Q4_K_M",
+          "vram_gb": 17,
+          "quality_penalty": 0.05
+        },
+        {
+          "quant": "Q8_0",
+          "vram_gb": 30,
+          "quality_penalty": 0
+        },
+        {
+          "quant": "BF16",
+          "vram_gb": 56,
+          "quality_penalty": 0
+        }
+      ]
+    },
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/Qwen/Qwen3.6-27B",
+        "checkedAt": "2026-09-19",
+        "note": "Official Apache-2.0 Qwen model weights and 27B model card."
+      },
+      {
+        "kind": "ollama",
+        "url": "https://ollama.com/library/qwen3.6/tags",
+        "checkedAt": "2026-09-19",
+        "note": "First-party 27B Q4_K_M, Q8_0 and BF16 variants expose 17 GB, 30 GB and 56 GB artefacts."
+      }
+    ],
+    "note": "Confirmed first-party Ollama local execution with 256K context and multimodal input."
+  },
+  {
+    "slug": "deepseek-v4-pro",
+    "status": "hosted_only",
+    "huggingFaceId": "deepseek-ai/DeepSeek-V4-Pro",
+    "ollamaModelId": "deepseek-v4-pro:cloud",
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro",
+        "checkedAt": "2026-09-19",
+        "note": "Official MIT-licensed DeepSeek weights are published on Hugging Face."
+      },
+      {
+        "kind": "ollama",
+        "url": "https://ollama.com/library/deepseek-v4-pro",
+        "checkedAt": "2026-09-19",
+        "note": "Ollama currently exposes only a cloud route; catalogue lists 1.6T total and 49B activated parameters."
+      }
+    ],
+    "note": "Official weights exist, but the reviewed Ollama route is cloud-only. Keep out of local-capable results until a concrete supported local footprint is reviewed."
   }
 ]
