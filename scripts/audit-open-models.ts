@@ -2,6 +2,7 @@ import { getAllModels } from '../src/lib/registry'
 import { isLocalCapableModel, isOpenWeightModel } from '../src/lib/open-local-models'
 import { fetchOllamaCloudModels, findOllamaCatalogueMatch } from '../src/lib/ollama-catalogue'
 import { fetchHuggingFaceRouterModels } from '../src/lib/huggingface-catalogue'
+import { REVIEWED_OPEN_LOCAL_EVIDENCE } from '../src/lib/open-local-evidence'
 
 async function main() {
   const models = getAllModels()
@@ -15,12 +16,22 @@ async function main() {
   console.log(`  open-weight with local evidence: ${local.length}`)
   console.log(`  open-weight missing local evidence: ${missingLocal.length}`)
 
+  const reviewedBySlug = new Map(REVIEWED_OPEN_LOCAL_EVIDENCE.map((entry) => [entry.slug, entry]))
   if (missingLocal.length > 0) {
-    console.log('\nOpen-weight models missing local evidence:')
+    console.log('\nOpen-weight models missing persisted local_info:')
     for (const model of missingLocal) {
-      console.log(`  - ${model.slug} — ${model.name}`)
+      const reviewed = reviewedBySlug.get(model.slug)
+      const status = reviewed ? ` [reviewed: ${reviewed.status}]` : ' [unreviewed]'
+      console.log(`  - ${model.slug} — ${model.name}${status}`)
     }
   }
+
+  const confirmedAwaitingBackfill = missingLocal.filter(
+    (model) => reviewedBySlug.get(model.slug)?.status === 'confirmed_local',
+  )
+  console.log(`\nReviewed mappings: ${REVIEWED_OPEN_LOCAL_EVIDENCE.length}`)
+  console.log(`  confirmed local awaiting local_info backfill: ${confirmedAwaitingBackfill.length}`)
+  console.log(`  unresolved open models: ${missingLocal.filter((model) => !reviewedBySlug.has(model.slug)).length}`)
 
   try {
     const ollama = await fetchOllamaCloudModels()
@@ -50,7 +61,7 @@ async function main() {
     console.warn('\nHugging Face router catalogue unavailable:', error)
   }
 
-  console.log('\nNo catalogue match is persisted by this audit. External evidence stays observational until reviewed.')
+  console.log('\nAutomatic catalogue matches are never persisted by this audit. Only entries in the reviewed evidence registry may be backfilled.')
 }
 
 main().catch((error) => {
