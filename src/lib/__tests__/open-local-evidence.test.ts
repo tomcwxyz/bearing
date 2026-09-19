@@ -20,7 +20,10 @@ describe('reviewed open/local evidence', () => {
   })
 
   it('records provider-only weight access explicitly', () => {
-    expect(getReviewedOpenLocalEvidence('qwen3.6-plus')?.weightAccess).toBe('provider_only')
+    const qwenPlus = getReviewedOpenLocalEvidence('qwen3.6-plus')
+    expect(qwenPlus?.weightAccess).toBe('provider_only')
+    expect(qwenPlus?.transparencyCorrection?.open_weights).toBe(0)
+    expect(qwenPlus?.transparencyCorrection?.licence_openness).toBe(0.1)
   })
 
   it('does not turn hosted-only or weights-only evidence into local capability', () => {
