@@ -53,7 +53,7 @@ function TierGroup({
         {recommendations.map((rec) => {
           const fitLabel = describeLocalTaskFit(rec.effectiveQuality)
           const reviewed = getReviewedOpenLocalEvidence(rec.model.slug)
-          const ollamaModelId = rec.model.model_class !== 'embedding'
+          const ollamaModelId = rec.modelClass !== 'embedding'
             ? reviewed?.ollamaModelId
             : undefined
 
