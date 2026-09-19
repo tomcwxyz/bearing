@@ -467,6 +467,11 @@
         "note": "Official Alibaba documentation identifies Alibaba Cloud Model Studio as the inference service provider and documents API capabilities/pricing."
       }
     ],
-    "note": "Reviewed as a provider model rather than an open-weight release. No official Qwen weight repository was found; keep it out of Open models only and Runs locally."
+    "note": "Reviewed as a provider model rather than an open-weight release. No official Qwen weight repository was found; keep it out of Open models only and Runs locally.",
+    "transparencyCorrection": {
+      "open_weights": 0,
+      "licence_openness": 0.1,
+      "notes": "Provider-hosted Qwen3.6 Plus model. Official Alibaba documentation exposes it through Model Studio inference services; no official downloadable weight release was found in the reviewed Qwen catalogue as of 2026-09-19."
+    }
   }
 ]
