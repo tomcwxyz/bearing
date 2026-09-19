@@ -12,6 +12,8 @@
     "eval:ranking": "tsx scripts/evaluate-ranking.ts",
     "eval:ranking:update": "tsx scripts/evaluate-ranking.ts --write-baseline",
     "eval:classifier": "tsx scripts/evaluate-classifier.ts",
+    "audit:open-models": "tsx scripts/audit-open-models.ts",
+    "eval:open-models": "tsx scripts/evaluate-open-models.ts",
     "db:seed": "tsx scripts/seed-models.ts",
     "db:generate": "tsx scripts/generate-registry.ts",
     "prebuild": "tsx scripts/generate-registry.ts"
