@@ -384,7 +384,7 @@ export function ResultsClient({
                   )}
                   {!model.localCapable && model.localEvidenceStatus === 'hosted_only' && (
                     <span className="rounded-full border border-navy/15 bg-cream px-2 py-0.5 text-[11px] font-medium text-navy/55">
-                      Hosted open model
+                      {model.weightAccess === 'provider_only' ? 'Hosted provider model' : 'Hosted open model'}
                     </span>
                   )}
                   {!model.localCapable && model.localEvidenceStatus === 'weights_available' && (
