@@ -1,0 +1,266 @@
+[
+  {
+    "slug": "gemma-3-27b-it",
+    "status": "confirmed_local",
+    "huggingFaceId": "google/gemma-3-27b-it",
+    "ollamaModelId": "gemma3:27b-it-q4_K_M",
+    "localInfo": {
+      "total_params_b": 27.4,
+      "active_params_b": null,
+      "is_moe": false,
+      "quant_options": [
+        {
+          "quant": "Q4_K_M",
+          "vram_gb": 17,
+          "quality_penalty": 0.05
+        },
+        {
+          "quant": "Q8_0",
+          "vram_gb": 30,
+          "quality_penalty": 0
+        },
+        {
+          "quant": "FP16",
+          "vram_gb": 55,
+          "quality_penalty": 0
+        }
+      ]
+    },
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/google/gemma-3-27b-it",
+        "checkedAt": "2026-09-19",
+        "note": "Official Google model identity."
+      },
+      {
+        "kind": "ollama",
+        "url": "https://ollama.com/library/gemma3/tags",
+        "checkedAt": "2026-09-19",
+        "note": "Official 27B Q4_K_M, Q8_0 and FP16 variants with concrete sizes."
+      }
+    ],
+    "note": "Concrete Ollama variants confirm practical local execution."
+  },
+  {
+    "slug": "llama-3.3-70b-instruct",
+    "status": "confirmed_local",
+    "huggingFaceId": "meta-llama/Llama-3.3-70B-Instruct",
+    "ollamaModelId": "llama3.3:70b-instruct-q4_K_M",
+    "localInfo": {
+      "total_params_b": 70.6,
+      "active_params_b": null,
+      "is_moe": false,
+      "quant_options": [
+        {
+          "quant": "Q4_K_M",
+          "vram_gb": 43,
+          "quality_penalty": 0.05
+        },
+        {
+          "quant": "Q6_K",
+          "vram_gb": 58,
+          "quality_penalty": 0.02
+        },
+        {
+          "quant": "Q8_0",
+          "vram_gb": 75,
+          "quality_penalty": 0
+        }
+      ]
+    },
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct",
+        "checkedAt": "2026-09-19",
+        "note": "Official Meta model identity."
+      },
+      {
+        "kind": "ollama",
+        "url": "https://ollama.com/library/llama3.3/tags",
+        "checkedAt": "2026-09-19",
+        "note": "Q4_K_M, Q6_K and Q8_0 variants expose 43 GB, 58 GB and 75 GB artefacts."
+      }
+    ],
+    "note": "Local, but workstation-class rather than laptop-class at the reviewed quantisations."
+  },
+  {
+    "slug": "hermes-3-llama-3.1-70b",
+    "status": "confirmed_local",
+    "huggingFaceId": "NousResearch/Hermes-3-Llama-3.1-70B",
+    "ollamaModelId": "hermes3:70b-llama3.1-q4_K_M",
+    "localInfo": {
+      "total_params_b": 70.6,
+      "active_params_b": null,
+      "is_moe": false,
+      "quant_options": [
+        {
+          "quant": "Q4_K_M",
+          "vram_gb": 43,
+          "quality_penalty": 0.05
+        },
+        {
+          "quant": "Q6_K",
+          "vram_gb": 58,
+          "quality_penalty": 0.02
+        },
+        {
+          "quant": "Q8_0",
+          "vram_gb": 75,
+          "quality_penalty": 0
+        }
+      ]
+    },
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-70B",
+        "checkedAt": "2026-09-19",
+        "note": "Nous Research model card identifies official GGUF quantisations."
+      },
+      {
+        "kind": "ollama",
+        "url": "https://ollama.com/library/hermes3/tags",
+        "checkedAt": "2026-09-19",
+        "note": "70B Q4_K_M, Q6_K and Q8_0 variants with concrete sizes."
+      }
+    ],
+    "note": "Confirmed local execution with a large memory footprint."
+  },
+  {
+    "slug": "lfm-2-24b-a2b",
+    "status": "confirmed_local",
+    "huggingFaceId": "LiquidAI/LFM2-24B-A2B",
+    "ollamaModelId": "lfm2:24b",
+    "localInfo": {
+      "total_params_b": 23.8,
+      "active_params_b": 2,
+      "is_moe": true,
+      "quant_options": [
+        {
+          "quant": "Q4_K_M",
+          "vram_gb": 14,
+          "quality_penalty": 0.05
+        },
+        {
+          "quant": "Q8_0",
+          "vram_gb": 25,
+          "quality_penalty": 0
+        },
+        {
+          "quant": "BF16",
+          "vram_gb": 48,
+          "quality_penalty": 0
+        }
+      ]
+    },
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/LiquidAI/LFM2-24B-A2B",
+        "checkedAt": "2026-09-19",
+        "note": "Official Liquid AI model identity."
+      },
+      {
+        "kind": "ollama",
+        "url": "https://ollama.com/library/lfm2/tags",
+        "checkedAt": "2026-09-19",
+        "note": "24B-A2B Q4_K_M, Q8_0 and BF16 variants expose 14 GB, 25 GB and 48 GB artefacts."
+      }
+    ],
+    "note": "Only about 2B parameters are active per token; reviewed Ollama artefacts make local execution concrete."
+  },
+  {
+    "slug": "qwen3.5-9b",
+    "status": "confirmed_local",
+    "huggingFaceId": "Qwen/Qwen3.5-9B",
+    "ollamaModelId": "qwen3.5:9b",
+    "localInfo": {
+      "total_params_b": 9,
+      "active_params_b": null,
+      "is_moe": false,
+      "quant_options": [
+        {
+          "quant": "Q4_K_M",
+          "vram_gb": 6.6,
+          "quality_penalty": 0.05
+        },
+        {
+          "quant": "Q8_0",
+          "vram_gb": 11,
+          "quality_penalty": 0
+        },
+        {
+          "quant": "BF16",
+          "vram_gb": 19,
+          "quality_penalty": 0
+        }
+      ]
+    },
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/Qwen/Qwen3.5-9B",
+        "checkedAt": "2026-09-19",
+        "note": "Official Qwen model card and safetensors release."
+      },
+      {
+        "kind": "ollama",
+        "url": "https://ollama.com/library/qwen3.5/tags",
+        "checkedAt": "2026-09-19",
+        "note": "9B Q4_K_M, Q8_0 and BF16 variants expose 6.6 GB, 11 GB and 19 GB artefacts."
+      }
+    ],
+    "note": "Strong candidate for ordinary local hardware; the reviewed Ollama variants are multimodal."
+  },
+  {
+    "slug": "glm-5.2",
+    "status": "hosted_only",
+    "huggingFaceId": "zai-org/GLM-5.2",
+    "ollamaModelId": "glm-5.2:cloud",
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/zai-org/GLM-5.2",
+        "checkedAt": "2026-09-19",
+        "note": "Official MIT-licensed weights are published on Hugging Face."
+      },
+      {
+        "kind": "ollama",
+        "url": "https://ollama.com/library/glm-5.2",
+        "checkedAt": "2026-09-19",
+        "note": "Ollama currently exposes GLM-5.2 as cloud-only; the catalogue lists 756B parameters."
+      }
+    ],
+    "note": "Do not mark local-capable without concrete local runtime and footprint evidence."
+  },
+  {
+    "slug": "kimi-k2.7-code",
+    "status": "weights_available",
+    "huggingFaceId": "moonshotai/Kimi-K2.7-Code",
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/moonshotai/Kimi-K2.7-Code",
+        "checkedAt": "2026-09-19",
+        "note": "Official weights; model card documents native INT4 and vLLM/SGLang/KTransformers deployment."
+      }
+    ],
+    "note": "Runnable on suitable infrastructure, but no reviewed consumer/local footprint is encoded yet."
+  },
+  {
+    "slug": "kimi-k3",
+    "status": "weights_available",
+    "huggingFaceId": "moonshotai/Kimi-K3",
+    "sources": [
+      {
+        "kind": "huggingface",
+        "url": "https://huggingface.co/moonshotai/Kimi-K3",
+        "checkedAt": "2026-09-19",
+        "note": "Official 2.8T-parameter release with safetensors."
+      }
+    ],
+    "note": "Weights are available, but Bearing does not yet have a reviewed local runtime footprint."
+  }
+]
