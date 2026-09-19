@@ -1,10 +1,21 @@
 'use client'
 
-import type { LocalInferenceResult, LocalModelRecommendation, HardwareTier } from '@/lib/local-inference'
-import { describeLocalTaskFit } from '@/lib/open-local-models'
+import type {
+  LocalInferenceResult,
+  LocalModelRecommendation,
+  HardwareTier,
+} from '@/lib/local-inference'
+import {
+  describeLocalTaskFit,
+  type HardwareProfile,
+} from '@/lib/open-local-models'
+import { getReviewedOpenLocalEvidence } from '@/lib/open-local-evidence'
+import { LocalOllamaVerifier } from './local-ollama-verifier'
 
 interface LocalSectionProps {
   local: LocalInferenceResult
+  taskId: string
+  hardwareProfile: HardwareProfile | null
 }
 
 function formatParams(rec: LocalModelRecommendation): string {
@@ -19,9 +30,13 @@ function formatParams(rec: LocalModelRecommendation): string {
 function TierGroup({
   tier,
   recommendations,
+  taskId,
+  hardwareProfile,
 }: {
   tier: HardwareTier
   recommendations: LocalModelRecommendation[]
+  taskId: string
+  hardwareProfile: HardwareProfile | null
 }) {
   return (
     <div className="rounded-lg border border-cream-dark border-l-4 border-l-amber bg-white p-4">
@@ -34,30 +49,47 @@ function TierGroup({
         </p>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {recommendations.map((rec) => {
           const fitLabel = describeLocalTaskFit(rec.effectiveQuality)
+          const reviewed = getReviewedOpenLocalEvidence(rec.model.slug)
+          const ollamaModelId = rec.modelClass !== 'embedding'
+            ? reviewed?.ollamaModelId
+            : undefined
+
           return (
-            <div key={rec.model.slug} className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-navy">
-                  {rec.model.name}
-                  <span className="text-navy/40 font-normal text-xs ml-1">
-                    {formatParams(rec)}
-                  </span>
-                </p>
-                <p className="text-xs text-navy/50 mt-0.5">
-                  {rec.model.strengths[0]}
-                </p>
+            <div key={rec.model.slug}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-navy">
+                    {rec.model.name}
+                    <span className="text-navy/40 font-normal text-xs ml-1">
+                      {formatParams(rec)}
+                    </span>
+                  </p>
+                  <p className="text-xs text-navy/50 mt-0.5">
+                    {rec.model.strengths[0]}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="font-mono text-xs text-navy/50">
+                    {rec.bestQuant.quant} · ~{rec.bestQuant.vram_gb} GB
+                  </p>
+                  <p className="text-xs font-semibold text-navy">
+                    {fitLabel}
+                  </p>
+                </div>
               </div>
-              <div className="shrink-0 text-right">
-                <p className="font-mono text-xs text-navy/50">
-                  {rec.bestQuant.quant} · ~{rec.bestQuant.vram_gb} GB
-                </p>
-                <p className="text-xs font-semibold text-navy">
-                  {fitLabel}
-                </p>
-              </div>
+
+              {ollamaModelId && reviewed?.status === 'confirmed_local' && (
+                <LocalOllamaVerifier
+                  taskId={taskId}
+                  modelSlug={rec.model.slug}
+                  modelName={rec.model.name}
+                  ollamaModelId={ollamaModelId}
+                  hardwareProfile={hardwareProfile}
+                />
+              )}
             </div>
           )
         })}
@@ -72,11 +104,14 @@ const TOOLS = [
   { name: 'llama.cpp', url: 'https://github.com/ggerganov/llama.cpp' },
 ]
 
-export function LocalSection({ local }: LocalSectionProps) {
+export function LocalSection({
+  local,
+  taskId,
+  hardwareProfile,
+}: LocalSectionProps) {
   const { recommendations, tiersUsed } = local
   if (recommendations.length === 0) return null
 
-  // Group recommendations by tier
   const byTier = new Map<string, LocalModelRecommendation[]>()
   for (const rec of recommendations) {
     const id = rec.hardwareTier.id
@@ -102,7 +137,15 @@ export function LocalSection({ local }: LocalSectionProps) {
         {tiersUsed.map((tier) => {
           const recs = byTier.get(tier.id)
           if (!recs) return null
-          return <TierGroup key={tier.id} tier={tier} recommendations={recs} />
+          return (
+            <TierGroup
+              key={tier.id}
+              tier={tier}
+              recommendations={recs}
+              taskId={taskId}
+              hardwareProfile={hardwareProfile}
+            />
+          )
         })}
       </div>
 

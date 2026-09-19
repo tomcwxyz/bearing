@@ -173,7 +173,9 @@ export async function GET(request: NextRequest) {
       model_slug,
       model_metadata_snapshot,
       execution_location,
+      execution_purpose,
       runtime,
+      runtime_version,
       runtime_model_id,
       quant,
       context_length,
@@ -181,6 +183,11 @@ export async function GET(request: NextRequest) {
       measured_vram_gb,
       tokens_per_second,
       latency_ms,
+      prompt_tokens,
+      output_tokens,
+      total_duration_ms,
+      load_duration_ms,
+      prompt_eval_duration_ms,
       evidence_source,
       created_at::date AS execution_date
     FROM execution_observations
@@ -195,7 +202,9 @@ export async function GET(request: NextRequest) {
       model_slug: observation.model_slug,
       model_metadata: observation.model_metadata_snapshot ?? null,
       execution_location: observation.execution_location,
+      execution_purpose: observation.execution_purpose,
       runtime: observation.runtime ?? null,
+      runtime_version: observation.runtime_version ?? null,
       runtime_model_id: observation.runtime_model_id ?? null,
       quant: observation.quant ?? null,
       context_length: observation.context_length ?? null,
@@ -203,6 +212,11 @@ export async function GET(request: NextRequest) {
       measured_vram_gb: observation.measured_vram_gb ?? null,
       tokens_per_second: observation.tokens_per_second ?? null,
       latency_ms: observation.latency_ms ?? null,
+      prompt_tokens: observation.prompt_tokens ?? null,
+      output_tokens: observation.output_tokens ?? null,
+      total_duration_ms: observation.total_duration_ms ?? null,
+      load_duration_ms: observation.load_duration_ms ?? null,
+      prompt_eval_duration_ms: observation.prompt_eval_duration_ms ?? null,
       evidence_source: observation.evidence_source,
       execution_date: observation.execution_date,
     })
@@ -354,7 +368,7 @@ export async function GET(request: NextRequest) {
     {
       meta: {
         name: 'Bearing Public Dataset',
-        version: '2.0',
+        version: '2.1',
         exported_at: new Date().toISOString(),
         record_count: records.length,
         description:
@@ -377,6 +391,7 @@ export async function GET(request: NextRequest) {
           },
         },
         changelog: {
+          '2.1': 'Adds execution_purpose plus runtime version and detailed measured probe metrics (prompt/output tokens, total/load/prompt-eval durations) so verification probes can be analysed separately from real task executions.',
           '2.0': 'Adds the full current task-classification dimensions; adds openness/local-capability metadata to recommended models; expands model_selected with a selection-time model metadata snapshot and privacy-safe choice context (active filters, coarse hardware profile, predicted hardware fit); adds execution_observations for actual runtime evidence such as local runtime, quant, context, VRAM and tokens/sec. Choice/fit evidence and observed execution are intentionally separate.',
           '1.4': 'Adds model_class to every entry in models_recommended and local_recommendations ("chat" or "embedding"). Adds v0.9 classification_schema_version with the 13-value task type enum.',
           '1.3': 'Adds local_recommendations — the open-weight models the recommender suggested for local hardware, with quant / VRAM / hardware tier per candidate. Persisted from 2026-05-23; empty array for earlier tasks.',
@@ -410,7 +425,7 @@ export async function GET(request: NextRequest) {
           models_recommended: 'Array of {slug, rank, weighted_score, model_class, open_weights, is_open_weight, local_capable}. Openness/local fields reflect the catalogue at export time; selection-time state is snapshotted separately in model_selected.model_metadata.',
           local_recommendations: 'Array of {slug, rank, effective_quality, quant, vram_gb, quality_penalty, hardware_tier_id, model_class} for open-weight models recommendable on local hardware. model_class is "chat" or "embedding". Empty array means either no viable local candidate OR (for tasks before 2026-05-23) that the local set was computed but not persisted.',
           model_selected: '{slug, recommended_rank, model_metadata, choice_context} for the chosen model. model_metadata is snapshotted at selection time for new choices; older rows are explicitly marked as backfilled from the current catalogue. choice_context may include the filters active when chosen, a coarse hardware profile and predicted fit. null if no selection was made.',
-          execution_observations: 'Array of actual execution observations. Kept separate from predicted hardware fit. May include execution_location, runtime, quant, context_length, a coarse hardware_profile, measured_vram_gb, tokens_per_second, latency_ms and evidence_source. Empty until an actual run is observed/reported.',
+          execution_observations: 'Array of actual execution observations. Kept separate from predicted hardware fit. execution_purpose distinguishes task_execution from verification_probe. Observations may include runtime/version, quant, context_length, coarse hardware, measured_vram_gb, tokens_per_second, latency, token counts, detailed duration metrics and evidence_source.',
           outcome_success: 'Whether the user reported success (true/false/null)',
           failure_reason: 'User-reported failure reason if applicable',
           task_date: 'Date the task was created',

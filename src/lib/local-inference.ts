@@ -50,6 +50,7 @@ export const HARDWARE_TIERS: HardwareTier[] = [
 
 export interface LocalModelRecommendation {
   model: ScoredModel
+  modelClass: Model['model_class']
   localInfo: LocalInfo
   bestQuant: QuantOption
   hardwareTier: HardwareTier
@@ -137,6 +138,7 @@ export function scoreLocalModels(
 
     candidates.push({
       model: scored,
+      modelClass: full.model_class,
       localInfo: full.local_info,
       bestQuant,
       hardwareTier: tier,

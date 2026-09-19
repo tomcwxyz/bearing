@@ -6,7 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
-No additional unreleased product changes are currently recorded.
+### Added
+
+- **Verify local models in Ollama** — reviewed Ollama-capable recommendations can now run a small fixed verification probe against the user's own local Ollama runtime. Bearing does not auto-pull missing models and does not send the user's task text to the probe.
+- **Measured local execution evidence** — successful verification probes can record Ollama version, exact runtime model/tag, quantisation, loaded context, resident VRAM, token throughput, token counts and timing breakdowns alongside the coarse hardware profile.
+- **Execution purpose in public data** — dataset schema 2.1 distinguishes `verification_probe` from `task_execution`, preventing a hardware/runtime check from being mistaken for the user's real workload.
+
+### Changed
+
+- **Local fit can now be checked against reality** — the existing conservative “Likely fits this device” estimate remains predictive; Ollama verification provides a separate observed evidence layer for comparing predicted and measured fit.
 
 ## [1.0.0-beta.1] — 2026-09-19
 

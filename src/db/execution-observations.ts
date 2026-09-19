@@ -44,7 +44,9 @@ export async function saveExecutionObservation(
       model_slug,
       model_metadata_snapshot,
       execution_location,
+      execution_purpose,
       runtime,
+      runtime_version,
       runtime_model_id,
       quant,
       context_length,
@@ -52,6 +54,11 @@ export async function saveExecutionObservation(
       measured_vram_gb,
       tokens_per_second,
       latency_ms,
+      prompt_tokens,
+      output_tokens,
+      total_duration_ms,
+      load_duration_ms,
+      prompt_eval_duration_ms,
       evidence_source
     ) VALUES (
       ${observation.taskId},
@@ -60,7 +67,9 @@ export async function saveExecutionObservation(
       ${observation.modelSlug},
       ${modelSnapshot ? JSON.stringify(modelSnapshot) : null}::jsonb,
       ${observation.executionLocation},
+      ${observation.executionPurpose ?? 'task_execution'},
       ${observation.runtime ?? null},
+      ${observation.runtimeVersion ?? null},
       ${observation.runtimeModelId ?? null},
       ${observation.quant ?? null},
       ${observation.contextLength ?? null},
@@ -68,6 +77,11 @@ export async function saveExecutionObservation(
       ${observation.measuredVramGb ?? null},
       ${observation.tokensPerSecond ?? null},
       ${observation.latencyMs ?? null},
+      ${observation.promptTokens ?? null},
+      ${observation.outputTokens ?? null},
+      ${observation.totalDurationMs ?? null},
+      ${observation.loadDurationMs ?? null},
+      ${observation.promptEvalDurationMs ?? null},
       ${observation.evidenceSource}
     )
     RETURNING id

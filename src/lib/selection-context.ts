@@ -38,6 +38,52 @@ const GPU_VENDORS = new Set(['apple', 'nvidia', 'amd', 'intel', 'unknown'])
 const RUNTIMES = new Set(['ollama', 'lm-studio', 'llama.cpp', 'mlx', 'transformers'])
 const CONFIDENCE = new Set(['high', 'medium', 'low'])
 
+export function sanitiseCoarseHardwareProfile(
+  value: unknown,
+): CoarseHardwareProfile | null {
+  if (!value || typeof value !== 'object') return null
+  const h = value as Record<string, unknown>
+  const memory = finitePositive(h.memory_gb)
+  const platform = typeof h.platform === 'string' && PLATFORMS.has(h.platform)
+    ? h.platform as CoarseHardwareProfile['platform']
+    : 'unknown'
+  const architecture = typeof h.architecture === 'string' && ARCHITECTURES.has(h.architecture)
+    ? h.architecture as CoarseHardwareProfile['architecture']
+    : 'unknown'
+
+  if (!memory) return null
+
+  const profile: CoarseHardwareProfile = {
+    platform,
+    architecture,
+    memory_gb: Math.min(memory, 2048),
+  }
+
+  if (typeof h.gpu_vendor === 'string' && GPU_VENDORS.has(h.gpu_vendor)) {
+    profile.gpu_vendor = h.gpu_vendor as NonNullable<HardwareProfile['gpu']>['vendor']
+  }
+  const vram = finitePositive(h.vram_gb)
+  if (vram) profile.vram_gb = Math.min(vram, 2048)
+  if (typeof h.runtime === 'string' && RUNTIMES.has(h.runtime)) {
+    profile.runtime = h.runtime as HardwareProfile['runtime']
+  }
+  return profile
+}
+
+export function coarseHardwareProfileFromProfile(
+  profile: HardwareProfile | null,
+): CoarseHardwareProfile | null {
+  if (!profile) return null
+  return {
+    platform: profile.platform,
+    architecture: profile.architecture,
+    memory_gb: profile.memoryGb,
+    ...(profile.gpu?.vendor ? { gpu_vendor: profile.gpu.vendor } : {}),
+    ...(profile.gpu?.vramGb ? { vram_gb: profile.gpu.vramGb } : {}),
+    ...(profile.runtime ? { runtime: profile.runtime } : {}),
+  }
+}
+
 /**
  * Server-safe coercion for the client-provided choice context.
  *
@@ -53,32 +99,7 @@ export function sanitiseSelectionChoiceContext(
     ? raw.filters as Record<string, unknown>
     : {}
 
-  let hardwareProfile: CoarseHardwareProfile | null = null
-  if (raw.hardware_profile && typeof raw.hardware_profile === 'object') {
-    const h = raw.hardware_profile as Record<string, unknown>
-    const memory = finitePositive(h.memory_gb)
-    const platform = typeof h.platform === 'string' && PLATFORMS.has(h.platform)
-      ? h.platform as CoarseHardwareProfile['platform']
-      : 'unknown'
-    const architecture = typeof h.architecture === 'string' && ARCHITECTURES.has(h.architecture)
-      ? h.architecture as CoarseHardwareProfile['architecture']
-      : 'unknown'
-    if (memory) {
-      hardwareProfile = {
-        platform,
-        architecture,
-        memory_gb: Math.min(memory, 2048),
-      }
-      if (typeof h.gpu_vendor === 'string' && GPU_VENDORS.has(h.gpu_vendor)) {
-        hardwareProfile.gpu_vendor = h.gpu_vendor as NonNullable<HardwareProfile['gpu']>['vendor']
-      }
-      const vram = finitePositive(h.vram_gb)
-      if (vram) hardwareProfile.vram_gb = Math.min(vram, 2048)
-      if (typeof h.runtime === 'string' && RUNTIMES.has(h.runtime)) {
-        hardwareProfile.runtime = h.runtime as HardwareProfile['runtime']
-      }
-    }
-  }
+  const hardwareProfile = sanitiseCoarseHardwareProfile(raw.hardware_profile)
 
   let predictedFit: SelectionChoiceContext['predicted_hardware_fit'] = null
   if (raw.predicted_hardware_fit && typeof raw.predicted_hardware_fit === 'object') {
@@ -126,16 +147,7 @@ export function buildSelectionChoiceContext(input: {
       local_only: input.localOnly,
       hardware_fit_only: input.hardwareFitOnly,
     },
-    hardware_profile: hardwareProfile
-      ? {
-          platform: hardwareProfile.platform,
-          architecture: hardwareProfile.architecture,
-          memory_gb: hardwareProfile.memoryGb,
-          ...(hardwareProfile.gpu?.vendor ? { gpu_vendor: hardwareProfile.gpu.vendor } : {}),
-          ...(hardwareProfile.gpu?.vramGb ? { vram_gb: hardwareProfile.gpu.vramGb } : {}),
-          ...(hardwareProfile.runtime ? { runtime: hardwareProfile.runtime } : {}),
-        }
-      : null,
+    hardware_profile: coarseHardwareProfileFromProfile(hardwareProfile),
     predicted_hardware_fit: hardwareFit
       ? {
           fits: hardwareFit.fits,

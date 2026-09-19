@@ -553,7 +553,11 @@ export function ResultsClient({
       )}
 
       {local && (
-        <LocalSection local={local} />
+        <LocalSection
+          local={local}
+          taskId={taskId}
+          hardwareProfile={hardwareProfile}
+        />
       )}
 
       {selectionId && (
