@@ -11,6 +11,7 @@ import type { ModelOutcomeEvidence } from '@/lib/outcome-evidence'
 import type { RecommendationEvidence } from '@/lib/recommendation-evidence'
 import type { RecommendationConfidence } from '@/lib/recommendation-confidence'
 import type { FeaturedAlternative } from '@/lib/tradeoff-alternatives'
+import { OPEN_WEIGHTS_THRESHOLD } from '@/lib/open-local-models'
 import { PipelineSection } from './pipeline-section'
 import { LocalSection } from './local-section'
 import { RunSurface } from './run-surface'
@@ -227,6 +228,8 @@ export function ResultsClient({
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [showAllModels, setShowAllModels] = useState(false)
+  const [openOnly, setOpenOnly] = useState(false)
+  const [localOnly, setLocalOnly] = useState(false)
 
   const rankBySlug = useMemo(
     () => new Map(models.map((model, index) => [model.slug, index + 1])),
@@ -237,17 +240,28 @@ export function ResultsClient({
     [featuredAlternatives],
   )
 
+  const filteredModels = useMemo(() => models.filter((model) => {
+    if (openOnly && model.openWeights < OPEN_WEIGHTS_THRESHOLD) return false
+    if (localOnly && !model.localCapable) return false
+    return true
+  }), [localOnly, models, openOnly])
+
   const visibleModels = useMemo(() => {
-    if (showAllModels) return models
+    if (showAllModels) return filteredModels
+
+    // When a filter is active, preserve the original recommendation order and
+    // show the first few eligible results. Do not silently recalculate scores.
+    if (openOnly || localOnly) return filteredModels.slice(0, 5)
+
     const featuredSlugs = [models[0]?.slug, ...featuredAlternatives.map((alternative) => alternative.slug)]
       .filter((slug): slug is string => Boolean(slug))
-    const modelBySlug = new Map(models.map((model) => [model.slug, model]))
+    const modelBySlug = new Map(filteredModels.map((model) => [model.slug, model]))
     return featuredSlugs
       .map((slug) => modelBySlug.get(slug))
       .filter((model): model is ScoredModel => Boolean(model))
-  }, [featuredAlternatives, models, showAllModels])
+  }, [featuredAlternatives, filteredModels, localOnly, models, openOnly, showAllModels])
 
-  const hiddenCount = models.length - visibleModels.length
+  const hiddenCount = filteredModels.length - visibleModels.length
 
   function handleSelect(modelSlug: string, rank: number) {
     setError(null)
@@ -269,6 +283,64 @@ export function ResultsClient({
       )}
 
       <DecisionConfidence confidence={decisionConfidence} />
+
+      <div className="rounded-xl border border-cream-dark bg-white px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-navy/45">Show</span>
+          <button
+            type="button"
+            aria-pressed={openOnly}
+            onClick={() => {
+              setOpenOnly((value) => !value)
+              setShowAllModels(false)
+            }}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              openOnly
+                ? 'border-teal bg-teal text-cream'
+                : 'border-cream-dark text-navy/70 hover:border-teal hover:text-teal'
+            }`}
+          >
+            Open models only
+          </button>
+          <button
+            type="button"
+            aria-pressed={localOnly}
+            onClick={() => {
+              setLocalOnly((value) => !value)
+              setShowAllModels(false)
+            }}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              localOnly
+                ? 'border-amber bg-amber text-white'
+                : 'border-cream-dark text-navy/70 hover:border-amber hover:text-navy'
+            }`}
+          >
+            Runs locally
+          </button>
+          {(openOnly || localOnly) && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpenOnly(false)
+                setLocalOnly(false)
+                setShowAllModels(false)
+              }}
+              className="ml-auto text-xs text-navy/50 underline underline-offset-2 hover:text-navy"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-navy/45">
+          Open means strong open-weight evidence; it does not claim the training data, methodology or licence are fully open. Local means Bearing has concrete quantisation metadata. Filters preserve the original ranking.
+        </p>
+      </div>
+
+      {visibleModels.length === 0 && (
+        <div className="rounded-xl border border-cream-dark bg-cream/40 p-5 text-sm text-navy/65">
+          No models in this bearing meet the selected filters. Try clearing one filter or adjust the bearing.
+        </div>
+      )}
 
       {visibleModels.map((model, index) => {
         const rank = rankBySlug.get(model.slug) ?? index + 1
@@ -295,6 +367,16 @@ export function ResultsClient({
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <RecommendationLabel rank={rank} alternative={alternative} />
                   <span className="text-xs text-navy/40">{model.provider}</span>
+                  {model.openWeights >= OPEN_WEIGHTS_THRESHOLD && (
+                    <span className="rounded-full border border-teal/30 bg-teal/5 px-2 py-0.5 text-[11px] font-medium text-teal">
+                      Open weights
+                    </span>
+                  )}
+                  {model.localCapable && (
+                    <span className="rounded-full border border-amber/30 bg-amber/5 px-2 py-0.5 text-[11px] font-medium text-navy/65">
+                      Local-capable
+                    </span>
+                  )}
                 </div>
                 <h3 className="font-display text-xl font-bold text-navy">
                   {model.name}
@@ -357,12 +439,12 @@ export function ResultsClient({
             onClick={() => setShowAllModels(true)}
             className="btn-secondary"
           >
-            Show full ranking ({models.length} models)
+            Show all matching models ({filteredModels.length})
           </button>
         </div>
       )}
 
-      {showAllModels && models.length > 1 + featuredAlternatives.length && (
+      {showAllModels && filteredModels.length > 3 && (
         <div className="text-center">
           <button
             type="button"
