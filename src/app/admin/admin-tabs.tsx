@@ -11,7 +11,7 @@ import MaintenanceTab from './maintenance-tab'
 import type { AdminModel } from '@/db/models'
 import type { ModelVerificationSummary } from '@/db/model-verification'
 import type { UsageSummary, ActivityPoint, ModeCount, SignupPoint } from './types'
-import type { InsightsSummary, TaskTypeCount, LeaderboardEntry, OutcomeBreakdown, CapabilityDemand } from './types'
+import type { InsightsSummary, TaskTypeCount, LeaderboardEntry, OutcomeBreakdown, CapabilityDemand, LocalFitCalibration } from './types'
 import type { DiscoverModel } from './types'
 import type { BenchmarksData } from './actions'
 import type { MaintenanceState } from './maintenance-actions'
@@ -46,6 +46,7 @@ interface AdminTabsProps {
     leaderboard: LeaderboardEntry[]
     outcomes: OutcomeBreakdown
     capabilities: CapabilityDemand
+    localFitCalibration: LocalFitCalibration
   }
   initialBenchmarks: BenchmarksData
   initialMaintenance: MaintenanceState
