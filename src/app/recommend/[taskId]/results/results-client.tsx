@@ -241,7 +241,7 @@ export function ResultsClient({
   )
 
   const filteredModels = useMemo(() => models.filter((model) => {
-    if (openOnly && model.openWeights < OPEN_WEIGHTS_THRESHOLD) return false
+    if (openOnly && (model.openWeights ?? 0) < OPEN_WEIGHTS_THRESHOLD) return false
     if (localOnly && !model.localCapable) return false
     return true
   }), [localOnly, models, openOnly])
@@ -367,7 +367,7 @@ export function ResultsClient({
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <RecommendationLabel rank={rank} alternative={alternative} />
                   <span className="text-xs text-navy/40">{model.provider}</span>
-                  {model.openWeights >= OPEN_WEIGHTS_THRESHOLD && (
+                  {(model.openWeights ?? 0) >= OPEN_WEIGHTS_THRESHOLD && (
                     <span className="rounded-full border border-teal/30 bg-teal/5 px-2 py-0.5 text-[11px] font-medium text-teal">
                       Open weights
                     </span>
