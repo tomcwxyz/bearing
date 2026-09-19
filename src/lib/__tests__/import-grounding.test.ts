@@ -410,6 +410,19 @@ describe('aggregateGroundedFields — provider profile', () => {
     expect(aggregateGroundedFields([], 'z-ai').openWeights.provenance).toBe('derived')
   })
 
+  it('overrides an open provider default for hosted product families', () => {
+    // Alibaba defaults open because its size-named Qwen releases publish weights.
+    expect(aggregateGroundedFields([], 'Alibaba', 'qwen3.6-27b').openWeights.value).toBe(1)
+
+    // Product/API lines are provider-hosted unless explicit weight evidence says otherwise.
+    for (const modelId of ['qwen3.6-plus', 'qwen3.6-max-preview', 'qwen3.6-flash', 'qwen-plus', 'qwen-turbo']) {
+      const grounded = aggregateGroundedFields([], 'Alibaba', modelId)
+      expect(grounded.openWeights.value, modelId).toBe(0)
+      expect(grounded.openWeights.provenance, modelId).toBe('derived')
+      expect(grounded.licenceOpenness.value, modelId).toBe(0.1)
+    }
+  })
+
   it('overrides open_weights for a closed provider\'s open-weight family', () => {
     // Google is closed (Gemini) by default...
     expect(aggregateGroundedFields([], 'Google', 'gemini-3-pro').openWeights.value).toBe(0)
