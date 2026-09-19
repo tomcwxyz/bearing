@@ -20,6 +20,11 @@ export interface ReviewedOpenLocalEvidence {
   slug: string
   status: OpenLocalEvidenceStatus
   weightAccess?: OpenWeightAccess
+  transparencyCorrection?: {
+    open_weights: 0 | 1
+    licence_openness: number
+    notes: string
+  }
   huggingFaceId?: string
   ollamaModelId?: string
   localInfo?: LocalInfo
