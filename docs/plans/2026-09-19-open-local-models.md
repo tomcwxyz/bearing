@@ -152,11 +152,12 @@ production ranking.
 ### O2 — backfill evidence — in progress
 
 A versioned reviewed-evidence registry now records identity mappings, evidence status,
-source URLs and review dates. The first reviewed tranche contains eight models:
+source URLs and review dates. The first reviewed tranche contains ten models:
 
-- five **confirmed local** mappings ready for safe `local_info` backfill:
-  Gemma 3 27B, Llama 3.3 70B Instruct, Hermes 3 70B, LFM2-24B-A2B and Qwen 3.5 9B;
-- GLM-5.2 recorded as **hosted-only** for its reviewed Ollama route;
+- six **confirmed local** mappings ready for safe `local_info` backfill:
+  Gemma 3 27B, Llama 3.3 70B Instruct, Hermes 3 70B, LFM2-24B-A2B,
+  Qwen 3.5 9B and Qwen 3.6 27B;
+- GLM-5.2 and DeepSeek V4 Pro recorded as **hosted-only** for their reviewed Ollama routes;
 - Kimi K2.7 Code and Kimi K3 recorded as **weights available** without pretending
   that publication of very large weights implies ordinary local feasibility.
 
