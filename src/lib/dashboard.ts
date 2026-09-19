@@ -1,4 +1,10 @@
 import { neon } from '@neondatabase/serverless'
+import {
+  assessHardwareFit,
+  type HardwareProfile,
+} from './open-local-models'
+import type { CoarseHardwareProfile } from './selection-context'
+import type { LocalInfo } from './registry'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -22,6 +28,7 @@ export type TaskTypeCount = Awaited<ReturnType<typeof getTaskTypeDistribution>>[
 export type LeaderboardEntry = Awaited<ReturnType<typeof getModelLeaderboard>>[number]
 export type OutcomeBreakdown = Awaited<ReturnType<typeof getOutcomeBreakdown>>
 export type CapabilityDemand = Awaited<ReturnType<typeof getCapabilityDemand>>
+export type LocalFitCalibration = Awaited<ReturnType<typeof getLocalFitCalibration>>
 
 const VALID_GRANULARITIES = new Set<Granularity>(['day', 'week', 'month'])
 
@@ -320,5 +327,171 @@ export async function getCapabilityDemand() {
     tools: Number(row.tools),
     code: Number(row.code),
     reasoning: Number(row.reasoning),
+  }
+}
+
+
+// ---------------------------------------------------------------------------
+// Local hardware-fit calibration
+// ---------------------------------------------------------------------------
+
+function hardwareProfileFromCoarse(
+  coarse: CoarseHardwareProfile | null,
+): HardwareProfile | null {
+  if (!coarse || !Number.isFinite(coarse.memory_gb) || coarse.memory_gb <= 0) {
+    return null
+  }
+
+  return {
+    platform: coarse.platform,
+    architecture: coarse.architecture,
+    memoryGb: coarse.memory_gb,
+    ...(coarse.gpu_vendor
+      ? {
+          gpu: {
+            vendor: coarse.gpu_vendor,
+            ...(coarse.vram_gb ? { vramGb: coarse.vram_gb } : {}),
+          },
+        }
+      : {}),
+    ...(coarse.runtime ? { runtime: coarse.runtime } : {}),
+  }
+}
+
+function hardwareClass(profile: CoarseHardwareProfile | null): string {
+  if (!profile) return 'Unknown hardware'
+  const memory = `${profile.memory_gb} GB`
+  if (profile.platform === 'macos' && profile.gpu_vendor === 'apple') {
+    return `Apple unified · ${memory}`
+  }
+  if (profile.gpu_vendor && profile.gpu_vendor !== 'unknown') {
+    const vram = profile.vram_gb ? ` · ${profile.vram_gb} GB VRAM` : ''
+    return `${profile.gpu_vendor.toUpperCase()} · ${memory}${vram}`
+  }
+  return `${profile.platform} · ${memory}`
+}
+
+/**
+ * Compare Bearing's current hardware-fit estimator with successful local
+ * verification probes. The estimator is recomputed from the model metadata and
+ * coarse hardware profile so we can see how today's policy would have judged
+ * the same machine.
+ *
+ * A verification probe is intentionally not a real user task. It establishes
+ * only that the reviewed model loaded and generated locally under the recorded
+ * runtime conditions.
+ */
+export async function getLocalFitCalibration() {
+  const sql = getDb()
+
+  const [{ exists }] = await sql`
+    SELECT to_regclass('public.execution_observations') IS NOT NULL AS exists
+  `
+  if (!exists) {
+    return {
+      summary: {
+        totalProbes: 0,
+        measuredVram: 0,
+        predictedFit: 0,
+        succeededDespiteNoFit: 0,
+        avgVramDeltaGb: null as number | null,
+      },
+      observations: [] as Array<{
+        id: string
+        date: string
+        modelSlug: string
+        modelName: string
+        hardwareClass: string
+        memoryGb: number | null
+        predictedFits: boolean | null
+        predictedQuant: string | null
+        estimatedRuntimeGb: number | null
+        observedQuant: string | null
+        measuredVramGb: number | null
+        vramDeltaGb: number | null
+        contextLength: number | null
+        tokensPerSecond: number | null
+        latencyMs: number | null
+        runtimeVersion: string | null
+      }>,
+    }
+  }
+
+  const rows = await sql`
+    SELECT
+      eo.id,
+      eo.created_at,
+      eo.model_slug,
+      eo.hardware_profile,
+      eo.quant,
+      eo.context_length,
+      eo.measured_vram_gb,
+      eo.tokens_per_second,
+      eo.latency_ms,
+      eo.runtime_version,
+      m.name AS model_name,
+      m.local_info
+    FROM execution_observations eo
+    LEFT JOIN models m ON m.slug = eo.model_slug
+    WHERE eo.execution_purpose = 'verification_probe'
+      AND eo.execution_location = 'user_local'
+      AND eo.runtime = 'ollama'
+      AND eo.evidence_source = 'runtime_api'
+    ORDER BY eo.created_at DESC
+    LIMIT 250
+  `
+
+  const observations = rows.map((row) => {
+    const coarse = (row.hardware_profile as CoarseHardwareProfile | null) ?? null
+    const profile = hardwareProfileFromCoarse(coarse)
+    const localInfo = (row.local_info as LocalInfo | null) ?? undefined
+    const fit = profile && localInfo ? assessHardwareFit(localInfo, profile) : null
+    const measuredVramGb = row.measured_vram_gb == null
+      ? null
+      : Number(row.measured_vram_gb)
+    const estimatedRuntimeGb = fit?.estimatedRuntimeGb ?? null
+    const vramDeltaGb = measuredVramGb != null && estimatedRuntimeGb != null
+      ? Math.round((measuredVramGb - estimatedRuntimeGb) * 10) / 10
+      : null
+
+    return {
+      id: String(row.id),
+      date: row.created_at instanceof Date
+        ? row.created_at.toISOString()
+        : String(row.created_at),
+      modelSlug: String(row.model_slug),
+      modelName: String(row.model_name ?? row.model_slug),
+      hardwareClass: hardwareClass(coarse),
+      memoryGb: coarse?.memory_gb ?? null,
+      predictedFits: fit?.fits ?? null,
+      predictedQuant: fit?.bestQuant?.quant ?? null,
+      estimatedRuntimeGb,
+      observedQuant: row.quant == null ? null : String(row.quant),
+      measuredVramGb,
+      vramDeltaGb,
+      contextLength: row.context_length == null ? null : Number(row.context_length),
+      tokensPerSecond: row.tokens_per_second == null
+        ? null
+        : Number(row.tokens_per_second),
+      latencyMs: row.latency_ms == null ? null : Number(row.latency_ms),
+      runtimeVersion: row.runtime_version == null ? null : String(row.runtime_version),
+    }
+  })
+
+  const deltas = observations
+    .map((observation) => observation.vramDeltaGb)
+    .filter((value): value is number => value != null)
+
+  return {
+    summary: {
+      totalProbes: observations.length,
+      measuredVram: observations.filter((o) => o.measuredVramGb != null).length,
+      predictedFit: observations.filter((o) => o.predictedFits === true).length,
+      succeededDespiteNoFit: observations.filter((o) => o.predictedFits === false).length,
+      avgVramDeltaGb: deltas.length > 0
+        ? Math.round((deltas.reduce((sum, value) => sum + value, 0) / deltas.length) * 10) / 10
+        : null,
+    },
+    observations,
   }
 }
