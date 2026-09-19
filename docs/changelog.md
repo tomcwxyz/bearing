@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
+- **Device checks now change the recommendation flow** — after a fresh hardware check or memory confirmation, Bearing switches to a device-aware view that keeps the original task ranking but shows only models likely to run on that machine. The first eligible result is labelled **Best on this device**, while its original overall rank stays visible.
+- **Local capability is now device-specific in the UI** — checked devices turn generic "local-capable" badges into **Runs on this device** or **Local, not on this device**, including the conservative device budget and the smallest reviewed local memory requirement.
+- **The local-model section is personalised after hardware assessment** — generic consumer/prosumer/workstation groups are replaced by **Can run on this device** and **Local models that need more memory**.
 - **Local fit can now be checked against reality** — the existing conservative “Likely fits this device” estimate remains predictive; Ollama verification provides a separate observed evidence layer for comparing predicted and measured fit.
 
 ## [1.0.0-beta.1] — 2026-09-19
