@@ -6,52 +6,201 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+No additional unreleased product changes are currently recorded.
+
+## [1.0.0-beta.1] — 2026-09-19
+
+This release records the substantial Bearing 1.0 reorientation shipped since
+0.9.0. Bearing is now primarily a **decision and evaluation layer for AI work**:
+infer the job, recommend a route, run it where possible, challenge uncertainty,
+and learn from outcomes.
+
 ### Added
 
-- **Run your prompt on the recommended model** — the top recommendation now has a **Run this prompt** action. Instead of taking the suggestion elsewhere, you can type your real prompt (with an optional PDF/CSV), and Bearing routes to the #1-ranked model for your task and priorities and runs it for you — showing which model answered, why it ranked first, and the per-request footprint (grams CO₂e, estimated cost, and latency).
-- **Trio mode** — send one prompt to the top 3 ranked models at once, then a **blind judge** (a separate model that never sees which model produced which answer) picks the best. You then record which answer *you* preferred. Both verdicts feed Bearing's open dataset.
-- **Challenger mode** — route to the top model, then have the #2 model critique and improve its answer; a blind judge picks the stronger result.
-- **Routed-run dataset** — a new public export at `/api/dataset/routed-runs` (JSON or CSV) publishes every routed run: the models routed to with their rank and score, the blind judge's verdict, and the human preference. As with comparisons, only hashes of prompts and responses are stored — never the text itself.
-- **Carbon-grounded sustainability scores** — the inference-energy part of each model's sustainability rating is now grounded in real per-request carbon estimates from [EcoLogits](https://ecologits.ai) for the major hosted models Bearing covers (Anthropic, OpenAI, Google, and Mistral families — 10 models so far). Previously these were editorial estimates; now they reflect measured grams of CO₂ per typical response.
-- **Score provenance you can see** — every model now records whether its inference-energy score comes from EcoLogits data or a curated estimate. Grounded models also expose the underlying carbon figure (grams CO₂eq per response), which model it was measured against, and the date — visible in both the model registry and the public dataset.
-- **Weekly automatic refresh** — covered models' carbon scores refresh on their own each week, so ratings keep tracking real-world efficiency over time. New models imported through the admin panel are grounded automatically on import.
-- **Live benchmark re-ingest from the admin panel** — the Benchmarks tab now has a per-source **Re-fetch** button for the three live sources (LMArena, Artificial Analysis, EcoLogits) that pulls fresh data and upserts new snapshots, instead of needing a developer to run a script from a laptop. The old "Refresh" button is relabelled **Reload view** to make clear it only re-reads the database. MTEB and LiveBench are shown disabled with the reason why.
-- **Smarter benchmark alias matching** — mapping a source's model name to a Bearing model is now far less manual. Confident, unambiguous matches are **applied automatically** during a re-fetch; anything uncertain lands in the Unmatched list with **ranked slug suggestions** and a confidence badge, so an admin confirms a pre-filled guess in one click instead of scrolling every model. One shared matcher now backs the import form, the admin UI, auto-apply, and EcoLogits resolution.
-- **More open-weight providers recognised on import** — Liquid (LFM2), Z.ai (GLM), Microsoft (Phi), NVIDIA (Nemotron), AI21 (Jamba), AllenAI (OLMo), Nous Research (Hermes), and Cohere now have provider profiles, so models from them are correctly marked as open-weight (with the right licence openness) instead of falling back to a closed-source default.
-- **Licence openness is now grounded, not guessed** — how open a model's licence is now comes from the provider profile, alongside the existing open-weights status. An open-source-licensed model (for example MIT-licensed Kimi or GLM) is scored as open rather than proprietary, even for providers the AI estimator doesn't recognise by name.
-- **Open-weight families from closed providers are recognised** — some closed providers also publish an open-weight line. Google's **Gemma** and OpenAI's **gpt-oss** are now scored as open-weight (with the right licence), while their closed siblings (Gemini, GPT) stay closed. This now also covers ByteDance's **Seed-OSS**/**BAGEL**, Baidu's **ERNIE 4.5**, and xAI's open older gens (**Grok-1/2**), while Doubao, ERNIE 5.0, and current Grok stay closed.
-- **The open/closed provider table now covers the wider landscape** — the transparency rating drew on ~20 providers; it now recognises around 40, matching a mid-2026 catalogue of open-model labs. Added profiles include Databricks (DBRX), Stability AI, EleutherAI, Marin, Xiaomi (MiMo), StepFun, Tencent (Hunyuan), 01.AI (Yi), Baichuan, Huawei (Pangu), Shanghai AI Lab (InternLM), OpenBMB (MiniCPM), Skywork, RedNote, inclusionAI, MAP, BAAI, TII (Falcon), LG AI Research (EXAONE), Upstage (SOLAR), Sarvam AI, and the embedding labs Nomic, Jina, Mixedbread, and Snowflake — each with an open-weights verdict and a licence-openness score from its actual release licence. Models from these providers now import with a grounded transparency rating instead of the conservative closed-source default.
-- **Run any ranked model — not just the top pick** — every model in your results list now has its own **Run this prompt** action, alongside Trio and Challenger. Previously these only appeared on the #1 recommendation; now you can try any model in your ranked list directly. Opening Trio or Challenger from a model other than #1 anchors the comparison there — Trio becomes that model plus the next two runnable models by rank, and Challenger uses that model as the primary answer with the next-ranked model as its challenger — so you can see how your own pick stacks up against nearby alternatives instead of always the overall top three.
-- **Sign in with email and password** — Bearing has moved from magic-link email sign-in to a regular email-and-password account. New here? Create an account in a few seconds from the sign-in page — no email round-trip required. If you signed up before this change (or you've forgotten your password), the **Forgot your password, or never set one?** link on the sign-in page emails you a link to set one; you're signed in automatically as soon as you do.
-- **You can now see when you're signed in** — the navigation bar shows your email address and a **Sign out** button whenever you're signed in, instead of always showing "Sign in" regardless of your actual status.
-- **Registry grown to 54 active models** (44 chat, 10 embedding) — including newly added Claude Opus 5, Kimi K3, and others as they've released.
+- **Automatic bearing** — clear tasks no longer require compulsory manual factor
+  sorting. Bearing infers a priority order from the structured task, asks for
+  clarification only when needed, and keeps **Adjust bearing** as an explicit
+  override.
+- **Recommendation-shaped results** — one **Best fit** is foregrounded with
+  meaningful trade-off alternatives selected for useful differences rather than
+  simply displaying ranks two and three.
+- **Recommendation confidence** — a separate evidence-strength signal now uses
+  classifier confidence, top-candidate separation, catalogue freshness,
+  benchmark disagreement and supported human outcome evidence. It is explicitly
+  not presented as an answer-correctness probability.
+- **Run any ranked model** — any recommendation can be run directly from Bearing
+  with supported PDF/CSV attachments, while preserving that model's original
+  recommendation rank.
+- **Information-seeking Trio** — Trio keeps the selected anchor and chooses
+  alternatives for information value, including provider diversity, cost/profile
+  trade-offs, local versus hosted execution, sparse human evidence and benchmark
+  uncertainty. A blind judge verdict and human preference remain separate
+  signals.
+- **Contextual Challenger** — Challenger reuses an existing successful answer
+  and asks an informative alternative model to identify material gaps and
+  improve it, rather than behaving as another generic pre-run comparison mode.
+- **Outcome evidence** — explicit success/failure feedback, direct comparison
+  preferences, Trio preferences and Challenger preferences are aggregated as
+  structured human evidence. Outcome support can affect displayed confidence but
+  does not yet rewrite production ranking.
+- **Catalogue freshness** — provider/OpenRouter verification, freshness status,
+  reviewed field-level drift and admin review/recovery controls are now
+  first-class operational evidence.
+- **Runtime routability canaries** — daily production observations record healthy,
+  degraded and unavailable endpoints separately from intrinsic model quality.
+  Conservative blocking logic requires repeated, recent explicit unavailability;
+  the evidence remains observational in production while it accumulates.
+- **Golden ranking corpus and shadow evaluation** — deterministic ranking
+  regressions are checked in CI and candidate ranking changes can be compared
+  against the approved baseline before rollout.
+- **Live classifier evaluation** — a versioned semantic evaluation harness
+  measures checked-field accuracy, task-type accuracy, clarification behaviour,
+  pipeline detection and provider/call failures against the production
+  classifier.
+- **First production classifier baseline** — the 16 September run covered 28
+  cases, 26 completed calls and 362 checked fields, with 80.7% field accuracy,
+  83.3% task-type accuracy and 96.2% clarification accuracy. The results are
+  treated as review evidence, not an automatic release threshold.
+- **Optional account continuity** — signed-in tasks can be owned and shown under
+  **My bearings** while anonymous recommendation use remains supported. Raw task
+  descriptions are still not retained to provide continuity.
+- **Inspectable learned preferences** — explicit and learned bearing preferences
+  are separate, can be inspected, disabled and reset, and cannot override hard
+  requirements for the current task.
+- **Open-model result filtering** — results can now be filtered to models with
+  strong open-weight evidence without conflating open weights with fully open
+  training data, methodology or licensing.
+- **Reviewed local-model evidence** — local capability now requires concrete
+  quantisation/runtime evidence rather than merely downloadable weights.
+  Hugging Face and Ollama catalogue adapters, an observational open-model audit
+  and opt-in execution probes support the evidence workflow.
+- **Reviewed open/local provenance registry** — the original 14 open-weight
+  catalogue gaps were reviewed and classified as confirmed-local, hosted-only,
+  provider-only or weights-available. Eight confirmed-local models were
+  backfilled with concrete execution footprints.
+- **Hardware-aware local recommendations** — users can opt in to a lightweight
+  browser-side device check and confirm memory. Bearing stores the profile only
+  in that browser by default, applies conservative runtime headroom and offers a
+  **Likely fits this device** filter. WebGPU API limits are never presented as
+  detected VRAM, and the SwarmLLM-style allocate-until-failure probe is not run
+  by default.
+- **Public dataset 2.0** — the recommendation dataset now exposes the full
+  current task classification (including sensitivity, latency, volume,
+  long-context, multilingual, agentic and output-length dimensions), open/local
+  metadata for recommendations, selection-time model snapshots, privacy-safe
+  choice context and a distinct structure for observed execution evidence.
+- **Choice-context logging** — new selections can record whether Open models
+  only, Runs locally or Likely fits this device filters were active, plus a
+  coarse confirmed hardware profile and the predicted quant/fit. Detailed GPU
+  model strings, browser user agents and IP addresses are not part of the open
+  data model.
+- **Execution-observation contract** — actual execution evidence is now modelled
+  separately from predicted fit, ready to record local/runtime evidence such as
+  Ollama runtime, quant, context length, coarse hardware, measured VRAM,
+  tokens/sec and latency when a run really occurs.
+- **Routed-run dataset improvements** — the public Route/Trio/Challenger export
+  now includes the current task dimensions plus candidate open-weight,
+  local-capability and model-class metadata, and explicitly records those runs as
+  Bearing-hosted execution.
+- **Comparison dataset improvements** — head-to-head exports now include current
+  open/local/model-class metadata for both candidates and document the v0.9 task
+  schema.
+- **Public data documentation** — the Data page and live MkDocs site now document
+  recommendation → choice → execution → outcome as distinct evidence layers,
+  including the historical-vs-snapshot provenance rules.
+- **Carbon-grounded sustainability evidence** — covered hosted models can ground
+  inference-energy scores in EcoLogits observations with provenance, underlying
+  carbon estimates and snapshot dates, plus scheduled refresh.
+- **Admin benchmark re-fetch and smarter aliases** — live benchmark sources can
+  be refreshed from the admin interface, confident aliases can be applied
+  automatically, and uncertain matches surface ranked suggestions for review.
+- **Much broader transparency grounding** — provider profiles and family-specific
+  rules now cover a substantially wider open-model landscape, including open
+  families from otherwise closed providers.
 
 ### Changed
 
-- **Daily comparison limit raised from 2 to 4** — admins have no daily limit.
-- **Run, Trio, and Challenger show progress the moment you click** — submitting a task or a prompt previously could look frozen for several seconds while Bearing worked; both now show immediate visual feedback instead of appearing unresponsive.
-- **Sustainability scoring is now consistent across all models** — carbon scores use a fixed efficiency scale (lower emissions = higher score) instead of ranking covered models only against each other. A model's score no longer shifts just because another model was added or removed, and grounded scores sit on the same scale as the curated ones they're blended with.
-- **Embedding models are now found through the normal flow** — just describe what you're building (for example, "a search index over our support docs for RAG") and Bearing recognises it as embedding work, taking you straight to ranked embedding models. No need to pick a special mode first.
-- **Browse embedding models in the registry** — the model registry gains a **Chat / Embedding** type filter and a "Find an embedding model" link to the guided finder. A hint on the home page points the way for anyone who wants to jump straight there.
-
-### Removed
-
-- The standalone **Embedding** tab on the home page — replaced by the automatic routing above, so there's one consistent way to describe a task.
+- **Ranking scores are no longer shown as match percentages** across the main
+  recommendation, validation, embedding and local-fit surfaces. Weighted scores
+  remain inspectable ranking machinery, not fake probabilities.
+- **Required capabilities are hard gates; optional capabilities are
+  task-relative** — unrelated feature breadth no longer earns generic bonus
+  points.
+- **Benchmark disagreement is evidence, not something to hide** — disagreement
+  between curated and benchmark signals now contributes uncertainty.
+  Benchmark influence can be tapered by evidence breadth/recency; production
+  still defaults to curated-first ranking with `BENCHMARK_BLEND=0`.
+- **Sustainability scoring uses a fixed efficiency scale** so a model's carbon
+  score does not change merely because another model enters or leaves the
+  comparison cohort.
+- **Embedding work uses the normal Bearing flow** — the classifier can route
+  embedding tasks directly; model-class hard gating prevents chat and embedding
+  models from being compared as though they were the same workload.
+- **Authentication moved to email + password** with password setup/reset for
+  existing accounts, replacing the previous magic-link-only flow.
+- **Registry expanded to 61 active models** by 19 September 2026, with chat and
+  embedding models sharing the same evidence and decision architecture.
+- **Scoring/execution share one persisted-task mapping** so recommendations,
+  validation and Route/Trio/Challenger do not silently interpret task
+  constraints differently.
+- **Public-data provenance is explicit** — current-at-export catalogue metadata,
+  selection-time snapshots, historical backfills and observed execution are
+  labelled separately rather than being collapsed into one ambiguous field.
+- **Hardware logging is intentionally coarse** — platform, architecture, memory
+  amount, GPU vendor and optional VRAM/runtime can be retained when relevant;
+  detailed browser/device fingerprinting data is deliberately excluded.
+- **Live documentation is now part of CI** via strict MkDocs build validation.
 
 ### Fixed
 
-- **Far fewer "no benchmark matches" on import** — several formatting differences that used to hide real matches are now handled, so importing a model finds its benchmark coverage instead of showing an empty list:
-    - **Vendor labels in the model name** — names like "MoonshotAI: Kimi K2.7 Code" no longer block matching against the benchmark sources.
-    - **Version-number formatting** — a source writing a version with hyphens (such as "claude-opus-4-8") now matches the registry's dotted form ("claude-opus-4.8").
-    - **Generation vs. size** — a model's generation is no longer mistaken for its parameter count (for example "LFM2-24B" is read as the 2nd-generation 24B model, not version 2.24), so families like Liquid's LFM2 now match.
-    - **Free-tier variants** — the "(free)" marker on a free OpenRouter variant (such as "Gemma 4 26B A4B (free)") no longer hides the model's benchmark coverage.
-- **Open-weight models are no longer described as "closed proprietary"** — the import estimator keeps its wording and licence scoring consistent with the model's actual open-weights status, and recognises open-weight families beyond the best-known few.
-- **Sustainability score stays in step with its parts** — when a sub-score such as the carbon-grounded inference-energy is updated (on import or refresh), the overall sustainability figure is recalculated to match, instead of keeping a stale headline number.
-- **Provider name variations resolve correctly** — punctuation or spacing differences in a provider's name (for example "z-ai") no longer cause a model to miss its provider profile and default to closed-source.
-- **Auto-routing now genuinely considers your top-ranked models** — Run, Trio, and Challenger previously only ever reached a small handful of models regardless of what your task actually ranked highest. Routing now correctly reaches whichever models are genuinely best for your task and priorities.
-- **PDF attachments work reliably** — attaching a PDF when running a prompt, Trio, Challenger, or a comparison no longer fails; several underlying processing issues have been resolved.
-- **15 more models can now actually be run** — Claude Opus 4.7 / 4.8 / 5, Kimi K2.7 Code / K3, GPT-5.5 Pro, Gemini 3 Flash / 3.6 Flash, Llama 3.3 70B, MiniMax M3, Hermes 3 70B, Qwen3.5-9B / 3.6 Plus, GLM 5.2, and DeepSeek V4 Pro previously appeared in recommendations but couldn't be used with Run, Trio, Challenger, or Compare — they're now fully usable.
-- **Admin panel no longer crashes** if a recent database update hasn't finished rolling out yet.
+- **Qwen3.6 Plus no longer inherits an open-weight label from Alibaba's provider
+  default**. Reviewed evidence identifies it as a provider-hosted product, and
+  Plus / Max / Flash / Turbo family grounding now prevents the error returning
+  on future imports.
+- **Pipeline classifier responses get one schema-repair attempt** when structured
+  output exists but violates the canonical runtime contract. Network/API
+  failures remain single-attempt.
+- **Single Route runs preserve original recommendation rank** instead of
+  recording every chosen model as route rank #1.
+- **Auto-routing can reach the genuinely top-ranked runnable models** rather than
+  a small hard-coded subset.
+- **PDF attachments work reliably** across Run, Trio, Challenger and Compare.
+- **OpenRouter/provider mappings expanded** so many models that appeared in
+  recommendations can now actually be executed.
+- **Open-weight import language and licence grounding are internally
+  consistent**, including open families from closed providers and provider-name
+  normalisation.
+- **Sustainability composites are recomputed when grounded sub-scores change**
+  instead of leaving a stale headline score.
+- **Admin surfaces tolerate migration rollout safely** rather than crashing when
+  a newer schema has not yet reached production.
+
+### Removed
+
+- **Standalone Embedding tab** — embedding requests now route through the normal
+  task flow.
+- **Magic-link-only authentication** — replaced by the email/password flow.
+- **Legacy `src/app/actions.ts` monolith** — active operations now live in
+  capability-specific feature modules.
+- **Legacy `src/lib/db.ts` monolith** — persistence is split into explicit
+  repositories under `src/db/` for tasks, models, users, recommendations,
+  feedback, runs, evidence and operations.
+
+### Architecture and operations
+
+The 1.0 codebase now centres on feature-owned operations under `src/features/`
+and aggregate-specific persistence under `src/db/`. CI runs typecheck, lint,
+tests, the golden ranking evaluation, production build and strict documentation
+build before implementation PRs are merged.
+
+Production freshness automation currently includes:
+
+- daily runtime routability canary;
+- weekly catalogue verification;
+- weekly EcoLogits refresh.
+
+Operational availability remains a separate evidence layer from intrinsic
+capability and quality.
 
 ## [0.9.0] — 2026-05-29
 
