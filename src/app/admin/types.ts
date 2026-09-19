@@ -12,6 +12,7 @@ export type {
   LeaderboardEntry,
   OutcomeBreakdown,
   CapabilityDemand,
+  LocalFitCalibration,
 } from '@/lib/dashboard'
 
 export interface DiscoverModel {

@@ -35,11 +35,11 @@ import type { IngestResult } from '@/lib/ingest/types'
 import {
   getUsageSummary, getActivityOverTime, getModeBreakdown, getSignupsOverTime,
   getInsightsSummary, getTaskTypeDistribution, getModelLeaderboard,
-  getOutcomeBreakdown, getCapabilityDemand,
+  getOutcomeBreakdown, getCapabilityDemand, getLocalFitCalibration,
   formatGranularity,
   type UsageSummary, type ActivityPoint, type ModeCount, type SignupPoint,
   type InsightsSummary, type TaskTypeCount, type LeaderboardEntry,
-  type OutcomeBreakdown, type CapabilityDemand,
+  type OutcomeBreakdown, type CapabilityDemand, type LocalFitCalibration,
 } from '@/lib/dashboard'
 import type { DiscoverModel } from './types'
 
@@ -127,16 +127,18 @@ export async function fetchInsightsData(): Promise<{
   leaderboard: LeaderboardEntry[]
   outcomes: OutcomeBreakdown
   capabilities: CapabilityDemand
+  localFitCalibration: LocalFitCalibration
 }> {
   await requireAdmin()
-  const [summary, taskTypes, leaderboard, outcomes, capabilities] = await Promise.all([
+  const [summary, taskTypes, leaderboard, outcomes, capabilities, localFitCalibration] = await Promise.all([
     getInsightsSummary(),
     getTaskTypeDistribution(),
     getModelLeaderboard(),
     getOutcomeBreakdown(),
     getCapabilityDemand(),
+    getLocalFitCalibration(),
   ])
-  return { summary, taskTypes, leaderboard, outcomes, capabilities }
+  return { summary, taskTypes, leaderboard, outcomes, capabilities, localFitCalibration }
 }
 
 // ---------------------------------------------------------------------------
