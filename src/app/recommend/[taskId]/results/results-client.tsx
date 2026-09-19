@@ -332,7 +332,7 @@ export function ResultsClient({
           )}
         </div>
         <p className="mt-2 text-xs leading-relaxed text-navy/45">
-          Open means strong open-weight evidence; it does not claim the training data, methodology or licence are fully open. Local means Bearing has concrete quantisation metadata. Filters preserve the original ranking.
+          Open means strong open-weight evidence; it does not claim the training data, methodology or licence are fully open. Local requires concrete execution/quantisation evidence. Hosted-only and weights-only models stay out of the local filter. Filters preserve the original ranking.
         </p>
       </div>
 
@@ -373,8 +373,23 @@ export function ResultsClient({
                     </span>
                   )}
                   {model.localCapable && (
-                    <span className="rounded-full border border-amber/30 bg-amber/5 px-2 py-0.5 text-[11px] font-medium text-navy/65">
-                      Local-capable
+                    <span
+                      title={model.localEvidenceCheckedAt
+                        ? `Reviewed local execution evidence · checked ${model.localEvidenceCheckedAt}`
+                        : 'Local execution metadata is available'}
+                      className="rounded-full border border-amber/30 bg-amber/5 px-2 py-0.5 text-[11px] font-medium text-navy/65"
+                    >
+                      {model.localEvidenceStatus === 'confirmed_local' ? 'Reviewed local' : 'Local-capable'}
+                    </span>
+                  )}
+                  {!model.localCapable && model.localEvidenceStatus === 'hosted_only' && (
+                    <span className="rounded-full border border-navy/15 bg-cream px-2 py-0.5 text-[11px] font-medium text-navy/55">
+                      Hosted open model
+                    </span>
+                  )}
+                  {!model.localCapable && model.localEvidenceStatus === 'weights_available' && (
+                    <span className="rounded-full border border-navy/15 bg-cream px-2 py-0.5 text-[11px] font-medium text-navy/55">
+                      Open weights available
                     </span>
                   )}
                 </div>
