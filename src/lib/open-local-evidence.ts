@@ -7,8 +7,10 @@ export type OpenLocalEvidenceStatus =
   | 'weights_available'
   | 'unverified'
 
+export type OpenWeightAccess = 'official_weights' | 'provider_only' | 'unverified'
+
 export interface OpenLocalEvidenceSource {
-  kind: 'huggingface' | 'ollama'
+  kind: 'huggingface' | 'ollama' | 'provider_docs'
   url: string
   checkedAt: string
   note?: string
@@ -17,6 +19,7 @@ export interface OpenLocalEvidenceSource {
 export interface ReviewedOpenLocalEvidence {
   slug: string
   status: OpenLocalEvidenceStatus
+  weightAccess?: OpenWeightAccess
   huggingFaceId?: string
   ollamaModelId?: string
   localInfo?: LocalInfo
