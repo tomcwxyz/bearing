@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useCallback, useMemo, useState, useTransition } from 'react'
 import { selectModel } from '@/features/feedback/actions'
 import type { ScoredModel } from '@/lib/scoring'
 import type { Factor } from '@/lib/registry'
@@ -11,10 +11,15 @@ import type { ModelOutcomeEvidence } from '@/lib/outcome-evidence'
 import type { RecommendationEvidence } from '@/lib/recommendation-evidence'
 import type { RecommendationConfidence } from '@/lib/recommendation-confidence'
 import type { FeaturedAlternative } from '@/lib/tradeoff-alternatives'
-import { OPEN_WEIGHTS_THRESHOLD } from '@/lib/open-local-models'
+import {
+  OPEN_WEIGHTS_THRESHOLD,
+  assessHardwareFit,
+  type HardwareProfile,
+} from '@/lib/open-local-models'
 import { PipelineSection } from './pipeline-section'
 import { LocalSection } from './local-section'
 import { RunSurface } from './run-surface'
+import { HardwareProfilePanel } from './hardware-profile-panel'
 
 const FACTOR_LABELS: Record<Factor, string> = {
   cost: 'Cost',
@@ -230,6 +235,8 @@ export function ResultsClient({
   const [showAllModels, setShowAllModels] = useState(false)
   const [openOnly, setOpenOnly] = useState(false)
   const [localOnly, setLocalOnly] = useState(false)
+  const [hardwareFitOnly, setHardwareFitOnly] = useState(false)
+  const [hardwareProfile, setHardwareProfile] = useState<HardwareProfile | null>(null)
 
   const rankBySlug = useMemo(
     () => new Map(models.map((model, index) => [model.slug, index + 1])),
@@ -240,18 +247,35 @@ export function ResultsClient({
     [featuredAlternatives],
   )
 
+  const handleHardwareProfileChange = useCallback((profile: HardwareProfile | null) => {
+    setHardwareProfile(profile)
+    if (!profile) setHardwareFitOnly(false)
+  }, [])
+
+  const hardwareFitBySlug = useMemo(() => {
+    const fits = new Map<string, ReturnType<typeof assessHardwareFit>>()
+    if (!hardwareProfile) return fits
+    for (const model of models) {
+      if (model.localInfo) {
+        fits.set(model.slug, assessHardwareFit(model.localInfo, hardwareProfile))
+      }
+    }
+    return fits
+  }, [hardwareProfile, models])
+
   const filteredModels = useMemo(() => models.filter((model) => {
     if (openOnly && (model.openWeights ?? 0) < OPEN_WEIGHTS_THRESHOLD) return false
     if (localOnly && !model.localCapable) return false
+    if (hardwareFitOnly && !hardwareFitBySlug.get(model.slug)?.fits) return false
     return true
-  }), [localOnly, models, openOnly])
+  }), [hardwareFitBySlug, hardwareFitOnly, localOnly, models, openOnly])
 
   const visibleModels = useMemo(() => {
     if (showAllModels) return filteredModels
 
     // When a filter is active, preserve the original recommendation order and
     // show the first few eligible results. Do not silently recalculate scores.
-    if (openOnly || localOnly) return filteredModels.slice(0, 5)
+    if (openOnly || localOnly || hardwareFitOnly) return filteredModels.slice(0, 5)
 
     const featuredSlugs = [models[0]?.slug, ...featuredAlternatives.map((alternative) => alternative.slug)]
       .filter((slug): slug is string => Boolean(slug))
@@ -259,7 +283,7 @@ export function ResultsClient({
     return featuredSlugs
       .map((slug) => modelBySlug.get(slug))
       .filter((model): model is ScoredModel => Boolean(model))
-  }, [featuredAlternatives, filteredModels, localOnly, models, openOnly, showAllModels])
+  }, [featuredAlternatives, filteredModels, hardwareFitOnly, localOnly, models, openOnly, showAllModels])
 
   const hiddenCount = filteredModels.length - visibleModels.length
 
@@ -283,6 +307,11 @@ export function ResultsClient({
       )}
 
       <DecisionConfidence confidence={decisionConfidence} />
+
+      <HardwareProfilePanel
+        profile={hardwareProfile}
+        onProfileChange={handleHardwareProfileChange}
+      />
 
       <div className="rounded-xl border border-cream-dark bg-white px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -317,12 +346,32 @@ export function ResultsClient({
           >
             Runs locally
           </button>
-          {(openOnly || localOnly) && (
+          <button
+            type="button"
+            aria-pressed={hardwareFitOnly}
+            disabled={!hardwareProfile}
+            onClick={() => {
+              setHardwareFitOnly((value) => !value)
+              setShowAllModels(false)
+            }}
+            title={hardwareProfile
+              ? 'Show local models whose reviewed memory footprint fits this device estimate'
+              : 'Check or choose this device memory first'}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+              hardwareFitOnly
+                ? 'border-teal bg-teal text-cream'
+                : 'border-cream-dark text-navy/70 hover:border-teal hover:text-teal'
+            }`}
+          >
+            Likely fits this device
+          </button>
+          {(openOnly || localOnly || hardwareFitOnly) && (
             <button
               type="button"
               onClick={() => {
                 setOpenOnly(false)
                 setLocalOnly(false)
+                setHardwareFitOnly(false)
                 setShowAllModels(false)
               }}
               className="ml-auto text-xs text-navy/50 underline underline-offset-2 hover:text-navy"
@@ -332,7 +381,7 @@ export function ResultsClient({
           )}
         </div>
         <p className="mt-2 text-xs leading-relaxed text-navy/45">
-          Open means strong open-weight evidence; it does not claim the training data, methodology or licence are fully open. Local requires concrete execution/quantisation evidence. Hosted-only and weights-only models stay out of the local filter. Filters preserve the original ranking.
+          Open means strong open-weight evidence. Local requires concrete execution/quantisation evidence. “Likely fits” adds a conservative runtime-memory allowance to the reviewed model footprint and compares it with this device profile. It is an estimate, not a guarantee. Filters preserve the original ranking.
         </p>
       </div>
 
@@ -351,6 +400,7 @@ export function ResultsClient({
         const evidence = evidenceBySlug[model.slug] ?? UNKNOWN_EVIDENCE
         const benchmark = benchmarkBySlug[model.slug]
         const outcomes = outcomeBySlug[model.slug]
+        const hardwareFit = hardwareFitBySlug.get(model.slug)
 
         return (
           <div
@@ -380,6 +430,22 @@ export function ResultsClient({
                       className="rounded-full border border-amber/30 bg-amber/5 px-2 py-0.5 text-[11px] font-medium text-navy/65"
                     >
                       {model.localEvidenceStatus === 'confirmed_local' ? 'Reviewed local' : 'Local-capable'}
+                    </span>
+                  )}
+                  {hardwareFit?.fits && hardwareFit.bestQuant && (
+                    <span
+                      title={`Estimated runtime ~${hardwareFit.estimatedRuntimeGb} GB against a ${hardwareFit.memoryBudgetGb} GB conservative device budget · ${hardwareFit.confidence} confidence`}
+                      className="rounded-full border border-teal/30 bg-teal/5 px-2 py-0.5 text-[11px] font-medium text-teal"
+                    >
+                      Likely fits · {hardwareFit.bestQuant.quant}
+                    </span>
+                  )}
+                  {hardwareProfile && model.localCapable && hardwareFit && !hardwareFit.fits && (
+                    <span
+                      title={`No reviewed quantisation fits Bearing's ${hardwareFit.memoryBudgetGb} GB conservative model budget for this device`}
+                      className="rounded-full border border-coral/20 bg-coral/5 px-2 py-0.5 text-[11px] font-medium text-coral"
+                    >
+                      Above device budget
                     </span>
                   )}
                   {!model.localCapable && model.localEvidenceStatus === 'hosted_only' && (

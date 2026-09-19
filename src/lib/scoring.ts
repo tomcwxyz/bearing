@@ -1,4 +1,4 @@
-import { ALL_TASK_TYPES, getAllModels, type Factor, type Model } from './registry'
+import { ALL_TASK_TYPES, getAllModels, type Factor, type LocalInfo, type Model } from './registry'
 import { priorityToWeights } from './weights'
 import { taskRelativeCapabilityScore } from './capability-fit'
 import {
@@ -55,6 +55,7 @@ export interface ScoredModel {
   openWeights?: number
   licenceOpenness?: number
   localCapable?: boolean
+  localInfo?: LocalInfo
   localEvidenceStatus?: OpenLocalEvidenceStatus
   weightAccess?: OpenWeightAccess
   huggingFaceId?: string
@@ -456,6 +457,7 @@ export function scoreModelsDetailed(input: ScoringInput): ScoringResult {
         : model.transparency.open_weights,
       licenceOpenness: model.transparency.licence_openness,
       localCapable: Boolean(model.local_info?.quant_options?.length),
+      localInfo: model.local_info,
       localEvidenceStatus: openLocalEvidence?.status,
       weightAccess: openLocalEvidence?.weightAccess,
       huggingFaceId: openLocalEvidence?.huggingFaceId,
