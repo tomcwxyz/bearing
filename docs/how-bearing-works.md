@@ -189,9 +189,16 @@ Downloadable weights alone are not enough to label a model local-capable.
 
 A person can optionally check a device in the browser. Bearing uses lightweight
 WebGPU/browser hints plus a confirmed memory amount to estimate a conservative
-model budget and show **Likely fits this device**. Browser API limits are not
-treated as physical VRAM, and the default check does not intentionally fill GPU
-memory.
+model budget. A fresh device check changes the recommendation view: Bearing
+keeps the original task ranking, filters it to models likely to run on that
+machine, labels the highest eligible option **Best on this device**, and keeps
+its original overall rank visible.
+
+In the overall view, local-capable recommendations are annotated as **Runs on
+this device** or **Local, not on this device**. When a model does not fit,
+Bearing exposes the smallest reviewed local runtime requirement rather than
+merely saying it is "too large". Browser API limits are not treated as physical
+VRAM, and the default check does not intentionally fill GPU memory.
 
 Predicted hardware fit is still only an estimate. Actual local execution
 evidence — for example a model/quant/context observed through Ollama — belongs

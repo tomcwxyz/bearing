@@ -15,9 +15,18 @@ import {
 const STORAGE_KEY = 'bearing.hardware-profile.v1'
 const MEMORY_OPTIONS = [8, 16, 24, 32, 36, 48, 64, 96, 128, 192]
 
+export type HardwareProfileChangeSource =
+  | 'restored'
+  | 'checked'
+  | 'memory'
+  | 'cleared'
+
 interface HardwareProfilePanelProps {
   profile: HardwareProfile | null
-  onProfileChange(profile: HardwareProfile | null): void
+  onProfileChange(
+    profile: HardwareProfile | null,
+    source: HardwareProfileChangeSource,
+  ): void
 }
 
 function readStoredProfile(): HardwareProfile | null {
@@ -72,7 +81,7 @@ export function HardwareProfilePanel({
 
   useEffect(() => {
     const stored = readStoredProfile()
-    if (stored) onProfileChange(stored)
+    if (stored) onProfileChange(stored, 'restored')
   }, [onProfileChange])
 
   async function checkDevice() {
@@ -85,7 +94,7 @@ export function HardwareProfilePanel({
         const nextProfile = profileFromDetection(nextDetection)
         if (nextProfile) {
           persistProfile(nextProfile)
-          onProfileChange(nextProfile)
+          onProfileChange(nextProfile, 'checked')
         }
       }
     } catch {
@@ -100,12 +109,12 @@ export function HardwareProfilePanel({
     const nextProfile = profileFromDetection(source, memoryGb)
     if (!nextProfile) return
     persistProfile(nextProfile)
-    onProfileChange(nextProfile)
+    onProfileChange(nextProfile, 'memory')
   }
 
   function clearProfile() {
     persistProfile(null)
-    onProfileChange(null)
+    onProfileChange(null, 'cleared')
     setDetection(null)
     setCheckError(null)
   }
@@ -118,8 +127,8 @@ export function HardwareProfilePanel({
         <div>
           <p className="font-display text-sm font-semibold text-navy">This device</p>
           <p className="mt-1 max-w-2xl text-xs leading-relaxed text-navy/55">
-            Bearing can use lightweight browser hints to estimate which local models are realistic here.
-            The check stays in your browser and does not allocate large GPU buffers.
+            Bearing can use lightweight browser hints to estimate which recommended local models are realistic here.
+            Once checked, the recommendations switch to models likely to run on this device. The check stays in your browser and does not allocate large GPU buffers.
           </p>
         </div>
         {!detection && !profile && (

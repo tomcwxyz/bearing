@@ -20,7 +20,10 @@ import {
 import { PipelineSection } from './pipeline-section'
 import { LocalSection } from './local-section'
 import { RunSurface } from './run-surface'
-import { HardwareProfilePanel } from './hardware-profile-panel'
+import {
+  HardwareProfilePanel,
+  type HardwareProfileChangeSource,
+} from './hardware-profile-panel'
 
 const FACTOR_LABELS: Record<Factor, string> = {
   cost: 'Cost',
@@ -66,14 +69,26 @@ const UNKNOWN_EVIDENCE: RecommendationEvidence = {
 function RecommendationLabel({
   rank,
   alternative,
+  deviceView,
+  isFirstVisible,
 }: {
   rank: number
   alternative?: FeaturedAlternative
+  deviceView: boolean
+  isFirstVisible: boolean
 }) {
+  if (deviceView && isFirstVisible) {
+    return (
+      <span className="rounded-full bg-teal px-2.5 py-1 text-xs font-semibold text-white">
+        Best on this device
+      </span>
+    )
+  }
+
   if (rank === 1) {
     return (
       <span className="rounded-full bg-coral px-2.5 py-1 text-xs font-semibold text-white">
-        Best fit
+        Best overall
       </span>
     )
   }
@@ -248,9 +263,24 @@ export function ResultsClient({
     [featuredAlternatives],
   )
 
-  const handleHardwareProfileChange = useCallback((profile: HardwareProfile | null) => {
+  const handleHardwareProfileChange = useCallback((
+    profile: HardwareProfile | null,
+    source: HardwareProfileChangeSource,
+  ) => {
     setHardwareProfile(profile)
-    if (!profile) setHardwareFitOnly(false)
+    if (!profile) {
+      setHardwareFitOnly(false)
+      return
+    }
+
+    // A fresh device check is a strong signal that the person wants the result
+    // interpreted for this machine. Restoring an old browser profile only adds
+    // annotations until they explicitly opt back into the device view.
+    if (source === 'checked' || source === 'memory') {
+      setHardwareFitOnly(true)
+      setLocalOnly(false)
+      setShowAllModels(false)
+    }
   }, [])
 
   const hardwareFitBySlug = useMemo(() => {
@@ -263,6 +293,11 @@ export function ResultsClient({
     }
     return fits
   }, [hardwareProfile, models])
+
+  const deviceFitCount = useMemo(
+    () => models.filter((model) => hardwareFitBySlug.get(model.slug)?.fits).length,
+    [hardwareFitBySlug, models],
+  )
 
   const filteredModels = useMemo(() => models.filter((model) => {
     if (openOnly && (model.openWeights ?? 0) < OPEN_WEIGHTS_THRESHOLD) return false
@@ -287,6 +322,11 @@ export function ResultsClient({
   }, [featuredAlternatives, filteredModels, hardwareFitOnly, localOnly, models, openOnly, showAllModels])
 
   const hiddenCount = filteredModels.length - visibleModels.length
+  const firstVisibleSlug = visibleModels[0]?.slug
+  const overallTop = models[0]
+  const overallTopHardwareFit = overallTop
+    ? hardwareFitBySlug.get(overallTop.slug)
+    : undefined
 
   function handleSelect(modelSlug: string, rank: number) {
     setError(null)
@@ -314,12 +354,45 @@ export function ResultsClient({
         <p role="alert" className="text-sm text-coral">{error}</p>
       )}
 
-      <DecisionConfidence confidence={decisionConfidence} />
+      {!hardwareFitOnly && <DecisionConfidence confidence={decisionConfidence} />}
 
       <HardwareProfilePanel
         profile={hardwareProfile}
         onProfileChange={handleHardwareProfileChange}
       />
+
+      {hardwareProfile && (
+        <div className={`rounded-xl border px-4 py-3 ${
+          hardwareFitOnly
+            ? 'border-teal/30 bg-teal/5'
+            : 'border-cream-dark bg-white'
+        }`}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="max-w-2xl">
+              <p className="font-display text-sm font-semibold text-navy">
+                {hardwareFitOnly ? 'Recommendations for this device' : 'Device fit is available'}
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-navy/65">
+                {hardwareFitOnly
+                  ? overallTop && overallTop.localCapable && overallTopHardwareFit && !overallTopHardwareFit.fits
+                    ? `${overallTop.name} remains Bearing's best overall task match, but its smallest reviewed local configuration needs ~${overallTopHardwareFit.minimumRuntimeGb ?? 'more'} GB against this device's ~${overallTopHardwareFit.memoryBudgetGb} GB model budget. Showing the highest-ranked models likely to run here instead.`
+                    : `Showing the highest-ranked models likely to run on this device. ${deviceFitCount} ranked model${deviceFitCount === 1 ? '' : 's'} currently fit the conservative estimate.`
+                  : `${deviceFitCount} ranked model${deviceFitCount === 1 ? '' : 's'} are likely to run on this device. The overall bearing is still shown until you switch to the device view.`}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setHardwareFitOnly((value) => !value)
+                setShowAllModels(false)
+              }}
+              className={hardwareFitOnly ? 'btn-secondary text-xs' : 'btn-primary text-xs'}
+            >
+              {hardwareFitOnly ? 'Show best overall' : 'Show best for this device'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-xl border border-cream-dark bg-white px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -371,7 +444,7 @@ export function ResultsClient({
                 : 'border-cream-dark text-navy/70 hover:border-teal hover:text-teal'
             }`}
           >
-            Likely fits this device
+            Fits this device
           </button>
           {(openOnly || localOnly || hardwareFitOnly) && (
             <button
@@ -389,7 +462,7 @@ export function ResultsClient({
           )}
         </div>
         <p className="mt-2 text-xs leading-relaxed text-navy/45">
-          Open means strong open-weight evidence. Local requires concrete execution/quantisation evidence. “Likely fits” adds a conservative runtime-memory allowance to the reviewed model footprint and compares it with this device profile. It is an estimate, not a guarantee. Filters preserve the original ranking.
+          Open means strong open-weight evidence. Local requires concrete execution/quantisation evidence. “Fits this device” uses the checked hardware profile plus a conservative runtime-memory allowance. The device view preserves Bearing&apos;s original task ranking among models that fit; it does not pretend the hardware estimate changes model quality.
         </p>
       </div>
 
@@ -401,7 +474,8 @@ export function ResultsClient({
 
       {visibleModels.map((model, index) => {
         const rank = rankBySlug.get(model.slug) ?? index + 1
-        const isTop = rank === 1
+        const isFirstVisible = model.slug === firstVisibleSlug
+        const isTop = hardwareFitOnly ? isFirstVisible : rank === 1
         const alternative = alternativesBySlug.get(model.slug)
         const isSelected = selectedSlug === model.slug
         const isDisabled = selectedSlug !== null && !isSelected
@@ -423,14 +497,19 @@ export function ResultsClient({
             <div className="flex items-start justify-between gap-4 mb-3">
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <RecommendationLabel rank={rank} alternative={alternative} />
+                  <RecommendationLabel
+                    rank={rank}
+                    alternative={alternative}
+                    deviceView={hardwareFitOnly}
+                    isFirstVisible={isFirstVisible}
+                  />
                   <span className="text-xs text-navy/40">{model.provider}</span>
                   {(model.openWeights ?? 0) >= OPEN_WEIGHTS_THRESHOLD && (
                     <span className="rounded-full border border-teal/30 bg-teal/5 px-2 py-0.5 text-[11px] font-medium text-teal">
                       Open weights
                     </span>
                   )}
-                  {model.localCapable && (
+                  {!hardwareProfile && model.localCapable && (
                     <span
                       title={model.localEvidenceCheckedAt
                         ? `Reviewed local execution evidence · checked ${model.localEvidenceCheckedAt}`
@@ -440,20 +519,20 @@ export function ResultsClient({
                       {model.localEvidenceStatus === 'confirmed_local' ? 'Reviewed local' : 'Local-capable'}
                     </span>
                   )}
-                  {hardwareFit?.fits && hardwareFit.bestQuant && (
+                  {hardwareProfile && model.localCapable && hardwareFit?.fits && hardwareFit.bestQuant && (
                     <span
                       title={`Estimated runtime ~${hardwareFit.estimatedRuntimeGb} GB against a ${hardwareFit.memoryBudgetGb} GB conservative device budget · ${hardwareFit.confidence} confidence`}
                       className="rounded-full border border-teal/30 bg-teal/5 px-2 py-0.5 text-[11px] font-medium text-teal"
                     >
-                      Likely fits · {hardwareFit.bestQuant.quant}
+                      Runs on this device · {hardwareFit.bestQuant.quant}
                     </span>
                   )}
                   {hardwareProfile && model.localCapable && hardwareFit && !hardwareFit.fits && (
                     <span
-                      title={`No reviewed quantisation fits Bearing's ${hardwareFit.memoryBudgetGb} GB conservative model budget for this device`}
+                      title={`Smallest reviewed local configuration needs ~${hardwareFit.minimumRuntimeGb ?? 'more'} GB; Bearing's conservative budget for this device is ${hardwareFit.memoryBudgetGb} GB`}
                       className="rounded-full border border-coral/20 bg-coral/5 px-2 py-0.5 text-[11px] font-medium text-coral"
                     >
-                      Above device budget
+                      Local, not on this device
                     </span>
                   )}
                   {!model.localCapable && model.localEvidenceStatus === 'hosted_only' && (
@@ -471,7 +550,9 @@ export function ResultsClient({
                   {model.name}
                 </h3>
               </div>
-              <span className="font-mono text-sm text-navy/35">#{rank}</span>
+              <span className="font-mono text-sm text-navy/35">
+                {hardwareFitOnly ? `#${rank} overall` : `#${rank}`}
+              </span>
             </div>
 
             {alternative && (

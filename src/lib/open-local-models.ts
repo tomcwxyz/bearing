@@ -31,6 +31,8 @@ export interface LocalMemoryFit {
   memoryBudgetGb: number
   estimatedRuntimeGb: number | null
   headroomGb: number | null
+  minimumQuant: QuantOption | null
+  minimumRuntimeGb: number | null
   confidence: 'high' | 'medium' | 'low'
 }
 
@@ -91,6 +93,18 @@ export function assessLocalMemoryFit(
   maxQualityPenalty = 0.20,
   confidence: LocalMemoryFit['confidence'] = 'low',
 ): LocalMemoryFit {
+  const acceptable = localInfo?.quant_options
+    .filter((quant) => quant.quality_penalty <= maxQualityPenalty)
+    .sort((a, b) => {
+      const memoryDelta = estimateQuantRuntimeMemoryGb(a) - estimateQuantRuntimeMemoryGb(b)
+      if (memoryDelta !== 0) return memoryDelta
+      return a.quality_penalty - b.quality_penalty
+    }) ?? []
+  const minimumQuant = acceptable[0] ?? null
+  const minimumRuntimeGb = minimumQuant
+    ? estimateQuantRuntimeMemoryGb(minimumQuant)
+    : null
+
   if (!localInfo || !Number.isFinite(memoryBudgetGb) || memoryBudgetGb <= 0) {
     return {
       fits: false,
@@ -98,15 +112,14 @@ export function assessLocalMemoryFit(
       memoryBudgetGb,
       estimatedRuntimeGb: null,
       headroomGb: null,
+      minimumQuant,
+      minimumRuntimeGb,
       confidence,
     }
   }
 
-  const viable = localInfo.quant_options
-    .filter((quant) =>
-      quant.quality_penalty <= maxQualityPenalty &&
-      estimateQuantRuntimeMemoryGb(quant) <= memoryBudgetGb
-    )
+  const viable = acceptable
+    .filter((quant) => estimateQuantRuntimeMemoryGb(quant) <= memoryBudgetGb)
     .sort((a, b) => {
       // Prefer the highest-quality viable quant first. If quality is equal,
       // prefer the smaller footprint to leave more context/runtime headroom.
@@ -129,6 +142,8 @@ export function assessLocalMemoryFit(
     headroomGb: estimatedRuntimeGb != null
       ? Math.max(0, Math.round((memoryBudgetGb - estimatedRuntimeGb) * 10) / 10)
       : null,
+    minimumQuant,
+    minimumRuntimeGb,
     confidence,
   }
 }

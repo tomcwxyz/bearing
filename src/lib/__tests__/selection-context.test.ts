@@ -78,6 +78,8 @@ describe('selection choice context', () => {
         memoryBudgetGb: 21.6,
         estimatedRuntimeGb: 20.6,
         headroomGb: 1,
+        minimumQuant: { quant: 'Q4_K_M', vram_gb: 14, quality_penalty: 0.05 },
+        minimumRuntimeGb: 16.2,
         confidence: 'high',
       },
     })
