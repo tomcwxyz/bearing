@@ -14,23 +14,30 @@ export default function DataPage() {
               What&apos;s in the dataset
             </h2>
             <p className="mt-3 leading-relaxed">
-              Every time someone uses Bearing, we record the task classification
-              (type, subtype, complexity), the user&apos;s priority ranking and
-              the normalised factor weights the recommender actually applied,
-              which models were recommended and at what scores, any multi-stage
-              pipeline plan, which model the user selected (if any), and --
-              optionally -- whether it worked. Tasks that reached the
-              recommendation stage are included even when the user did not pick
-              a model.
+              Every time someone reaches a Bearing recommendation, we record the
+              structured task classification, the priorities and factor weights
+              the recommender actually applied, which models were recommended,
+              any multi-stage plan, which model the person selected (if any), and
+              -- optionally -- whether it worked. The current schema also records
+              whether recommended/chosen models are open-weight or local-capable,
+              and can capture the coarse hardware/fit context behind a local-model
+              choice. Tasks are included even when no model was selected.
             </p>
             <p className="mt-3 leading-relaxed">
-              We also publish head-to-head comparison data: which two models were
-              compared, and which one the user preferred.
+              We also publish head-to-head comparison data and Bearing-hosted
+              Route / Trio / Challenger runs. Predicted hardware fit is kept
+              separate from observed execution evidence, so future Ollama or
+              other local-runtime measurements can record what actually ran,
+              on what broad class of hardware, without pretending an estimate
+              was a completed run.
             </p>
             <div className="mt-4 rounded-lg border border-teal/20 bg-teal/5 px-4 py-3 text-sm">
               <span className="font-medium text-navy">What we never collect:</span>{' '}
-              no raw task descriptions, no prompts, no email addresses, no IP
-              addresses. All data is anonymised before storage.
+              no raw task descriptions, no prompt or response text, no email
+              addresses, no IP addresses, and no browser user-agent or detailed
+              GPU model strings. If someone uses the hardware-aware local-model
+              feature, only a coarse profile such as platform, architecture,
+              memory amount and GPU vendor can be attached to their model choice.
             </div>
           </section>
 
@@ -40,10 +47,11 @@ export default function DataPage() {
               Why this matters
             </h2>
             <p className="mt-3 leading-relaxed">
-              There is no existing public dataset of real-world &ldquo;task &rarr;
-              model &rarr; did it work?&rdquo; decisions. Benchmarks test raw
-              capability; Bearing tests fit -- whether a model is the right choice
-              for what someone actually wants to do.
+              Bearing is building a public record of real-world &ldquo;task &rarr;
+              recommendation &rarr; choice &rarr; execution &rarr; outcome&rdquo;
+              decisions. Benchmarks test raw capability; Bearing tests fit --
+              whether a model is the right choice for what someone actually wants
+              to do, including openness and local-execution constraints.
             </p>
             <p className="mt-3 leading-relaxed">
               This data is useful for anyone building routing systems,
@@ -96,6 +104,29 @@ export default function DataPage() {
             </div>
           </section>
 
+            <div className="mt-6">
+              <h3 className="font-display text-sm font-semibold text-navy">
+                Routed-run data
+              </h3>
+              <p className="mt-1 text-sm text-grey-blue">
+                Route, Trio and Challenger runs with recommendation rank, open/local model metadata, blind-judge verdicts and human preferences.
+              </p>
+              <div className="mt-3 flex gap-3">
+                <a
+                  href="/api/dataset/routed-runs?format=json"
+                  className="btn-primary text-sm"
+                >
+                  Download JSON
+                </a>
+                <a
+                  href="/api/dataset/routed-runs?format=csv"
+                  className="btn-secondary text-sm"
+                >
+                  Download CSV
+                </a>
+              </div>
+            </div>
+
           {/* Methodology */}
           <section>
             <h2 className="font-display text-xl text-navy">Methodology</h2>
@@ -118,8 +149,16 @@ export default function DataPage() {
               </li>
               <li>
                 <span className="font-medium text-navy">Selection signal:</span>{' '}
-                which model the user chose and at what rank in the recommendation
-                list.
+                which model the user chose and at what rank, plus a snapshot of
+                whether it was open-weight/local-capable and which open/local/
+                hardware-fit filters were active.
+              </li>
+              <li>
+                <span className="font-medium text-navy">Execution signal:</span>{' '}
+                actual runtime observations are stored separately from predicted
+                hardware fit. The schema can capture runtime, quant, context,
+                coarse hardware, VRAM, latency and tokens/sec when that evidence
+                genuinely exists.
               </li>
               <li>
                 <span className="font-medium text-navy">Outcome signal:</span>{' '}
@@ -159,15 +198,23 @@ export default function DataPage() {
                       ['needs_code', 'boolean', 'Requires code generation'],
                       ['needs_reasoning', 'boolean', 'Requires multi-step reasoning'],
                       ['is_recurring', 'boolean', 'Recurring or repeated task'],
-                      ['mode', 'string', 'recommend | pipeline | validate'],
+                      ['data_sensitivity', 'string', 'Privacy / on-prem sensitivity class'],
+                      ['latency_target', 'string', 'realtime | interactive | batch'],
+                      ['volume', 'string', 'Expected usage volume'],
+                      ['needs_long_context', 'boolean', 'Requires long context'],
+                      ['needs_multilingual', 'boolean', 'Requires multilingual capability'],
+                      ['is_agentic', 'boolean', 'Agentic / multi-step tool-using workload'],
+                      ['output_length', 'string', 'short | medium | long | very_long'],
+                      ['mode', 'string', 'recommend | embedding | pipeline | validate'],
                       ['priority_order', 'string[]', 'User-ranked priority factors'],
                       ['excluded_factors', 'string[]', 'Factors the user opted out of'],
                       ['factor_weights', 'object?', 'Normalised per-factor weights actually applied'],
                       ['pipeline_stages', 'object[]?', 'Multi-stage plan if recommended'],
-                      ['classification_schema_version', 'string', 'v0.7 or v0.8 — task_type enum used'],
-                      ['models_recommended', 'object[]', '{slug, rank, weighted_score}'],
-                      ['local_recommendations', 'object[]', '{slug, rank, effective_quality, quant, vram_gb, hardware_tier_id} for local-inference candidates'],
-                      ['model_selected', 'object?', '{slug, recommended_rank} — null if no selection'],
+                      ['classification_schema_version', 'string', 'v0.7 | v0.8 | v0.9 — task_type enum used'],
+                      ['models_recommended', 'object[]', '{slug, rank, weighted_score, model_class, open_weights, is_open_weight, local_capable}'],
+                      ['local_recommendations', 'object[]', 'Reviewed local candidates with quant, memory footprint and hardware tier'],
+                      ['model_selected', 'object?', 'Chosen model + selection-time openness/local snapshot + privacy-safe choice context'],
+                      ['execution_observations', 'object[]', 'Observed runtime/local execution evidence; never inferred from predicted fit'],
                       ['outcome_success', 'boolean?', 'User-reported success'],
                       ['failure_reason', 'string?', 'Failure reason if applicable'],
                       ['task_date', 'date', 'Date the task was created'],
@@ -205,9 +252,11 @@ export default function DataPage() {
                   <tbody className="divide-y divide-cream-dark">
                     {[
                       ['task_type', 'string', 'Primary task category'],
-                      ['classification_schema_version', 'string', 'v0.7 or v0.8 — task_type enum used'],
+                      ['classification_schema_version', 'string', 'v0.7 | v0.8 | v0.9 — task_type enum used'],
                       ['model_a_slug', 'string', 'First model in comparison'],
+                      ['model_a_metadata', 'object', 'Current openness/local/model-class metadata'],
                       ['model_b_slug', 'string', 'Second model in comparison'],
+                      ['model_b_metadata', 'object', 'Current openness/local/model-class metadata'],
                       ['preferred', 'string', 'model_a | model_b | tie'],
                       ['preference_reason', 'string?', 'Reason for preference'],
                       ['task_date', 'date', 'Date of comparison'],
@@ -219,6 +268,38 @@ export default function DataPage() {
                         <td className="px-3 py-2 font-mono text-xs text-grey-blue">
                           {type}
                         </td>
+                        <td className="px-3 py-2">{desc}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            <div className="mt-6">
+              <h3 className="mb-2 font-display text-sm font-semibold text-navy">
+                Routed-run dataset
+              </h3>
+              <div className="overflow-x-auto rounded-lg border border-cream-dark">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-cream-dark/60">
+                    <tr>
+                      <th className="px-3 py-2 font-medium text-navy">Field</th>
+                      <th className="px-3 py-2 font-medium text-navy">Type</th>
+                      <th className="px-3 py-2 font-medium text-navy">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-cream-dark">
+                    {[
+                      ['mode', 'string', 'route | trio | challenger'],
+                      ['task_type', 'string', 'Underlying task category'],
+                      ['candidates', 'object[]', 'Run candidates with rank, score, role and open/local metadata'],
+                      ['execution_location', 'string', 'bearing_hosted for this dataset'],
+                      ['judged_winner', 'string?', 'Blind judge choice'],
+                      ['human_preferred', 'string?', 'Human preferred model or tie'],
+                      ['run_date', 'date', 'Date of run'],
+                    ].map(([field, type, desc]) => (
+                      <tr key={field}>
+                        <td className="px-3 py-2 font-mono text-xs text-teal">{field}</td>
+                        <td className="px-3 py-2 font-mono text-xs text-grey-blue">{type}</td>
                         <td className="px-3 py-2">{desc}</td>
                       </tr>
                     ))}
