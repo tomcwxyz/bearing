@@ -179,7 +179,42 @@ Two pipeline calls failed structured validation in that first run. A focused dia
 
 These metrics are evidence for review, not automatic release thresholds yet. Individual field disagreements may also reveal that a golden expectation should change rather than that the classifier is wrong.
 
-## 13. Privacy and continuity
+## 13. Open and local execution
+
+Open weights, local execution and hosted availability are separate claims.
+
+Bearing can filter results to models with strong open-weight evidence and,
+separately, to models with reviewed local quantisation/runtime evidence.
+Downloadable weights alone are not enough to label a model local-capable.
+
+A person can optionally check a device in the browser. Bearing uses lightweight
+WebGPU/browser hints plus a confirmed memory amount to estimate a conservative
+model budget and show **Likely fits this device**. Browser API limits are not
+treated as physical VRAM, and the default check does not intentionally fill GPU
+memory.
+
+Predicted hardware fit is still only an estimate. Actual local execution
+evidence — for example a model/quant/context observed through Ollama — belongs
+in a separate execution-observation layer.
+
+## 14. Public decision data
+
+Bearing's open data model follows the same decision loop:
+
+> **recommendation → choice → execution → outcome**
+
+New choices can snapshot whether the selected model was open-weight and
+local-capable, which open/local/hardware-fit filters were active, and a coarse
+hardware profile where the person used the device-fit feature.
+
+The hardware record deliberately excludes browser user-agent strings, IP
+addresses and detailed GPU model descriptions. Observed execution is stored
+separately from predicted fit so downstream analysis can distinguish “Bearing
+thought this would fit” from “this model actually ran here”.
+
+See [Public Data Model](public-data.md).
+
+## 15. Privacy and continuity
 
 Bearing does not need to retain raw task descriptions to provide most continuity.
 
@@ -187,7 +222,7 @@ Signed-in tasks can be owned by an account and listed in **My bearings**. Prefer
 
 Anonymous recommendation use remains supported.
 
-## 14. Architecture
+## 16. Architecture
 
 The application is organised so the web interface is not the only place the decision logic can live.
 

@@ -23,6 +23,18 @@ export async function GET(request: NextRequest) {
       c.model_b_slug,
       c.preferred,
       c.preference_reason,
+      jsonb_build_object(
+        'open_weights', COALESCE((ma.transparency->>'open_weights')::numeric, 0),
+        'is_open_weight', COALESCE((ma.transparency->>'open_weights')::numeric, 0) >= 0.8,
+        'local_capable', ma.local_info IS NOT NULL,
+        'model_class', COALESCE(ma.model_class, 'chat')
+      ) AS model_a_metadata,
+      jsonb_build_object(
+        'open_weights', COALESCE((mb.transparency->>'open_weights')::numeric, 0),
+        'is_open_weight', COALESCE((mb.transparency->>'open_weights')::numeric, 0) >= 0.8,
+        'local_capable', mb.local_info IS NOT NULL,
+        'model_class', COALESCE(mb.model_class, 'chat')
+      ) AS model_b_metadata,
       c.created_at::date AS task_date
     FROM (
       SELECT DISTINCT ON (task_id, model_a_slug, model_b_slug)
@@ -32,6 +44,8 @@ export async function GET(request: NextRequest) {
       ORDER BY task_id, model_a_slug, model_b_slug, created_at DESC
     ) c
     INNER JOIN tasks t ON t.id = c.task_id
+    LEFT JOIN models ma ON ma.slug = c.model_a_slug
+    LEFT JOIN models mb ON mb.slug = c.model_b_slug
     ORDER BY c.created_at DESC
   `
 
@@ -39,7 +53,9 @@ export async function GET(request: NextRequest) {
     task_type: row.task_type,
     classification_schema_version: row.classification_schema_version,
     model_a_slug: row.model_a_slug,
+    model_a_metadata: row.model_a_metadata,
     model_b_slug: row.model_b_slug,
+    model_b_metadata: row.model_b_metadata,
     preferred: row.preferred,
     preference_reason: row.preference_reason ?? null,
     task_date: row.task_date,
@@ -54,7 +70,9 @@ export async function GET(request: NextRequest) {
       'task_type',
       'classification_schema_version',
       'model_a_slug',
+      'model_a_metadata',
       'model_b_slug',
+      'model_b_metadata',
       'preferred',
       'preference_reason',
       'task_date',
@@ -65,7 +83,9 @@ export async function GET(request: NextRequest) {
         esc(r.task_type),
         esc(r.classification_schema_version),
         esc(r.model_a_slug),
+        esc(JSON.stringify(r.model_a_metadata)),
         esc(r.model_b_slug),
+        esc(JSON.stringify(r.model_b_metadata)),
         esc(r.preferred),
         esc(r.preference_reason),
         esc(r.task_date),
@@ -87,7 +107,7 @@ export async function GET(request: NextRequest) {
     {
       meta: {
         name: 'Bearing Comparison Dataset',
-        version: '1.1',
+        version: '1.2',
         exported_at: new Date().toISOString(),
         record_count: records.length,
         description: 'Head-to-head model comparison preference data from Bearing',
@@ -101,12 +121,18 @@ export async function GET(request: NextRequest) {
             task_types: ['summarise', 'extract', 'generate', 'comms', 'code', 'math', 'reasoning', 'analyse', 'research', 'qa', 'translate', 'conversation'],
             note: 'Used for comparisons run on or after 2026-05-19. Removed `vision` and `other`; added `comms`, `math`, `reasoning`, `research`, `qa`.',
           },
+          'v0.9': {
+            task_types: ['summarise', 'extract', 'generate', 'comms', 'code', 'math', 'reasoning', 'analyse', 'research', 'qa', 'translate', 'conversation', 'embedding'],
+            note: 'Adds embedding as a first-class task type.',
+          },
         },
         fields: {
           task_type: 'Primary task category (see classification_schema_versions for the valid set per row)',
-          classification_schema_version: 'Which version of the task-type enum was used to assign task_type — v0.7 or v0.8',
+          classification_schema_version: 'Which version of the task-type enum was used to assign task_type',
           model_a_slug: 'First model in the comparison',
+          model_a_metadata: 'Current-at-export openness, local-capability and model-class metadata for model A; historical rows did not snapshot this at comparison time.',
           model_b_slug: 'Second model in the comparison',
+          model_b_metadata: 'Current-at-export openness, local-capability and model-class metadata for model B; historical rows did not snapshot this at comparison time.',
           preferred: 'Which model was preferred: model_a, model_b, or tie',
           preference_reason: 'User-provided reason for preference',
           task_date: 'Date the comparison was made',
