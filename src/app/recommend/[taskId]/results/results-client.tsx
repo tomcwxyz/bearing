@@ -462,7 +462,7 @@ export function ResultsClient({
           )}
         </div>
         <p className="mt-2 text-xs leading-relaxed text-navy/45">
-          Open means strong open-weight evidence. Local requires concrete execution/quantisation evidence. “Fits this device” uses the checked hardware profile plus a conservative runtime-memory allowance. The device view preserves Bearing's original task ranking among models that fit; it does not pretend the hardware estimate changes model quality.
+          Open means strong open-weight evidence. Local requires concrete execution/quantisation evidence. “Fits this device” uses the checked hardware profile plus a conservative runtime-memory allowance. The device view preserves Bearing&apos;s original task ranking among models that fit; it does not pretend the hardware estimate changes model quality.
         </p>
       </div>
 
