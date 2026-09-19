@@ -47,9 +47,9 @@ export interface ScoredModel {
   strengths: string[]
   weaknesses: string[]
   contextWindow: number
-  openWeights: number
-  licenceOpenness: number
-  localCapable: boolean
+  openWeights?: number
+  licenceOpenness?: number
+  localCapable?: boolean
 }
 
 // Phase 4.6: input and output token estimates are decoupled because the two
