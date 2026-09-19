@@ -8,6 +8,7 @@ import {
 import {
   getReviewedOpenLocalEvidence,
   type OpenLocalEvidenceStatus,
+  type OpenWeightAccess,
 } from './open-local-evidence'
 
 export interface ScoringInput {
@@ -55,6 +56,7 @@ export interface ScoredModel {
   licenceOpenness?: number
   localCapable?: boolean
   localEvidenceStatus?: OpenLocalEvidenceStatus
+  weightAccess?: OpenWeightAccess
   huggingFaceId?: string
   ollamaModelId?: string
   localEvidenceCheckedAt?: string
@@ -449,10 +451,13 @@ export function scoreModelsDetailed(input: ScoringInput): ScoringResult {
       strengths: model.strengths,
       weaknesses: model.weaknesses,
       contextWindow: model.context_window,
-      openWeights: model.transparency.open_weights,
+      openWeights: openLocalEvidence?.weightAccess === 'provider_only'
+        ? 0
+        : model.transparency.open_weights,
       licenceOpenness: model.transparency.licence_openness,
       localCapable: Boolean(model.local_info?.quant_options?.length),
       localEvidenceStatus: openLocalEvidence?.status,
+      weightAccess: openLocalEvidence?.weightAccess,
       huggingFaceId: openLocalEvidence?.huggingFaceId,
       ollamaModelId: openLocalEvidence?.ollamaModelId,
       localEvidenceCheckedAt,
