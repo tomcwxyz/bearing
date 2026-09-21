@@ -3,6 +3,7 @@ import { join } from 'path'
 import Anthropic from '@anthropic-ai/sdk'
 
 import { saveLocalRecommendations, saveRecommendations } from '@/db/recommendations'
+import { getAllModelsFromDb } from '@/db/models'
 import { getTask } from '@/db/tasks'
 import { getLatestBenchmarkScores } from '@/lib/benchmarks'
 import { scoreLocalModels } from '@/lib/local-inference'
@@ -58,8 +59,14 @@ export async function getRecommendationResults(taskId: string) {
     const task = await getTask(taskId)
     if (!task) return { error: 'Task not found.' as const }
 
-    const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
-    const scoringInput = scoringInputFromTask(task, benchmarkScores)
+    const [benchmarkScores, activeModels] = await Promise.all([
+      getLatestBenchmarkScores().catch(() => undefined),
+      getAllModelsFromDb(),
+    ])
+    const scoringInput = {
+      ...scoringInputFromTask(task, benchmarkScores),
+      eligibleModelSlugs: new Set(activeModels.map((model) => model.slug)),
+    }
     const { models, excluded } = scoreModelsDetailed(scoringInput)
 
     await saveRecommendations(

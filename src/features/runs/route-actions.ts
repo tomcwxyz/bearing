@@ -9,7 +9,7 @@ import {
   getRoutedRunCountToday,
   setRoutedRunPreference,
 } from '@/db/runs'
-import { getModelFromDb, getOpenRouterIdsBySlug } from '@/db/models'
+import { getAllModelsFromDb, getModelFromDb, getOpenRouterIdsBySlug } from '@/db/models'
 import { getTask } from '@/db/tasks'
 import { isUserAdmin } from '@/db/users'
 import { getCurrentUser } from '@/lib/auth'
@@ -67,8 +67,14 @@ export async function routeAndRun(taskId: string, formData: FormData) {
     if (!task) return { error: 'Task not found.' }
 
     const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
-    const ranked = scoreModels(scoringInputFromTask(task, benchmarkScores))
-    const orIds = await getOpenRouterIdsBySlug()
+    const [activeModels, orIds] = await Promise.all([
+      getAllModelsFromDb(),
+      getOpenRouterIdsBySlug(),
+    ])
+    const ranked = scoreModels({
+      ...scoringInputFromTask(task, benchmarkScores),
+      eligibleModelSlugs: new Set(activeModels.map((model) => model.slug)),
+    })
     const runnable = (slug: string) => orIds.has(slug) || Boolean(DIRECT_PROVIDERS[slug])
     const anchorSlug = formData.get('modelSlug') as string | null
     const route = anchorSlug

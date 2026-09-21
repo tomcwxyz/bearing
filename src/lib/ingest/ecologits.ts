@@ -54,7 +54,11 @@ export async function ingestEcoLogits(opts: IngestOptions = {}): Promise<EcoLogi
         updated.push(slug)
         log(`  ${slug} → ${score.ecoProvider}/${score.ecoModelName}  score=${score.normalisedScore.toFixed(3)}`)
       } else {
+        // A null result can mean either no alias/model match or an upstream
+        // EcoLogits estimation failure. Keep this visible in logs; the
+        // grounding helper already emits the concrete API/body/GWP warning.
         skippedNoMatch.push(slug)
+        log(`  ${slug} → no usable EcoLogits estimate (no match or upstream data failure)`)
       }
     } catch (err) {
       failed.push(slug)

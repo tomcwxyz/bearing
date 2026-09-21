@@ -8,7 +8,7 @@ import {
   getRoutedRunCountToday,
   setRoutedRunVerdict,
 } from '@/db/runs'
-import { getModelFromDb, getOpenRouterIdsBySlug } from '@/db/models'
+import { getAllModelsFromDb, getModelFromDb, getOpenRouterIdsBySlug } from '@/db/models'
 import { getTask } from '@/db/tasks'
 import { isUserAdmin } from '@/db/users'
 import { getCurrentUser } from '@/lib/auth'
@@ -57,13 +57,32 @@ async function buildInformationRoute(taskId: string, formData: FormData, k: numb
   if (!task) return { error: 'Task not found.' as const }
 
   const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
-  const ranked = scoreModels(scoringInputFromTask(task, benchmarkScores))
-  const orIds = await getOpenRouterIdsBySlug()
-  const runnable = (slug: string) => orIds.has(slug) || Boolean(DIRECT_PROVIDERS[slug])
+  const [activeModels, orIds] = await Promise.all([
+    getAllModelsFromDb(),
+    getOpenRouterIdsBySlug(),
+  ])
+  const eligibleModelSlugs = new Set(activeModels.map((model) => model.slug))
+  const runnableModelSlugs = new Set(
+    activeModels
+      .map((model) => model.slug)
+      .filter((slug) => orIds.has(slug) || Boolean(DIRECT_PROVIDERS[slug])),
+  )
+  const ranked = scoreModels({
+    ...scoringInputFromTask(task, benchmarkScores),
+    eligibleModelSlugs,
+    runnableModelSlugs,
+  })
+  const runnable = (slug: string) => runnableModelSlugs.has(slug)
   const registryModels = getAllModels()
   const registryBySlug = new Map(registryModels.map((model) => [model.slug, model]))
   const localSlugs = new Set(registryModels.filter((model) => Boolean(model.local_info)).map((model) => model.slug))
-  const anchorSlug = formData.get('modelSlug') as string | null
+  const requestedAnchorSlug = formData.get('modelSlug') as string | null
+  // A recommendation may be valid but not executable through Bearing yet
+  // (for example a newly imported provider-native model). In that case Trio
+  // should still run using the highest-ranked runnable model rather than fail.
+  const anchorSlug = requestedAnchorSlug && runnableModelSlugs.has(requestedAnchorSlug)
+    ? requestedAnchorSlug
+    : null
 
   let outcomeBySlug: Record<string, ModelOutcomeEvidence> | null = null
   try {

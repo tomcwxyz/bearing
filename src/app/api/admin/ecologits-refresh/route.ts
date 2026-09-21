@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const result = await ingestEcoLogits()
+  const result = await ingestEcoLogits({ log: (message) => console.warn(`[ecologits-refresh] ${message}`) })
 
   return NextResponse.json({
     ok: true,

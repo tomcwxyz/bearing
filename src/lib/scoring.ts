@@ -12,6 +12,10 @@ import {
 } from './open-local-evidence'
 
 export interface ScoringInput {
+  /** Optional live catalogue allow-list. When supplied, stale static-registry rows cannot be scored. */
+  eligibleModelSlugs?: Set<string>
+  /** Optional execution allow-list for routes that must be runnable now. */
+  runnableModelSlugs?: Set<string>
   taskType: string
   complexity: string
   inputLength: string
@@ -274,6 +278,8 @@ export type HardFilterReason =
   // chat models on generative tasks (and vice versa) — the two are
   // disjoint workloads, so a hard class filter beats trying to blend.
   | 'wrong_class'
+  | 'inactive'
+  | 'not_runnable'
 
 export interface HardFilterResult {
   ok: boolean
@@ -355,6 +361,15 @@ export function scoreModelsDetailed(input: ScoringInput): ScoringResult {
   const outputLength = input.outputLength ?? 'medium'
 
   for (const model of models) {
+    if (input.eligibleModelSlugs && !input.eligibleModelSlugs.has(model.slug)) {
+      excluded.push({ slug: model.slug, name: model.name, reason: 'inactive' })
+      continue
+    }
+    if (input.runnableModelSlugs && !input.runnableModelSlugs.has(model.slug)) {
+      excluded.push({ slug: model.slug, name: model.name, reason: 'not_runnable' })
+      continue
+    }
+
     // Phase 5.1: all hard filters run through hardFilter() so the rejection
     // reason is captured for UI surfacing.
     const filter = hardFilter(model, input)
