@@ -60,14 +60,14 @@ export async function getOpenRouterId(slug: string): Promise<string | null> {
 }
 
 export async function getOpenRouterIds(): Promise<Map<string, string>> {
-  const rows = await getDb()`SELECT slug, openrouter_id FROM models WHERE openrouter_id IS NOT NULL`
+  const rows = await getDb()`SELECT slug, openrouter_id FROM models WHERE active = true AND openrouter_id IS NOT NULL`
   const map = new Map<string, string>()
   for (const row of rows) map.set(row.openrouter_id as string, row.slug as string)
   return map
 }
 
 export async function getOpenRouterIdsBySlug(): Promise<Map<string, string>> {
-  const rows = await getDb()`SELECT slug, openrouter_id FROM models WHERE openrouter_id IS NOT NULL`
+  const rows = await getDb()`SELECT slug, openrouter_id FROM models WHERE active = true AND openrouter_id IS NOT NULL`
   const map = new Map<string, string>()
   for (const row of rows) map.set(row.slug as string, row.openrouter_id as string)
   return map
