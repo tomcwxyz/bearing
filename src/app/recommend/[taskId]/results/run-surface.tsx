@@ -275,7 +275,7 @@ export function RunSurface({
           modelSlug,
           purpose: 'task_execution',
         })
-        if ('error' in authorised || !authorised.ticket) {
+        if (!('ticket' in authorised)) {
           setError(authorised.error ?? 'Bearing could not authorise this local run.')
           return
         }
