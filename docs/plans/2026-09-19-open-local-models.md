@@ -1,6 +1,6 @@
 # Open & local model evidence
 
-**Status:** implementation started  
+**Status:** active implementation; browser-local Ollama execution now wired  
 **Started:** 2026-09-19  
 **Theme:** distinguish openness, execution feasibility and observed performance
 
@@ -233,16 +233,21 @@ memory creates avoidable pressure for an ordinary Bearing visit.
 - [x] add Likely fits this device filter and per-model fit evidence;
 - [ ] account for model-specific KV/context overhead rather than the initial generic reserve;
 - [ ] allow an optional explicit discrete-GPU VRAM correction;
-- [ ] detect/import Ollama runtime evidence where the user opts in;
-- [ ] add an advanced active device test only if passive evidence proves insufficient;
-- [ ] record measured tokens/sec separately from estimated fit.
+- [x] detect/import Ollama runtime evidence where the user opts in;
+- [x] record measured tokens/sec separately from estimated fit;
+- [x] accept compatible installed Ollama variants while retaining reviewed family/size identity;
+- [x] support embedding verification through Ollama's embed endpoint;
+- [x] allow explicit "try anyway" verification when the conservative fit estimate says no;
+- [x] add browser-local task execution for reviewed recommended chat models, with prompt/answer kept off Bearing servers;
+- [x] gate recorded local observations with short-lived signed tickets and task-local recommendation validation;
+- [ ] add an advanced active device test only if passive evidence proves insufficient.
 
 ### O4 — observed open-model performance
 
 - [ ] version an open-model task corpus;
 - [ ] run selected models through Ollama Cloud/Hugging Face providers;
 - [ ] compare hosted and local runs of the same model/version where possible;
-- [ ] persist execution evidence separately from model capability evidence;
+- [x] persist execution evidence separately from model capability evidence;
 - [ ] connect human outcomes only after support is sufficient.
 
 ## Guardrails
