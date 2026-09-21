@@ -62,11 +62,17 @@ async function buildInformationRoute(taskId: string, formData: FormData, k: numb
     getOpenRouterIdsBySlug(),
   ])
   const eligibleModelSlugs = new Set(activeModels.map((model) => model.slug))
+  const runnableModelSlugs = new Set(
+    activeModels
+      .map((model) => model.slug)
+      .filter((slug) => orIds.has(slug) || Boolean(DIRECT_PROVIDERS[slug])),
+  )
   const ranked = scoreModels({
     ...scoringInputFromTask(task, benchmarkScores),
     eligibleModelSlugs,
+    runnableModelSlugs,
   })
-  const runnable = (slug: string) => orIds.has(slug) || Boolean(DIRECT_PROVIDERS[slug])
+  const runnable = (slug: string) => runnableModelSlugs.has(slug)
   const registryModels = getAllModels()
   const registryBySlug = new Map(registryModels.map((model) => [model.slug, model]))
   const localSlugs = new Set(registryModels.filter((model) => Boolean(model.local_info)).map((model) => model.slug))
