@@ -93,7 +93,9 @@ describe('probeLocalOllama', () => {
     ).rejects.toMatchObject({
       code: 'unreachable',
     })
-  })  it('verifies embedding models through the Ollama embed endpoint', async () => {
+  })
+
+  it('verifies embedding models through the Ollama embed endpoint', async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
       if (url.endsWith('/api/tags')) {
