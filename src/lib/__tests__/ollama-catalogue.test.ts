@@ -34,7 +34,9 @@ describe('Ollama catalogue adapter', () => {
     ], ['Qwen3.5-397B'])
 
     expect(match?.model).toBe('qwen3.5:397b')
-  })  it('accepts compatible quantisation and instruction variants without crossing parameter sizes', () => {
+  })
+
+  it('accepts compatible quantisation and instruction variants without crossing parameter sizes', () => {
     expect(ollamaModelNamesCompatible(
       'gemma3:27b-it-q4_K_M',
       'gemma3:27b',
