@@ -3,6 +3,19 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Permissions-Policy',
+            value: 'loopback-network=(self), local-network=(self), local-network-access=(self)',
+          },
+        ],
+      },
+    ]
+  },
   // @napi-rs/canvas ships a native (napi-rs/Rust) binary loader —
   // js-binding.js — that Turbopack can't trace into an ESM chunk ("asset is
   // not placeable in ESM chunks"). pdf-parse (via pdfjs-dist) resolves its
