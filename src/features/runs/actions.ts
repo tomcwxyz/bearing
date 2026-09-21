@@ -8,7 +8,7 @@ import {
   getRoutedRunCountToday,
   setRoutedRunVerdict,
 } from '@/db/runs'
-import { getModelFromDb, getOpenRouterIdsBySlug } from '@/db/models'
+import { getAllModelsFromDb, getModelFromDb, getOpenRouterIdsBySlug } from '@/db/models'
 import { getTask } from '@/db/tasks'
 import { isUserAdmin } from '@/db/users'
 import { getCurrentUser } from '@/lib/auth'
@@ -57,8 +57,15 @@ async function buildInformationRoute(taskId: string, formData: FormData, k: numb
   if (!task) return { error: 'Task not found.' as const }
 
   const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
-  const ranked = scoreModels(scoringInputFromTask(task, benchmarkScores))
-  const orIds = await getOpenRouterIdsBySlug()
+  const [activeModels, orIds] = await Promise.all([
+    getAllModelsFromDb(),
+    getOpenRouterIdsBySlug(),
+  ])
+  const eligibleModelSlugs = new Set(activeModels.map((model) => model.slug))
+  const ranked = scoreModels({
+    ...scoringInputFromTask(task, benchmarkScores),
+    eligibleModelSlugs,
+  })
   const runnable = (slug: string) => orIds.has(slug) || Boolean(DIRECT_PROVIDERS[slug])
   const registryModels = getAllModels()
   const registryBySlug = new Map(registryModels.map((model) => [model.slug, model]))
