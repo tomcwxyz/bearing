@@ -43,9 +43,7 @@ function LocalRecommendationRow({
 }) {
   const fitLabel = describeLocalTaskFit(rec.effectiveQuality)
   const reviewed = getReviewedOpenLocalEvidence(rec.model.slug)
-  const ollamaModelId = rec.modelClass !== 'embedding'
-    ? reviewed?.ollamaModelId
-    : undefined
+  const ollamaModelId = reviewed?.ollamaModelId
 
   const fitSummary = hardwareProfile && hardwareFit
     ? hardwareFit.fits && hardwareFit.bestQuant
@@ -91,13 +89,15 @@ function LocalRecommendationRow({
         </div>
       </div>
 
-      {hardwareFit?.fits && ollamaModelId && reviewed?.status === 'confirmed_local' && (
+      {ollamaModelId && reviewed?.status === 'confirmed_local' && (
         <LocalOllamaVerifier
           taskId={taskId}
           modelSlug={rec.model.slug}
           modelName={rec.model.name}
           ollamaModelId={ollamaModelId}
           hardwareProfile={hardwareProfile}
+          probeKind={rec.modelClass === 'embedding' ? 'embedding' : 'chat'}
+          estimatedFits={hardwareFit ? hardwareFit.fits : null}
         />
       )}
     </div>
