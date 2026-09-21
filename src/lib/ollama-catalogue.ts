@@ -22,6 +22,10 @@ export interface OllamaCatalogue {
   models: OllamaCatalogueModel[]
 }
 
+type LoopbackRequestInit = RequestInit & {
+  targetAddressSpace?: 'loopback'
+}
+
 export async function fetchOllamaCloudModels(
   options: {
     fetchImpl?: typeof fetch
@@ -44,7 +48,11 @@ export async function fetchLocalOllamaModels(
   } = {},
 ): Promise<OllamaCatalogueModel[]> {
   const fetchImpl = options.fetchImpl ?? fetch
-  const response = await fetchImpl(`${baseUrl.replace(/\/$/, '')}/api/tags`)
+  const init: LoopbackRequestInit = { targetAddressSpace: 'loopback' }
+  const response = await fetchImpl(
+    `${baseUrl.replace(/\/$/, '')}/api/tags`,
+    init,
+  )
   if (!response.ok) {
     throw new Error(`Local Ollama catalogue failed (${response.status})`)
   }
@@ -59,18 +67,54 @@ export function normaliseOllamaModelName(name: string): string {
     .replace(/[^a-z0-9]+/g, '')
 }
 
+function ollamaFamily(name: string): string {
+  const leaf = name.trim().toLowerCase().split('/').pop() ?? name.toLowerCase()
+  return normaliseOllamaModelName(leaf.split(':')[0] ?? leaf)
+}
+
+function ollamaParameterSize(name: string): string | null {
+  const leaf = name.trim().toLowerCase().split('/').pop() ?? name.toLowerCase()
+  const match = leaf.match(/(?:^|[-_:])(\d+(?:\.\d+)?b)(?=$|[-_:])/i)
+  return match?.[1]?.toLowerCase() ?? null
+}
+
+/**
+ * Ollama tags can name the same model with different instruction/quantisation
+ * suffixes. Treat those as compatible only when the model family matches and,
+ * when Bearing has reviewed a parameter size, that size also matches.
+ */
+export function ollamaModelNamesCompatible(expected: string, observed: string): boolean {
+  if (normaliseOllamaModelName(expected) === normaliseOllamaModelName(observed)) return true
+  if (ollamaFamily(expected) !== ollamaFamily(observed)) return false
+
+  const expectedSize = ollamaParameterSize(expected)
+  const observedSize = ollamaParameterSize(observed)
+  if (expectedSize) return observedSize === expectedSize
+
+  return true
+}
+
 export function findOllamaCatalogueMatch(
   catalogue: OllamaCatalogueModel[],
   candidates: string[],
 ): OllamaCatalogueModel | null {
-  const wanted = new Set(candidates.map(normaliseOllamaModelName).filter(Boolean))
+  const exact = new Set(candidates.map(normaliseOllamaModelName).filter(Boolean))
   for (const model of catalogue) {
     if (
-      wanted.has(normaliseOllamaModelName(model.model)) ||
-      wanted.has(normaliseOllamaModelName(model.name))
+      exact.has(normaliseOllamaModelName(model.model)) ||
+      exact.has(normaliseOllamaModelName(model.name))
     ) {
       return model
     }
   }
+
+  for (const candidate of candidates) {
+    const compatible = catalogue.filter((model) =>
+      ollamaModelNamesCompatible(candidate, model.model) ||
+      ollamaModelNamesCompatible(candidate, model.name),
+    )
+    if (compatible.length > 0) return compatible[0]
+  }
+
   return null
 }

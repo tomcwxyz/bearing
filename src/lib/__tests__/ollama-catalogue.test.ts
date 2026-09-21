@@ -3,6 +3,7 @@ import {
   fetchOllamaCloudModels,
   findOllamaCatalogueMatch,
   normaliseOllamaModelName,
+  ollamaModelNamesCompatible,
 } from '../ollama-catalogue'
 
 describe('Ollama catalogue adapter', () => {
@@ -34,4 +35,28 @@ describe('Ollama catalogue adapter', () => {
 
     expect(match?.model).toBe('qwen3.5:397b')
   })
+
+  it('accepts compatible quantisation and instruction variants without crossing parameter sizes', () => {
+    expect(ollamaModelNamesCompatible(
+      'gemma3:27b-it-q4_K_M',
+      'gemma3:27b',
+    )).toBe(true)
+    expect(ollamaModelNamesCompatible(
+      'qwen3.5:9b',
+      'qwen3.5:9b-q8_0',
+    )).toBe(true)
+    expect(ollamaModelNamesCompatible(
+      'qwen3.5:9b',
+      'qwen3.5:397b',
+    )).toBe(false)
+  })
+
+  it('falls back to a compatible installed variant when the reviewed tag is not exact', () => {
+    const match = findOllamaCatalogueMatch([
+      { name: 'gemma3:27b', model: 'gemma3:27b' },
+    ], ['gemma3:27b-it-q4_K_M'])
+
+    expect(match?.model).toBe('gemma3:27b')
+  })
+
 })

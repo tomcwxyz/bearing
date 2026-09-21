@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState, useTransition } from 'react'
 import { selectModel } from '@/features/feedback/actions'
 import type { ScoredModel } from '@/lib/scoring'
-import type { Factor } from '@/lib/registry'
+import { getModel, type Factor } from '@/lib/registry'
 import type { PipelineResult } from '@/lib/pipeline'
 import type { LocalInferenceResult } from '@/lib/local-inference'
 import type { BenchmarkEvidence } from '@/lib/benchmark-evidence'
@@ -12,6 +12,7 @@ import type { RecommendationEvidence } from '@/lib/recommendation-evidence'
 import type { RecommendationConfidence } from '@/lib/recommendation-confidence'
 import type { FeaturedAlternative } from '@/lib/tradeoff-alternatives'
 import { buildSelectionChoiceContext } from '@/lib/selection-context'
+import { getReviewedOpenLocalEvidence } from '@/lib/open-local-evidence'
 import {
   OPEN_WEIGHTS_THRESHOLD,
   assessHardwareFit,
@@ -596,7 +597,18 @@ export function ResultsClient({
             <FactorDetails model={model} />
 
             <div className="mt-4 ml-9">
-              <RunSurface taskId={taskId} modelSlug={model.slug} modelName={model.name} />
+              <RunSurface
+                taskId={taskId}
+                modelSlug={model.slug}
+                modelName={model.name}
+                ollamaModelId={
+                  getModel(model.slug)?.model_class !== 'embedding' &&
+                  local?.recommendations.some((candidate) => candidate.model.slug === model.slug)
+                    ? getReviewedOpenLocalEvidence(model.slug)?.ollamaModelId
+                    : undefined
+                }
+                hardwareProfile={hardwareProfile}
+              />
             </div>
           </div>
         )

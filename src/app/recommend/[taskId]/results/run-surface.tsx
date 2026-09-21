@@ -4,11 +4,18 @@ import { useState, useTransition } from 'react'
 import { checkAuth, signInWithPassword } from '@/features/auth/actions'
 import { challengeAnswer, runInformationTrio } from '@/features/runs/actions'
 import { routeAndRun, submitRoutedPreference } from '@/features/runs/route-actions'
+import {
+  createLocalOllamaObservationTicket,
+  recordLocalOllamaObservation,
+} from '@/features/runs/local-execution-actions'
 import type { Factor } from '@/lib/registry'
+import { OllamaProbeError, runLocalOllama, type OllamaLocalRunResult } from '@/lib/ollama-local-runtime'
+import { coarseHardwareProfileFromProfile } from '@/lib/selection-context'
+import type { HardwareProfile } from '@/lib/open-local-models'
 import { LoadingIndicator } from '@/components/loading-indicator'
 import { CredentialsForm } from '@/components/credentials-form'
 
-type Mode = 'route' | 'trio'
+type Mode = 'route' | 'trio' | 'local'
 
 const FACTOR_LABELS: Record<Factor, string> = {
   cost: 'cost',
@@ -39,6 +46,10 @@ interface RouteResult {
   latencyMs: number
 }
 
+interface LocalRouteResult extends OllamaLocalRunResult {
+  saved: boolean
+}
+
 interface ExperimentCandidate {
   slug: string
   name: string
@@ -62,16 +73,19 @@ interface ExperimentResult {
 const MODE_LABEL: Record<Mode, string> = {
   route: 'Run this model',
   trio: 'Trio',
+  local: 'Run locally',
 }
 
 function modeDescription(mode: Mode, modelName: string): string {
-  if (mode === 'route') return `Runs your prompt on ${modelName}.`
+  if (mode === 'route') return `Runs your prompt on ${modelName} through Bearing's hosted route.`
+  if (mode === 'local') return `Runs your prompt directly from this browser to ${modelName} in your local Ollama runtime. The prompt and answer stay on this device; Bearing records only coarse execution metrics.`
   return `Starts with ${modelName}, then Bearing chooses up to two credible alternatives that maximise what the comparison can teach — for example a different provider, a cheaper option, or a local-vs-hosted trade-off.`
 }
 
 const MODE_PLACEHOLDER: Record<Mode, string> = {
   route: 'Enter the prompt you actually want to run...',
   trio: 'Enter the prompt to test across an informative Trio...',
+  local: 'Enter the prompt to run privately in your local Ollama runtime...',
 }
 
 function ExperimentResults({
@@ -184,13 +198,26 @@ function ExperimentResults({
   )
 }
 
-export function RunSurface({ taskId, modelSlug, modelName }: { taskId: string; modelSlug: string; modelName: string }) {
+export function RunSurface({
+  taskId,
+  modelSlug,
+  modelName,
+  ollamaModelId,
+  hardwareProfile,
+}: {
+  taskId: string
+  modelSlug: string
+  modelName: string
+  ollamaModelId?: string
+  hardwareProfile: HardwareProfile | null
+}) {
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<Mode>('route')
   const [prompt, setPrompt] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
   const [routeResult, setRouteResult] = useState<RouteResult | null>(null)
+  const [localResult, setLocalResult] = useState<LocalRouteResult | null>(null)
   const [trioResult, setTrioResult] = useState<ExperimentResult | null>(null)
   const [challengeResult, setChallengeResult] = useState<ExperimentResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -202,10 +229,12 @@ export function RunSurface({ taskId, modelSlug, modelName }: { taskId: string; m
     if (next === mode) return
     setMode(next)
     setRouteResult(null)
+    setLocalResult(null)
     setTrioResult(null)
     setChallengeResult(null)
     setError(null)
     setPreferred(null)
+    setShowSignIn(false)
   }
 
   function handlePreference(result: ExperimentResult, slug: string) {
@@ -231,6 +260,51 @@ export function RunSurface({ taskId, modelSlug, modelName }: { taskId: string; m
     setPreferred(null)
 
     startTransition(async () => {
+      if (mode === 'local') {
+        if (!ollamaModelId) {
+          setError('This model does not have a reviewed Ollama route yet.')
+          return
+        }
+        if (file) {
+          setError('Local Ollama runs do not support PDF/CSV attachments yet. Remove the attachment or use the hosted route.')
+          return
+        }
+
+        const authorised = await createLocalOllamaObservationTicket({
+          taskId,
+          modelSlug,
+          purpose: 'task_execution',
+        })
+        if (!('ticket' in authorised)) {
+          setError(authorised.error ?? 'Bearing could not authorise this local run.')
+          return
+        }
+
+        try {
+          const result = await runLocalOllama(ollamaModelId, prompt.trim())
+          const coarse = coarseHardwareProfileFromProfile(hardwareProfile)
+          const observation = await recordLocalOllamaObservation({
+            taskId,
+            modelSlug,
+            ticket: authorised.ticket,
+            ...result,
+            response: undefined,
+            hardwareProfile: coarse ? { ...coarse, runtime: 'ollama' } : null,
+          })
+          setLocalResult({
+            ...result,
+            saved: !observation.error,
+          })
+          if (observation.error) {
+            setError(`The prompt ran locally, but Bearing could not save the execution metrics: ${observation.error}`)
+          }
+        } catch (caught) {
+          if (caught instanceof OllamaProbeError) setError(caught.message)
+          else setError(caught instanceof Error ? caught.message : 'Local Ollama run failed.')
+        }
+        return
+      }
+
       const auth = await checkAuth()
       if (!auth.authenticated) {
         setShowSignIn(true)
@@ -291,12 +365,16 @@ export function RunSurface({ taskId, modelSlug, modelName }: { taskId: string; m
     )
   }
 
-  const hasResult = mode === 'route' ? routeResult !== null : trioResult !== null
+  const hasResult = mode === 'route'
+    ? routeResult !== null
+    : mode === 'local'
+      ? localResult !== null
+      : trioResult !== null
 
   return (
     <div className="mt-4 w-full rounded-lg border border-teal/30 bg-teal/5 p-4 fade-in">
       <div className="mb-3 inline-flex rounded-lg border border-cream-dark bg-white p-0.5">
-        {(['route', 'trio'] as Mode[]).map((candidateMode) => (
+        {(['route', ...(ollamaModelId ? ['local' as const] : []), 'trio'] as Mode[]).map((candidateMode) => (
           <button
             key={candidateMode}
             type="button"
@@ -311,7 +389,11 @@ export function RunSurface({ taskId, modelSlug, modelName }: { taskId: string; m
       </div>
 
       <p className="mb-2 font-display text-sm font-semibold text-navy">
-        {mode === 'route' ? `Run your prompt on ${modelName}` : 'Run an informative Trio'}
+        {mode === 'route'
+          ? `Run your prompt on ${modelName}`
+          : mode === 'local'
+            ? `Run privately in local Ollama`
+            : 'Run an informative Trio'}
       </p>
       <p className="mb-3 text-xs text-grey-blue">{modeDescription(mode, modelName)}</p>
 
@@ -324,6 +406,11 @@ export function RunSurface({ taskId, modelSlug, modelName }: { taskId: string; m
         className="w-full resize-y rounded-lg border border-cream-dark bg-white p-3 text-sm text-navy focus:border-teal focus:ring-1 focus:ring-teal focus:outline-none"
       />
 
+      {mode === 'local' ? (
+        <div className="mt-3 rounded-lg border border-teal/20 bg-white px-3 py-2 text-xs leading-relaxed text-navy/55">
+          This run goes straight from your browser to <code className="font-mono">localhost:11434</code>. Bearing does not receive the prompt or answer. File attachments are not yet supported on the local route.
+        </div>
+      ) : (
       <div className="mt-3">
         {file ? (
           <div className="flex items-center gap-2 rounded-lg border border-teal/30 bg-white px-3 py-2 text-xs">
@@ -365,6 +452,7 @@ export function RunSurface({ taskId, modelSlug, modelName }: { taskId: string; m
         )}
         {fileError && <p className="mt-1 text-xs text-coral">{fileError}</p>}
       </div>
+      )}
 
       {error && <p role="alert" className="mt-3 text-sm text-coral">{error}</p>}
 
@@ -388,13 +476,38 @@ export function RunSurface({ taskId, modelSlug, modelName }: { taskId: string; m
           className="mt-3 rounded-lg bg-navy px-4 py-2 text-sm font-semibold font-display text-cream transition-colors hover:bg-navy-light disabled:opacity-40"
         >
           {isPending && !challengeResult
-            ? (mode === 'route' ? 'Running...' : 'Running informative Trio...')
-            : (mode === 'route' ? 'Route & run' : 'Run Trio')}
+            ? (mode === 'route' ? 'Running...' : mode === 'local' ? 'Running in Ollama...' : 'Running informative Trio...')
+            : (mode === 'route' ? 'Route & run' : mode === 'local' ? 'Run locally' : 'Run Trio')}
         </button>
       )}
 
       {isPending && !hasResult && (
         <div className="mt-4"><LoadingIndicator size="sm" label="Routing and running..." /></div>
+      )}
+
+      {mode === 'local' && localResult && (
+        <div className="mt-4 fade-in">
+          <div className="mb-2 inline-flex flex-wrap items-center gap-2 rounded-full bg-teal/10 px-3 py-1 text-xs text-teal">
+            <span>
+              Ran locally on <strong>{modelName}</strong>
+              {localResult.runtimeVersion ? ` · Ollama ${localResult.runtimeVersion}` : ''}
+            </span>
+          </div>
+          <p className="mb-3 font-mono text-xs text-grey-blue">
+            {localResult.tokensPerSecond != null ? `${localResult.tokensPerSecond} tok/s · ` : ''}
+            {localResult.latencyMs != null ? `${(localResult.latencyMs / 1000).toFixed(1)}s · ` : ''}
+            {localResult.quant ?? 'quant unknown'}
+            {localResult.measuredVramGb != null ? ` · ${localResult.measuredVramGb} GB VRAM` : ''}
+          </p>
+          <div className="whitespace-pre-wrap rounded-lg border border-cream-dark bg-white p-4 text-sm text-navy">
+            {localResult.response || 'Ollama returned an empty response.'}
+          </div>
+          <p className="mt-2 text-[11px] text-navy/45">
+            {localResult.saved
+              ? 'Execution metrics recorded; prompt and response remained local.'
+              : 'Prompt and response remained local. Execution metrics were not recorded.'}
+          </p>
+        </div>
       )}
 
       {mode === 'route' && routeResult && (
