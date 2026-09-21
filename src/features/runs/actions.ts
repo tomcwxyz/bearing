@@ -76,7 +76,13 @@ async function buildInformationRoute(taskId: string, formData: FormData, k: numb
   const registryModels = getAllModels()
   const registryBySlug = new Map(registryModels.map((model) => [model.slug, model]))
   const localSlugs = new Set(registryModels.filter((model) => Boolean(model.local_info)).map((model) => model.slug))
-  const anchorSlug = formData.get('modelSlug') as string | null
+  const requestedAnchorSlug = formData.get('modelSlug') as string | null
+  // A recommendation may be valid but not executable through Bearing yet
+  // (for example a newly imported provider-native model). In that case Trio
+  // should still run using the highest-ranked runnable model rather than fail.
+  const anchorSlug = requestedAnchorSlug && runnableModelSlugs.has(requestedAnchorSlug)
+    ? requestedAnchorSlug
+    : null
 
   let outcomeBySlug: Record<string, ModelOutcomeEvidence> | null = null
   try {
