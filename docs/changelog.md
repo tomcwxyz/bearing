@@ -4,7 +4,7 @@ All notable changes to Bearing will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.0.0-beta.2] — 2026-09-21
 
 The local-model work now distinguishes four different questions instead of collapsing them into one label: **are the weights open, is there a reviewed local route, is the model likely to fit this device, and has it actually run successfully here?**
 
