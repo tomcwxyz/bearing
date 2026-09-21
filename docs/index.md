@@ -29,6 +29,10 @@ If you want more control, **Adjust bearing** exposes the inferred priorities and
 - **Validate a model you already use** against the same task-relative scoring system.
 - **Recommend embedding models** for retrieval, RAG, similarity and other vector workloads.
 - **Browse the model registry** and inspect pricing, capability, transparency, sustainability and evidence.
+- **Filter for open-weight models** when openness matters to the job.
+- **Find models with reviewed local-running evidence** rather than treating downloadable weights as proof that something will run locally.
+- **Check your device** and see which local models are likely to fit, while keeping their original task ranking visible.
+- **Verify local fit with Ollama** when you want to compare Bearing's estimate with an actual local runtime.
 - **Resume previous bearings** when signed in, without Bearing needing to retain the raw task description.
 
 ## Scores are not probabilities
@@ -39,11 +43,23 @@ Recommendation confidence is separate. It describes the strength and consistency
 
 See [How Bearing works](how-bearing-works.md) and [How we rate models](model-ratings.md) for the details.
 
+## Open, local and your device
+
+"Open" and "runs locally" are not the same thing, so Bearing keeps them separate.
+
+You can filter recommendations to models with strong **open-weight evidence**, and separately to models where Bearing has reviewed a real local runtime or quantisation route. Downloadable weights on their own are not enough for Bearing to claim that a model is practical to run locally.
+
+If you want to know what will run on **your** machine, use the device check. Bearing uses lightweight browser information plus the memory amount you confirm to make a conservative estimate. After a fresh check, the results can switch to a device-aware view: the original task ranking stays intact, but models that are unlikely to fit are taken out of the way and the strongest remaining option is labelled **Best on this device**.
+
+Where Ollama support has been reviewed, you can also run a small verification probe against your own local Ollama runtime. That is kept separate from your real task: Bearing does not automatically download a model and does not send your task text as part of the check.
+
 ## Freshness matters
 
-Models, prices, capabilities and endpoints change. Bearing therefore treats freshness as part of correctness rather than as a maintenance detail.
+AI models move quickly. A recommendation that made sense a few weeks ago can become wrong because the price changed, the context window moved, a provider dropped a model, or an endpoint simply stopped working.
 
-The registry can be checked against provider catalogues and OpenRouter, runtime routability is observed separately, and catalogue drift is reviewed before changing canonical model metadata. Operational failures are kept separate from capability evidence: an endpoint outage is not evidence that a model is intrinsically worse.
+Bearing checks for that rather than pretending the registry is timeless. We keep two things separate: **what a model is good at**, and **whether you can actually get to it today**. Catalogue changes are checked and reviewed before we update the model record; runtime availability is watched separately.
+
+That separation matters. A temporary outage does not suddenly make a good model bad, and a great benchmark score is not much use if the model is no longer available.
 
 ## Learning without retaining the work
 
