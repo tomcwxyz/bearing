@@ -12,6 +12,8 @@ import {
 } from './open-local-evidence'
 
 export interface ScoringInput {
+  /** Optional live catalogue allow-list. When supplied, stale static-registry rows cannot be scored. */
+  eligibleModelSlugs?: Set<string>
   taskType: string
   complexity: string
   inputLength: string
@@ -355,6 +357,11 @@ export function scoreModelsDetailed(input: ScoringInput): ScoringResult {
   const outputLength = input.outputLength ?? 'medium'
 
   for (const model of models) {
+    if (input.eligibleModelSlugs && !input.eligibleModelSlugs.has(model.slug)) {
+      excluded.push({ slug: model.slug, name: model.name, reason: 'Model is inactive in the live catalogue.' })
+      continue
+    }
+
     // Phase 5.1: all hard filters run through hardFilter() so the rejection
     // reason is captured for UI surfacing.
     const filter = hardFilter(model, input)
