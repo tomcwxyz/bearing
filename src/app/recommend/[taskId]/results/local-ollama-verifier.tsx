@@ -77,7 +77,7 @@ export function LocalOllamaVerifier({
         modelSlug,
         purpose: 'verification_probe',
       })
-      if ('error' in authorised || !authorised.ticket) {
+      if (!('ticket' in authorised)) {
         setError({
           code: 'authorisation_failed',
           message: authorised.error ?? 'Bearing could not authorise this local verification.',
