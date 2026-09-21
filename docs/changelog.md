@@ -6,12 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+The local-model work now distinguishes four different questions instead of collapsing them into one label: **are the weights open, is there a reviewed local route, is the model likely to fit this device, and has it actually run successfully here?**
+
 ### Added
+
 
 - **Local fit calibration in Admin → Insights** — successful Ollama verification probes are compared with Bearing's current hardware-fit estimate, including predicted fit/quant/runtime memory versus observed quant, resident VRAM, context and throughput. The view surfaces unexpected successful fits and average observed-minus-estimated VRAM so estimator changes can be evidence-led.
 - **Verify local models in Ollama** — reviewed Ollama-capable recommendations can now run a small fixed verification probe against the user's own local Ollama runtime. Bearing does not auto-pull missing models and does not send the user's task text to the probe.
 - **Measured local execution evidence** — successful verification probes can record Ollama version, exact runtime model/tag, quantisation, loaded context, resident VRAM, token throughput, token counts and timing breakdowns alongside the coarse hardware profile.
 - **Execution purpose in public data** — dataset schema 2.1 distinguishes `verification_probe` from `task_execution`, preventing a hardware/runtime check from being mistaken for the user's real workload.
+- **Observed-vs-predicted local evidence** — local hardware estimates and successful runtime observations are now deliberately separate evidence layers, so a conservative fit prediction can be checked against what actually ran rather than being treated as ground truth.
 
 ### Changed
 
