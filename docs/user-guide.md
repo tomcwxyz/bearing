@@ -67,6 +67,46 @@ For example, a workflow could involve extracting information, analysing it, then
 
 A pipeline is suggested when it appears useful; it is not assumed to be better by default.
 
+## Open and local models
+
+Bearing treats **open weights**, **local capability** and **hosted availability** as different things.
+
+That matters because a model can have downloadable weights without being realistic to run on an ordinary machine, and a model that can run locally may also be available through hosted providers.
+
+On the results page you can use separate filters for:
+
+- **Open models only** — models with strong reviewed evidence that weights are available;
+- **Runs locally** — models where Bearing has reviewed a concrete local runtime or quantisation route;
+- **Likely fits this device** — local-capable models that fit Bearing's conservative estimate for the device you have checked.
+
+These filters do not quietly rewrite a model's intrinsic quality score. They narrow the route according to the constraint you care about.
+
+### Checking your device
+
+The device check is optional and happens in the browser.
+
+Bearing uses lightweight browser/WebGPU hints plus a memory amount you confirm to estimate a conservative model-memory budget. Browser limits are not presented as if they were exact physical VRAM, and Bearing does not deliberately fill GPU memory just to find the breaking point.
+
+After a fresh device check or memory confirmation, Bearing can switch to a device-aware result view:
+
+- models unlikely to fit are taken out of the immediate recommendation list;
+- the strongest eligible model is labelled **Best on this device**;
+- its original overall task rank is still shown;
+- local-capable models are labelled **Runs on this device** or **Local, not on this device**;
+- where a model is too large, Bearing shows the smallest reviewed local memory requirement it knows about.
+
+The point is to answer a practical question — *what is a good model for this job that I can actually run here?* — without pretending hardware fit is part of the model's intrinsic quality.
+
+### Verifying with Ollama
+
+A prediction about fit is still a prediction.
+
+For reviewed Ollama-capable models, Bearing can run a small local verification probe against your own Ollama runtime. It only checks models that are already installed; it does not automatically pull a large model for you.
+
+The verification prompt is fixed and separate from your work. Your task text is not sent to Ollama as part of the check.
+
+When the probe succeeds, Bearing can record evidence such as the exact runtime model and quantisation, loaded context, resident VRAM, throughput and timing. That observed evidence is kept separate from the earlier prediction so Bearing can learn where its estimates are too cautious or too optimistic.
+
 ## Running a recommendation
 
 Where a recommended model is runnable, choose **Run this prompt**.
@@ -147,11 +187,15 @@ Because model catalogues change, Bearing also tracks freshness and provider iden
 
 ## Freshness and availability
 
-A model can be a strong fit but temporarily unavailable. Bearing treats these as different questions.
+Models move. Prices change, context limits change, provider IDs move around, and sometimes a perfectly good model is simply unavailable for a while.
 
-Catalogue verification checks current provider/OpenRouter evidence such as pricing, context size, capabilities and identifiers. Potential drift is reviewed before canonical model metadata is changed.
+Bearing tries not to muddle those things together.
 
-Runtime canaries separately observe whether model endpoints are healthy, degraded or unavailable. A single runtime failure is not treated as evidence that the model is poor, and production ranking is not currently hard-filtered from one or two observations while the policy is still being calibrated.
+**Catalogue freshness** is about whether the facts we hold about a model are still current: pricing, context size, observable capabilities, provider identifiers and availability. When an external catalogue disagrees with Bearing, the difference is surfaced for review rather than silently overwriting the registry.
+
+**Runtime availability** is about whether an endpoint can actually be reached. Bearing watches that separately with runtime canaries.
+
+A failed endpoint check is not evidence that the model suddenly became worse at writing, coding or analysis. Equally, a strong model on paper is not much use for a route if it cannot currently be reached. Keeping those two kinds of evidence apart lets Bearing react to real change without overreacting to a temporary wobble.
 
 ## Signing in and My bearings
 
