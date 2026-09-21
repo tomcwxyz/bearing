@@ -276,6 +276,7 @@ export type HardFilterReason =
   // chat models on generative tasks (and vice versa) — the two are
   // disjoint workloads, so a hard class filter beats trying to blend.
   | 'wrong_class'
+  | 'inactive'
 
 export interface HardFilterResult {
   ok: boolean
@@ -358,7 +359,7 @@ export function scoreModelsDetailed(input: ScoringInput): ScoringResult {
 
   for (const model of models) {
     if (input.eligibleModelSlugs && !input.eligibleModelSlugs.has(model.slug)) {
-      excluded.push({ slug: model.slug, name: model.name, reason: 'Model is inactive in the live catalogue.' })
+      excluded.push({ slug: model.slug, name: model.name, reason: 'inactive' })
       continue
     }
 
