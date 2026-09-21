@@ -4,6 +4,29 @@ All notable changes to Bearing will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.0.0-beta.3] — 2026-09-21
+
+This release turns Ollama from a local-fit verification aid into a first-class local execution route for reviewed recommended chat models, while tightening the evidence and browser-permission boundaries around it.
+
+### Added
+
+- **Run locally in Ollama** — reviewed chat models that Bearing recommends locally for the current task can now run the user's prompt directly from the browser to `localhost:11434`. Prompt and response content stay on the device; Bearing records only coarse execution metrics.
+- **Embedding verification** — reviewed embedding models can now be verified through Ollama's embedding endpoint instead of being excluded from local runtime checks.
+- **Local-network permission guidance** — Bearing understands the browser's loopback/local-network permission state where available and declares an explicit permissions policy for local runtime access.
+- **Signed local observation tickets** — recorded Ollama observations require a short-lived server-signed ticket and must correspond to a model Bearing actually recommended locally for that task.
+
+### Changed
+
+- **Compatible Ollama variants are accepted** — installed instruction and quantisation variants can satisfy a reviewed model mapping when family and parameter size still match; Bearing no longer requires one exact tag.
+- **Conservative fit estimates no longer block verification** — users can explicitly try a reviewed model in Ollama even when Bearing predicts it is above the device's safe memory budget.
+- **Ollama setup errors are clearer** — browser loopback permission, missing models, local daemon reachability and `OLLAMA_ORIGINS` setup are surfaced separately where possible.
+
+### Evidence and privacy
+
+- Verification probes remain fixed and separate from real task content.
+- Real local runs send task text only to the user's local Ollama runtime.
+- Observed runtime version, model/tag, quantisation, context, VRAM, throughput and latency remain distinct from Bearing's predicted hardware-fit evidence.
+
 ## [1.0.0-beta.2] — 2026-09-21
 
 The local-model work now distinguishes four different questions instead of collapsing them into one label: **are the weights open, is there a reviewed local route, is the model likely to fit this device, and has it actually run successfully here?**
