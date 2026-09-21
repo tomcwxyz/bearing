@@ -66,3 +66,18 @@ export async function saveLocalRecommendations(
     `
   }
 }
+
+
+export async function hasLocalRecommendation(
+  taskId: string,
+  modelSlug: string,
+): Promise<boolean> {
+  const rows = await getDb()`
+    SELECT 1
+    FROM local_recommendations
+    WHERE task_id = ${taskId}
+      AND model_slug = ${modelSlug}
+    LIMIT 1
+  `
+  return rows.length > 0
+}
