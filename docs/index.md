@@ -33,6 +33,7 @@ If you want more control, **Adjust bearing** exposes the inferred priorities and
 - **Find models with reviewed local-running evidence** rather than treating downloadable weights as proof that something will run locally.
 - **Check your device** and see which local models are likely to fit, while keeping their original task ranking visible.
 - **Verify local fit with Ollama** when you want to compare Bearing's estimate with an actual local runtime.
+- **Run a recommended chat model locally** without sending the prompt or answer through Bearing's hosted execution path.
 - **Resume previous bearings** when signed in, without Bearing needing to retain the raw task description.
 
 ## Scores are not probabilities
@@ -51,7 +52,9 @@ You can filter recommendations to models with strong **open-weight evidence**, a
 
 If you want to know what will run on **your** machine, use the device check. Bearing uses lightweight browser information plus the memory amount you confirm to make a conservative estimate. After a fresh check, the results can switch to a device-aware view: the original task ranking stays intact, but models that are unlikely to fit are taken out of the way and the strongest remaining option is labelled **Best on this device**.
 
-Where Ollama support has been reviewed, you can also run a small verification probe against your own local Ollama runtime. That is kept separate from your real task: Bearing does not automatically download a model and does not send your task text as part of the check.
+Where Ollama support has been reviewed, you can run a small verification probe against your own local runtime, including embedding-specific probes. Bearing accepts compatible installed variants rather than insisting on one exact quantisation tag, and a conservative "too large" estimate does not stop you trying the model anyway.
+
+For reviewed chat models that are local recommendations for the current bearing, **Run locally** is also available alongside the hosted route. The prompt and answer go directly from the browser to Ollama on `localhost:11434`; Bearing records only coarse execution metrics. Modern browsers may prompt for local/loopback network access, and Ollama may need the Bearing origin added to `OLLAMA_ORIGINS`.
 
 ## Freshness matters
 
