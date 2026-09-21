@@ -1,0 +1,124 @@
+name: Temporary branch cleanup
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - .github/workflows/temporary-branch-cleanup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete merged and stale branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -u
+          branches=(
+            'claude/admin-model-transparency-sut0ex'
+            'claude/bearing-auto-routing-compare-b0yujn'
+            'docs/current-product-truth-2026-09-16'
+            'docs/import-accuracy'
+            'docs/readme-truth-2026-09-16'
+            'docs/refresh-roadmap-2026-09-16'
+            'docs/roadmap-maintenance-truth'
+            'docs/roadmap-progress-2026-09-16'
+            'docs/routability-baseline'
+            'eval/live-classifier'
+            'feat/admin-maintenance-controls'
+            'feat/bearing-1-reorientation'
+            'feat/bearing-freshness'
+            'feat/benchmark-reingest-admin'
+            'feat/benchmark-uncertainty'
+            'feat/catalogue-review-audit'
+            'feat/classifier-runtime-validation'
+            'feat/contextual-challenge-trio'
+            'feat/device-aware-recommendation-flow'
+            'feat/drift-review-workflow'
+            'feat/evidence-weighted-benchmark-blend'
+            'feat/golden-shadow-evaluation'
+            'feat/hardware-aware-local-results'
+            'feat/inspectable-bearing-preferences'
+            'feat/local-fit-calibration'
+            'feat/nextauth-email-password'
+            'feat/ollama-local-verification'
+            'feat/open-local-evidence-backfill'
+            'feat/open-local-model-evidence'
+            'feat/outcome-evidence'
+            'feat/owned-embedding-bearings'
+            'feat/provider-catalogue-verification'
+            'feat/public-data-v2-changelog'
+            'feat/recommendation-confidence'
+            'feat/recommendation-evidence'
+            'feat/run-any-ranked-model'
+            'feat/runtime-routability'
+            'feat/task-ownership-continuity'
+            'feat/tradeoff-alternatives'
+            'fix/classifier-pipeline-repair'
+            'fix/embedding-false-precision'
+            'fix/estimator-transparency'
+            'fix/open-weight-family-override'
+            'fix/open-weight-providers'
+            'fix/openrouter-free-suffix'
+            'fix/review-findings-embedding-autoroute'
+            'fix/routability-repeat-threshold'
+            'fix/route-original-rank'
+            'fix/validation-false-precision'
+            'fix/version-join-param-count'
+            'ops/classifier-baseline'
+            'ops/classifier-pipeline-diagnostic'
+            'ops/cleanup-classifier-diagnostic'
+            'ops/restore-routability-cron'
+            'ops/trigger-routability-canary'
+            'refactor/auth-actions'
+            'refactor/bearing-clarification-service'
+            'refactor/comparison-actions'
+            'refactor/comparison-repository'
+            'refactor/direct-compare-auth'
+            'refactor/embedding-results-service'
+            'refactor/feedback-actions'
+            'refactor/feedback-repository'
+            'refactor/finish-run-compare-boundaries'
+            'refactor/models-repository'
+            'refactor/recommendation-repository'
+            'refactor/recommendations-service'
+            'refactor/remove-db-monolith'
+            'refactor/remove-legacy-actions'
+            'refactor/route-run-actions'
+            'refactor/run-surface-auth'
+            'refactor/runs-repository'
+            'refactor/shared-run-scoring'
+            'refactor/task-repository-boundary'
+            'refactor/users-repository'
+            'refactor/validation-service'
+            'refactor/validation-submit-action'
+          )
+          deleted=0
+          failed=0
+          for branch in "${branches[@]}"; do
+            if gh api --method DELETE "repos/$GH_REPO/git/refs/heads/$branch" >/dev/null 2>&1; then
+              echo "deleted $branch"
+              deleted=$((deleted+1))
+            else
+              echo "failed $branch"
+              failed=$((failed+1))
+            fi
+          done
+          echo "deleted=$deleted failed=$failed"
+          set +e
+          gh api --method PATCH "repos/$GH_REPO" -f delete_branch_on_merge=true >/tmp/repo-setting.out 2>/tmp/repo-setting.err
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            echo "enabled delete_branch_on_merge"
+          else
+            echo "could not enable delete_branch_on_merge with workflow token"
+            cat /tmp/repo-setting.err
+          fi
+          test "$failed" -eq 0
