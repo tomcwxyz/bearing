@@ -100,13 +100,13 @@ export async function getLoopbackPermissionState(): Promise<OllamaLoopbackPermis
   if (typeof navigator === 'undefined' || !navigator.permissions?.query) return 'unsupported'
   try {
     const result = await navigator.permissions.query(
-      { name: 'loopback-network' } as PermissionDescriptor,
+      { name: 'loopback-network' } as unknown as PermissionDescriptor,
     )
     return result.state
   } catch {
     try {
       const result = await navigator.permissions.query(
-        { name: 'local-network-access' } as PermissionDescriptor,
+        { name: 'local-network-access' } as unknown as PermissionDescriptor,
       )
       return result.state
     } catch {
