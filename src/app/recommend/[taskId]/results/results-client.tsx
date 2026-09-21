@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState, useTransition } from 'react'
 import { selectModel } from '@/features/feedback/actions'
 import type { ScoredModel } from '@/lib/scoring'
-import type { Factor } from '@/lib/registry'
+import { getModel, type Factor } from '@/lib/registry'
 import type { PipelineResult } from '@/lib/pipeline'
 import type { LocalInferenceResult } from '@/lib/local-inference'
 import type { BenchmarkEvidence } from '@/lib/benchmark-evidence'
@@ -602,7 +602,7 @@ export function ResultsClient({
                 modelSlug={model.slug}
                 modelName={model.name}
                 ollamaModelId={
-                  model.modelClass !== 'embedding'
+                  getModel(model.slug)?.model_class !== 'embedding'
                     ? getReviewedOpenLocalEvidence(model.slug)?.ollamaModelId
                     : undefined
                 }
