@@ -602,7 +602,8 @@ export function ResultsClient({
                 modelSlug={model.slug}
                 modelName={model.name}
                 ollamaModelId={
-                  getModel(model.slug)?.model_class !== 'embedding'
+                  getModel(model.slug)?.model_class !== 'embedding' &&
+                  local?.recommendations.some((candidate) => candidate.model.slug === model.slug)
                     ? getReviewedOpenLocalEvidence(model.slug)?.ollamaModelId
                     : undefined
                 }
