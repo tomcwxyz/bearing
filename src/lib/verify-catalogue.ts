@@ -6,12 +6,26 @@ import {
   fetchProviderCatalogues,
   type ProviderVerificationReport,
 } from './provider-catalogue'
+import { fetchReviewedOllamaCloudAvailability } from './ollama-cloud'
 
 export interface CatalogueVerificationRunReport extends CatalogueVerificationReport {
   providerReports: Array<Omit<ProviderVerificationReport, 'observations'>>
   skippedProviders: { provider: string; reason: string }[]
   providerFailures: { provider: string; error: string }[]
   openRouterFailure: string | null
+  ollamaCloudRoutes: {
+    checked: number
+    current: number
+    unavailable: number
+    failure: string | null
+    routes: Array<{
+      slug: string
+      modelId: string
+      available: boolean
+      matchedModelId: string | null
+      pricingCheckedAt: string
+    }>
+  }
 }
 
 function observationCounts(observations: VerificationObservation[]) {
@@ -32,7 +46,7 @@ function observationCounts(observations: VerificationObservation[]) {
 export async function runCatalogueVerification(): Promise<CatalogueVerificationRunReport> {
   const models = await listModelsForVerification()
 
-  const [providerFetch, openRouterAttempt] = await Promise.all([
+  const [providerFetch, openRouterAttempt, ollamaCloudAttempt] = await Promise.all([
     fetchProviderCatalogues(),
     fetchOpenRouterModels()
       .then((openRouterModels) => ({
@@ -42,6 +56,12 @@ export async function runCatalogueVerification(): Promise<CatalogueVerificationR
       .catch((error: unknown) => ({
         report: null,
         error: error instanceof Error ? error.message : 'OpenRouter catalogue request failed',
+      })),
+    fetchReviewedOllamaCloudAvailability()
+      .then((routes) => ({ routes, error: null as string | null }))
+      .catch((error: unknown) => ({
+        routes: [],
+        error: error instanceof Error ? error.message : 'Ollama Cloud catalogue request failed',
       })),
   ])
 
@@ -83,6 +103,19 @@ export async function runCatalogueVerification(): Promise<CatalogueVerificationR
     skippedProviders: providerFetch.skipped,
     providerFailures: providerFetch.failures,
     openRouterFailure: openRouterAttempt.error,
+    ollamaCloudRoutes: {
+      checked: ollamaCloudAttempt.routes.length,
+      current: ollamaCloudAttempt.routes.filter((item) => item.available).length,
+      unavailable: ollamaCloudAttempt.routes.filter((item) => !item.available).length,
+      failure: ollamaCloudAttempt.error,
+      routes: ollamaCloudAttempt.routes.map((item) => ({
+        slug: item.route.slug,
+        modelId: item.route.modelId,
+        available: item.available,
+        matchedModelId: item.matchedModelId,
+        pricingCheckedAt: item.route.checkedAt,
+      })),
+    },
   }
 }
 
