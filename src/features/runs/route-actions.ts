@@ -16,11 +16,13 @@ import { getCurrentUser } from '@/lib/auth'
 import { getLatestBenchmarkScores } from '@/lib/benchmarks'
 import { filterPrompt } from '@/lib/content-filter'
 import { extractText, validateFile } from '@/lib/file-parser'
-import { callDirectProvider, callModel, DIRECT_PROVIDERS } from '@/lib/openrouter'
+import { canExecuteHostedModel, runHostedExecution } from '@/lib/hosted-execution'
 import { pickRoute, pickRouteFrom } from '@/lib/routing'
-import { scoreModels } from '@/lib/scoring'
+import { costFromTokenUsage, estimateCostFromPricing, scoreModels } from '@/lib/scoring'
 import { scoringInputFromTask } from '@/features/recommendations/scoring-input'
 import { originalRecommendationRank } from './route-metadata'
+import { getOllamaCloudRoute, ollamaCloudPricing } from '@/lib/ollama-cloud'
+import { saveExecutionObservation } from '@/db/execution-observations'
 import { buildRunMessages, type RunFileData } from './run-messages'
 
 const DAILY_ROUTE_LIMIT = 10
@@ -69,8 +71,9 @@ export async function routeAndRun(taskId: string, formData: FormData) {
     const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
     const ranked = scoreModels(scoringInputFromTask(task, benchmarkScores))
     const orIds = await getOpenRouterIdsBySlug()
-    const runnable = (slug: string) => orIds.has(slug) || Boolean(DIRECT_PROVIDERS[slug])
+    const runnable = (slug: string) => canExecuteHostedModel(slug, orIds.get(slug))
     const anchorSlug = formData.get('modelSlug') as string | null
+    const requestedExecutionRoute = formData.get('executionRoute') as string | null
     const route = anchorSlug
       ? pickRouteFrom(ranked, anchorSlug, { k: 1, runnable })
       : pickRoute(ranked, { k: 1, runnable })
@@ -98,9 +101,12 @@ export async function routeAndRun(taskId: string, formData: FormData) {
     )
 
     const startedAt = Date.now()
-    const result = openRouterId
-      ? await callModel(openRouterId, messages)
-      : await callDirectProvider(selected.slug, messages)
+    const result = await runHostedExecution(
+      selected.slug,
+      openRouterId,
+      messages,
+      requestedExecutionRoute,
+    )
     const latencyMs = Date.now() - startedAt
 
     const promptHash = createHash('sha256').update(prompt).digest('hex')
@@ -108,6 +114,21 @@ export async function routeAndRun(taskId: string, formData: FormData) {
       ? createHash('sha256').update(result.text).digest('hex')
       : null
     const estCo2g = co2g(fullModel)
+
+    let executionCost = selected.estimatedCost
+    if (result.route.id === 'ollama_cloud') {
+      const cloudRoute = getOllamaCloudRoute(selected.slug)
+      if (cloudRoute) {
+        const pricing = ollamaCloudPricing(cloudRoute)
+        executionCost =
+          costFromTokenUsage(pricing, result.promptTokens, result.outputTokens)
+          ?? estimateCostFromPricing(
+            pricing,
+            String(task.input_length ?? 'medium'),
+            String(task.output_length ?? 'medium'),
+          )
+      }
+    }
 
     const routedRunId = await createRoutedRun(taskId, user.id, 'route', promptHash)
     await addRoutedRunModel(routedRunId, {
@@ -117,22 +138,51 @@ export async function routeAndRun(taskId: string, formData: FormData) {
       factorScores: selected.factorScores as Record<string, number>,
       role: 'primary',
       responseHash,
-      estCost: selected.estimatedCost,
+      estCost: executionCost,
       estCo2g,
       latencyMs,
       isError: Boolean(result.error),
       errorReason: result.error ?? null,
     })
 
+    if (!result.error) {
+      try {
+        await saveExecutionObservation({
+          taskId,
+          routedRunId,
+          modelSlug: selected.slug,
+          executionLocation: result.route.id === 'ollama_cloud'
+            ? 'external_hosted'
+            : 'bearing_hosted',
+          executionPurpose: 'task_execution',
+          runtime: result.route.id,
+          runtimeModelId: result.route.modelId,
+          tokensPerSecond: result.tokensPerSecond,
+          latencyMs,
+          promptTokens: result.promptTokens,
+          outputTokens: result.outputTokens,
+          totalDurationMs: result.totalDurationMs,
+          loadDurationMs: result.loadDurationMs,
+          promptEvalDurationMs: result.promptEvalDurationMs,
+          evidenceSource: 'bearing_run',
+        })
+      } catch (observationError) {
+        console.warn('[route] execution observation could not be saved', observationError)
+      }
+    }
+
     return {
       routedRunId,
       modelSlug: selected.slug,
       modelName: selected.name,
       provider: selected.provider,
+      executionProvider: result.route.provider,
+      executionRoute: result.route.id,
+      runtimeModelId: result.route.modelId,
       factorScores: selected.factorScores as Record<string, number>,
       response: result.text,
       error: result.error,
-      estCost: selected.estimatedCost,
+      estCost: executionCost,
       estCo2g,
       latencyMs,
     }
