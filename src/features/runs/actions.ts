@@ -289,13 +289,6 @@ export async function runInformationTrio(taskId: string, formData: FormData) {
       }),
     ))
 
-    await recordHostedObservation({
-      taskId,
-      routedRunId,
-      modelSlug: challengerEntry.model.slug,
-      result: challengerResult,
-      latencyMs: challengerLatencyMs,
-    })
 
     if (verdict) await setRoutedRunVerdict(routedRunId, verdict.winnerSlug, verdict.judgeModel)
 
@@ -430,6 +423,14 @@ export async function challengeAnswer(taskId: string, formData: FormData) {
       modelSlug: candidate.slug,
       selectionReason: candidate.selectionReason,
     })))
+
+    await recordHostedObservation({
+      taskId,
+      routedRunId,
+      modelSlug: challengerEntry.model.slug,
+      result: challengerResult,
+      latencyMs: challengerLatencyMs,
+    })
 
     if (verdict) await setRoutedRunVerdict(routedRunId, verdict.winnerSlug, verdict.judgeModel)
 
