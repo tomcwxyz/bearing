@@ -38,6 +38,9 @@ interface RouteResult {
   modelSlug: string
   modelName: string
   provider: string
+  executionProvider?: string
+  executionRoute?: string
+  runtimeModelId?: string
   factorScores: Record<string, number>
   response?: string
   error?: string
@@ -61,6 +64,9 @@ interface ExperimentCandidate {
   error?: string
   estCost: number
   estCo2g: number | null
+  executionProvider?: string
+  executionRoute?: string
+  runtimeModelId?: string
   reused?: boolean
 }
 
@@ -140,8 +146,8 @@ function ExperimentResults({
 
               <p className="mb-2 font-mono text-[11px] text-grey-blue">
                 {candidate.reused
-                  ? 'Already run · no duplicate inference'
-                  : `${candidate.estCo2g != null ? `~${candidate.estCo2g.toFixed(2)} gCO₂e · ` : ''}~$${candidate.estCost.toFixed(4)}/task`}
+                  ? `Already run${candidate.executionProvider ? ` via ${candidate.executionProvider}` : ''} · no duplicate inference`
+                  : `${candidate.executionProvider ? `via ${candidate.executionProvider} · ` : ''}${candidate.estCo2g != null ? `~${candidate.estCo2g.toFixed(2)} gCO₂e · ` : ''}~${candidate.estCost.toFixed(4)}/task`}
               </p>
 
               {candidate.error ? (
@@ -204,12 +210,19 @@ export function RunSurface({
   modelName,
   ollamaModelId,
   hardwareProfile,
+  ollamaCloudRoute,
 }: {
   taskId: string
   modelSlug: string
   modelName: string
   ollamaModelId?: string
   hardwareProfile: HardwareProfile | null
+  ollamaCloudRoute?: {
+    modelId: string
+    inputPer1m: number
+    outputPer1m: number
+    checkedAt: string
+  }
 }) {
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<Mode>('route')
@@ -224,6 +237,7 @@ export function RunSurface({
   const [isPending, startTransition] = useTransition()
   const [showSignIn, setShowSignIn] = useState(false)
   const [preferred, setPreferred] = useState<string | null>(null)
+  const [hostedRoute, setHostedRoute] = useState<'default' | 'ollama_cloud'>('default')
 
   function switchMode(next: Mode) {
     if (next === mode) return
@@ -249,6 +263,7 @@ export function RunSurface({
     const formData = new FormData()
     formData.set('prompt', prompt.trim())
     formData.set('modelSlug', modelSlug)
+    formData.set('executionRoute', hostedRoute)
     if (file) formData.set('file', file)
     return formData
   }
@@ -339,6 +354,15 @@ export function RunSurface({
     startTransition(async () => {
       const formData = buildFormData()
       formData.set('primaryResponse', routeResult.response!.trim())
+      if (routeResult.executionProvider) {
+        formData.set('primaryExecutionProvider', routeResult.executionProvider)
+      }
+      if (routeResult.executionRoute) {
+        formData.set('primaryExecutionRoute', routeResult.executionRoute)
+      }
+      if (routeResult.runtimeModelId) {
+        formData.set('primaryRuntimeModelId', routeResult.runtimeModelId)
+      }
       const response = await challengeAnswer(taskId, formData)
       if ('error' in response && response.error && !('candidates' in response)) {
         setError(response.error)
@@ -396,6 +420,56 @@ export function RunSurface({
             : 'Run an informative Trio'}
       </p>
       <p className="mb-3 text-xs text-grey-blue">{modeDescription(mode, modelName)}</p>
+
+      {(mode === 'route' || mode === 'trio') && ollamaCloudRoute && (
+        <div className="mb-3 rounded-lg border border-cream-dark bg-white p-3">
+          <p className="text-xs font-semibold text-navy">
+            {mode === 'trio' ? 'Run the selected model via' : 'Hosted route'}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              aria-pressed={hostedRoute === 'default'}
+              onClick={() => setHostedRoute('default')}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                hostedRoute === 'default'
+                  ? 'border-navy bg-navy text-cream'
+                  : 'border-cream-dark text-navy/65 hover:border-navy'
+              }`}
+            >
+              Bearing default
+            </button>
+            <button
+              type="button"
+              aria-pressed={hostedRoute === 'ollama_cloud'}
+              onClick={() => setHostedRoute('ollama_cloud')}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                hostedRoute === 'ollama_cloud'
+                  ? 'border-teal bg-teal text-cream'
+                  : 'border-cream-dark text-navy/65 hover:border-teal'
+              }`}
+            >
+              Ollama Cloud
+            </button>
+          </div>
+          {hostedRoute === 'ollama_cloud' && (
+            <div className="mt-2 text-[11px] leading-relaxed text-navy/50">
+              <p>
+                Hosted inference via <code className="font-mono">{ollamaCloudRoute.modelId}</code>.
+                The prompt leaves this device; this is not local Ollama.
+              </p>
+              <p className="mt-1 font-mono">
+                ${ollamaCloudRoute.inputPer1m.toFixed(2)}/1M input · ${ollamaCloudRoute.outputPer1m.toFixed(2)}/1M output
+              </p>
+              {mode === 'trio' && (
+                <p className="mt-1">
+                  This route applies to the selected model; Bearing chooses normal hosted routes for the other Trio candidates.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <textarea
         value={prompt}
@@ -476,8 +550,16 @@ export function RunSurface({
           className="mt-3 rounded-lg bg-navy px-4 py-2 text-sm font-semibold font-display text-cream transition-colors hover:bg-navy-light disabled:opacity-40"
         >
           {isPending && !challengeResult
-            ? (mode === 'route' ? 'Running...' : mode === 'local' ? 'Running in Ollama...' : 'Running informative Trio...')
-            : (mode === 'route' ? 'Route & run' : mode === 'local' ? 'Run locally' : 'Run Trio')}
+            ? (mode === 'route'
+                ? (hostedRoute === 'ollama_cloud' ? 'Running with Ollama Cloud...' : 'Running...')
+                : mode === 'local'
+                  ? 'Running in Ollama...'
+                  : 'Running informative Trio...')
+            : (mode === 'route'
+                ? (hostedRoute === 'ollama_cloud' ? 'Run with Ollama Cloud' : 'Route & run')
+                : mode === 'local'
+                  ? 'Run locally'
+                  : 'Run Trio')}
         </button>
       )}
 
@@ -515,6 +597,7 @@ export function RunSurface({
           <div className="mb-2 inline-flex flex-wrap items-center gap-2 rounded-full bg-navy/5 px-3 py-1 text-xs text-navy/70">
             <span>
               Ran on <strong className="text-navy">{routeResult.modelName}</strong>{' '}
+              {routeResult.executionProvider ? <>via <strong className="text-navy">{routeResult.executionProvider}</strong>{' '}</> : null}
               (strongest on {topFactor(routeResult.factorScores)})
             </span>
           </div>
