@@ -34,6 +34,7 @@ If you want more control, **Adjust bearing** exposes the inferred priorities and
 - **Check your device** and see which local models are likely to fit, while keeping their original task ranking visible.
 - **Verify local fit with Ollama** when you want to compare Bearing's estimate with an actual local runtime.
 - **Run a recommended chat model locally** without sending the prompt or answer through Bearing's hosted execution path.
+- **Choose Ollama Cloud as an explicit hosted route** for reviewed models, with route-specific pricing and execution evidence kept separate from local Ollama and OpenRouter.
 - **Resume previous bearings** when signed in, without Bearing needing to retain the raw task description.
 
 ## Scores are not probabilities
@@ -55,6 +56,8 @@ If you want to know what will run on **your** machine, use the device check. Bea
 Where Ollama support has been reviewed, you can run a small verification probe against your own local runtime, including embedding-specific probes. Bearing accepts compatible installed variants rather than insisting on one exact quantisation tag, and a conservative "too large" estimate does not stop you trying the model anyway.
 
 For reviewed chat models that are local recommendations for the current bearing, **Run locally** is also available alongside the hosted route. The prompt and answer go directly from the browser to Ollama on `localhost:11434`; Bearing records only coarse execution metrics. Modern browsers may prompt for local/loopback network access, and Ollama may need the Bearing origin added to `OLLAMA_ORIGINS`.
+
+Ollama Cloud is deliberately shown as a different thing. Where Bearing has reviewed a cloud mapping and the cloud API is configured, the normal hosted run panel can use **Ollama Cloud** explicitly. That route sends the prompt to hosted compute, uses Ollama's route-specific pricing, and records `ollama_cloud` as the execution route rather than calling it local.
 
 ## Freshness matters
 
