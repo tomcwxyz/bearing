@@ -19,14 +19,16 @@ import { extractText, validateFile } from '@/lib/file-parser'
 import { pickInformationRoute } from '@/lib/information-routing'
 import { outcomeInformationScarcity, type ModelOutcomeEvidence } from '@/lib/outcome-evidence'
 import { judgeResponses, type JudgeCandidate } from '@/lib/judge'
-import { callDirectProvider, callModel, DIRECT_PROVIDERS } from '@/lib/openrouter'
+import { canExecuteHostedModel, runHostedExecution, type HostedExecutionResult } from '@/lib/hosted-execution'
 import { getAllModels } from '@/lib/registry'
-import { scoreModels } from '@/lib/scoring'
+import { costFromTokenUsage, estimateCostFromPricing, scoreModels } from '@/lib/scoring'
 import { getBenchmarkAggregatesForModels } from '@/db/benchmark-evidence'
 import { getOutcomeEvidenceForModels } from '@/db/outcome-evidence'
 import { saveRoutedSelectionReasons } from '@/db/routed-selection'
 import { scoringInputFromTask } from '@/features/recommendations/scoring-input'
 import { buildRunMessages, type RunFileData } from './run-messages'
+import { getOllamaCloudRoute, ollamaCloudPricing } from '@/lib/ollama-cloud'
+import { saveExecutionObservation } from '@/db/execution-observations'
 
 const DAILY_TRIO_LIMIT = 3
 const DAILY_CHALLENGER_LIMIT = 4
@@ -59,7 +61,7 @@ async function buildInformationRoute(taskId: string, formData: FormData, k: numb
   const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
   const ranked = scoreModels(scoringInputFromTask(task, benchmarkScores))
   const orIds = await getOpenRouterIdsBySlug()
-  const runnable = (slug: string) => orIds.has(slug) || Boolean(DIRECT_PROVIDERS[slug])
+  const runnable = (slug: string) => canExecuteHostedModel(slug, orIds.get(slug))
   const registryModels = getAllModels()
   const registryBySlug = new Map(registryModels.map((model) => [model.slug, model]))
   const localSlugs = new Set(registryModels.filter((model) => Boolean(model.local_info)).map((model) => model.slug))
@@ -103,7 +105,59 @@ async function buildInformationRoute(taskId: string, formData: FormData, k: numb
       : {}),
   })
 
-  return { route, orIds }
+  return { route, orIds, task }
+}
+
+function executionCostForRoute(
+  modelEstimatedCost: number,
+  task: Record<string, unknown>,
+  modelSlug: string,
+  result: HostedExecutionResult,
+): number {
+  if (result.route.id !== 'ollama_cloud') return modelEstimatedCost
+  const cloudRoute = getOllamaCloudRoute(modelSlug)
+  if (!cloudRoute) return modelEstimatedCost
+
+  const pricing = ollamaCloudPricing(cloudRoute)
+  return costFromTokenUsage(pricing, result.promptTokens, result.outputTokens)
+    ?? estimateCostFromPricing(
+      pricing,
+      String(task.input_length ?? 'medium'),
+      String(task.output_length ?? 'medium'),
+    )
+}
+
+async function recordHostedObservation(input: {
+  taskId: string
+  routedRunId: string
+  modelSlug: string
+  result: HostedExecutionResult
+  latencyMs: number
+}) {
+  if (input.result.error) return
+  try {
+    await saveExecutionObservation({
+      taskId: input.taskId,
+      routedRunId: input.routedRunId,
+      modelSlug: input.modelSlug,
+      executionLocation: input.result.route.id === 'ollama_cloud'
+        ? 'external_hosted'
+        : 'bearing_hosted',
+      executionPurpose: 'task_execution',
+      runtime: input.result.route.id,
+      runtimeModelId: input.result.route.modelId,
+      tokensPerSecond: input.result.tokensPerSecond,
+      latencyMs: input.latencyMs,
+      promptTokens: input.result.promptTokens,
+      outputTokens: input.result.outputTokens,
+      totalDurationMs: input.result.totalDurationMs,
+      loadDurationMs: input.result.loadDurationMs,
+      promptEvalDurationMs: input.result.promptEvalDurationMs,
+      evidenceSource: 'bearing_run',
+    })
+  } catch (error) {
+    console.warn('[runs] execution observation could not be saved', error)
+  }
 }
 
 async function judge(
@@ -149,7 +203,7 @@ export async function runInformationTrio(taskId: string, formData: FormData) {
 
     const routeResult = await buildInformationRoute(taskId, formData, 3)
     if ('error' in routeResult) return routeResult
-    const { route, orIds } = routeResult
+    const { route, orIds, task } = routeResult
     if (route.length < 2) return { error: 'Not enough runnable models for an informative Trio.' }
 
     const parsedFile = await parseRunFile(formData)
@@ -166,9 +220,12 @@ export async function runInformationTrio(taskId: string, formData: FormData) {
         fullModels[index]?.capabilities.includes('vision') ?? false,
       )
       const startedAt = Date.now()
-      const output = openRouterId
-        ? await callModel(openRouterId, messages)
-        : await callDirectProvider(model.slug, messages)
+      const output = await runHostedExecution(
+        model.slug,
+        openRouterId,
+        messages,
+        index === 0 ? formData.get('executionRoute') as string | null : null,
+      )
       return { output, latencyMs: Date.now() - startedAt }
     }))
 
@@ -181,8 +238,16 @@ export async function runInformationTrio(taskId: string, formData: FormData) {
       selectionReason: entry.selectionReason,
       weightedScore: entry.model.weightedScore,
       factorScores: entry.model.factorScores as Record<string, number>,
-      estCost: entry.model.estimatedCost,
+      estCost: executionCostForRoute(
+        entry.model.estimatedCost,
+        task as Record<string, unknown>,
+        entry.model.slug,
+        timedOutputs[index].output,
+      ),
       estCo2g: co2g(fullModels[index]),
+      executionProvider: timedOutputs[index].output.route.provider,
+      executionRoute: timedOutputs[index].output.route.id,
+      runtimeModelId: timedOutputs[index].output.route.modelId,
       response: timedOutputs[index].output.text,
       error: timedOutputs[index].output.error,
       latencyMs: timedOutputs[index].latencyMs,
@@ -213,6 +278,24 @@ export async function runInformationTrio(taskId: string, formData: FormData) {
       modelSlug: candidate.slug,
       selectionReason: candidate.selectionReason,
     })))
+
+    await Promise.all(candidates.map((candidate, index) =>
+      recordHostedObservation({
+        taskId,
+        routedRunId,
+        modelSlug: candidate.slug,
+        result: timedOutputs[index].output,
+        latencyMs: timedOutputs[index].latencyMs,
+      }),
+    ))
+
+    await recordHostedObservation({
+      taskId,
+      routedRunId,
+      modelSlug: challengerEntry.model.slug,
+      result: challengerResult,
+      latencyMs: challengerLatencyMs,
+    })
 
     if (verdict) await setRoutedRunVerdict(routedRunId, verdict.winnerSlug, verdict.judgeModel)
 
@@ -246,7 +329,7 @@ export async function challengeAnswer(taskId: string, formData: FormData) {
 
     const routeResult = await buildInformationRoute(taskId, formData, 2)
     if ('error' in routeResult) return routeResult
-    const { route, orIds } = routeResult
+    const { route, orIds, task } = routeResult
     if (route.length < 2) return { error: 'No strong runnable alternative is available to challenge this answer.' }
 
     const [primaryEntry, challengerEntry] = route
@@ -273,9 +356,11 @@ export async function challengeAnswer(taskId: string, formData: FormData) {
       challengerModel?.capabilities.includes('vision') ?? false,
     )
     const startedAt = Date.now()
-    const challengerResult = challengerOpenRouterId
-      ? await callModel(challengerOpenRouterId, challengerMessages)
-      : await callDirectProvider(challengerEntry.model.slug, challengerMessages)
+    const challengerResult = await runHostedExecution(
+      challengerEntry.model.slug,
+      challengerOpenRouterId,
+      challengerMessages,
+    )
     const challengerLatencyMs = Date.now() - startedAt
 
     const candidates = [
@@ -304,8 +389,16 @@ export async function challengeAnswer(taskId: string, formData: FormData) {
         selectionReason: challengerEntry.selectionReason,
         weightedScore: challengerEntry.model.weightedScore,
         factorScores: challengerEntry.model.factorScores as Record<string, number>,
-        estCost: challengerEntry.model.estimatedCost,
+        estCost: executionCostForRoute(
+          challengerEntry.model.estimatedCost,
+          task as Record<string, unknown>,
+          challengerEntry.model.slug,
+          challengerResult,
+        ),
         estCo2g: co2g(challengerModel),
+        executionProvider: challengerResult.route.provider,
+        executionRoute: challengerResult.route.id,
+        runtimeModelId: challengerResult.route.modelId,
         response: challengerResult.text,
         error: challengerResult.error,
         latencyMs: challengerLatencyMs,
