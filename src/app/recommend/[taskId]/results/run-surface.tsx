@@ -147,7 +147,7 @@ function ExperimentResults({
               <p className="mb-2 font-mono text-[11px] text-grey-blue">
                 {candidate.reused
                   ? `Already run${candidate.executionProvider ? ` via ${candidate.executionProvider}` : ''} · no duplicate inference`
-                  : `${candidate.executionProvider ? `via ${candidate.executionProvider} · ` : ''}${candidate.estCo2g != null ? `~${candidate.estCo2g.toFixed(2)} gCO₂e · ` : ''}~${candidate.estCost.toFixed(4)}/task`}
+                  : `${candidate.executionProvider ? `via ${candidate.executionProvider} · ` : ''}${candidate.estCo2g != null ? `~${candidate.estCo2g.toFixed(2)} gCO₂e · ` : ''}~$${candidate.estCost.toFixed(4)}/task`}
               </p>
 
               {candidate.error ? (
