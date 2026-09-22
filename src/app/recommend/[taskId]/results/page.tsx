@@ -18,6 +18,7 @@ import {
 } from '@/lib/recommendation-evidence'
 import { recommendationConfidence } from '@/lib/recommendation-confidence'
 import { selectTradeoffAlternatives } from '@/lib/tradeoff-alternatives'
+import { getOllamaCloudRoutes, isOllamaCloudConfigured, ollamaCloudPricing } from '@/lib/ollama-cloud'
 
 function parsePriorityOrder(value: unknown): Factor[] {
   if (!value) return []
@@ -135,6 +136,18 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
     isLocal: (slug) => Boolean(getModel(slug)?.local_info),
   })
 
+  const ollamaCloudRoutes = isOllamaCloudConfigured()
+    ? Object.fromEntries(getOllamaCloudRoutes().map((route) => {
+        const pricing = ollamaCloudPricing(route)
+        return [route.slug, {
+          modelId: route.modelId,
+          inputPer1m: pricing.input_per_1m,
+          outputPer1m: pricing.output_per_1m,
+          checkedAt: route.checkedAt,
+        }]
+      }))
+    : {}
+
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto">
@@ -165,6 +178,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
           benchmarkBySlug={benchmarkBySlug}
           featuredAlternatives={featuredAlternatives}
           decisionConfidence={decisionConfidence}
+          ollamaCloudRoutes={ollamaCloudRoutes}
         />
       </div>
     </main>

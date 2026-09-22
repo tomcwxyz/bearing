@@ -17,6 +17,9 @@ interface CandidateRow {
   is_open_weight: boolean
   local_capable: boolean
   model_class: string
+  execution_location: string | null
+  execution_route: string | null
+  runtime_model_id: string | null
 }
 
 export async function GET(request: NextRequest) {
@@ -61,9 +64,21 @@ export async function GET(request: NextRequest) {
       COALESCE((m.transparency->>'open_weights')::numeric, 0) AS open_weights,
       COALESCE((m.transparency->>'open_weights')::numeric, 0) >= 0.8 AS is_open_weight,
       m.local_info IS NOT NULL AS local_capable,
-      COALESCE(m.model_class, 'chat') AS model_class
+      COALESCE(m.model_class, 'chat') AS model_class,
+      execution.execution_location,
+      execution.runtime AS execution_route,
+      execution.runtime_model_id
     FROM routed_run_models rrm
     LEFT JOIN models m ON m.slug = rrm.model_slug
+    LEFT JOIN LATERAL (
+      SELECT execution_location, runtime, runtime_model_id
+      FROM execution_observations eo
+      WHERE eo.routed_run_id = rrm.routed_run_id
+        AND eo.model_slug = rrm.model_slug
+        AND eo.execution_purpose = 'task_execution'
+      ORDER BY eo.created_at DESC
+      LIMIT 1
+    ) execution ON true
     ORDER BY rrm.routed_run_id, rrm.route_rank
   `
 
@@ -81,6 +96,9 @@ export async function GET(request: NextRequest) {
       is_open_weight: Boolean(m.is_open_weight),
       local_capable: Boolean(m.local_capable),
       model_class: String(m.model_class ?? 'chat'),
+      execution_location: m.execution_location == null ? null : String(m.execution_location),
+      execution_route: m.execution_route == null ? null : String(m.execution_route),
+      runtime_model_id: m.runtime_model_id == null ? null : String(m.runtime_model_id),
     })
   }
 
@@ -151,7 +169,7 @@ export async function GET(request: NextRequest) {
     {
       meta: {
         name: 'Bearing Routed-Run Dataset',
-        version: '1.1',
+        version: '1.2',
         exported_at: new Date().toISOString(),
         record_count: records.length,
         description:
@@ -170,7 +188,7 @@ export async function GET(request: NextRequest) {
           output_length: 'Estimated output length',
           execution_location: 'All records in this dataset are Bearing-hosted provider executions',
           classification_schema_version: 'Task-type enum version used to classify the task',
-          candidates: 'Array of {model_slug, route_rank, weighted_score, role, is_error, open_weights, is_open_weight, local_capable, model_class}. Openness/local fields reflect the catalogue at export time.',
+          candidates: 'Array of {model_slug, route_rank, weighted_score, role, is_error, open_weights, is_open_weight, local_capable, model_class, execution_location, execution_route, runtime_model_id}. Route fields come from observed execution evidence when available; older runs may be null.',
           judged_winner: 'model_slug the blind LLM judge picked (trio/challenger); null for single routes or when judging was skipped',
           judge_model: 'The model that produced the verdict',
           human_preferred: 'model_slug the user preferred, or "tie"; null if the user did not say',

@@ -97,21 +97,23 @@ After a fresh device check or memory confirmation, Bearing can switch to a devic
 
 The point is to answer a practical question — *what is a good model for this job that I can actually run here?* — without pretending hardware fit is part of the model's intrinsic quality.
 
-### Verifying with Ollama
+### Local Ollama and Ollama Cloud
 
-A prediction about fit is still a prediction.
+Bearing treats local Ollama and Ollama Cloud as different execution routes.
 
-For reviewed Ollama-capable models, Bearing can run a small local verification probe against your own Ollama runtime. It only checks models that are already installed; it does not automatically pull a large model for you.
+For reviewed local models, Bearing can run a small verification probe against your own Ollama runtime. It checks models that are already installed, accepts compatible quantisation/instruction variants of the reviewed model, and does not auto-pull a large model. Embedding models use Ollama's embedding endpoint. If Bearing's memory estimate says a model is probably too large, you can still choose **Try in Ollama anyway** and turn a prediction into observed evidence.
 
-The verification prompt is fixed and separate from your work. Your task text is not sent to Ollama as part of the check.
+For reviewed local chat recommendations, **Run locally** sends the real prompt directly from your browser to `localhost:11434`. The prompt and answer stay on the device; Bearing receives only coarse execution metrics such as runtime model, quantisation, throughput and timing.
 
-When the probe succeeds, Bearing can record evidence such as the exact runtime model and quantisation, loaded context, resident VRAM, throughput and timing. That observed evidence is kept separate from the earlier prediction so Bearing can learn where its estimates are too cautious or too optimistic.
+**Ollama Cloud is hosted inference, not local execution.** Where Bearing has a reviewed Ollama Cloud route and the service is configured, the hosted run panel offers **Ollama Cloud** alongside Bearing's default hosted route. The prompt is sent from Bearing to Ollama's cloud API, and the result is labelled with that execution provider rather than being described as local.
+
+Ollama Cloud prices are route-specific evidence. Bearing keeps them separate from the model's OpenRouter price and records the actual route/model identity in execution observations. Catalogue availability and runtime health are checked separately from intrinsic model quality.
 
 ## Running a recommendation
 
 Where a recommended model is runnable, choose **Run this prompt**.
 
-Enter the real prompt you want to test and, where supported, attach a file. Bearing runs the selected route and shows the result alongside practical information such as model identity, estimated cost and latency.
+Enter the real prompt you want to test and, where supported, attach a file. Bearing runs the selected route and shows the result alongside practical information such as model identity, execution provider, estimated cost and latency. If a reviewed Ollama Cloud route exists, you can choose it explicitly instead of silently changing provider behind the scenes.
 
 Running requires sign-in because it incurs API cost and has daily allowances.
 

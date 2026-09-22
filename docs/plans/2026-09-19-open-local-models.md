@@ -98,8 +98,19 @@ The adapter reads both:
 This exposes concrete model names plus, where supplied, format, family,
 parameter size and quantisation.
 
-Ollama Cloud is also an execution route. `npm run eval:open-models` provides
-an opt-in smoke test when `OLLAMA_API_KEY` is supplied.
+Ollama Cloud is also a first-class hosted execution route. Reviewed Bearing
+models have explicit cloud model IDs and dated route-specific pricing. Bearing
+does not silently swap OpenRouter for Ollama Cloud: where both exist the user can
+choose the cloud route, while OpenRouter remains the default.
+
+The weekly catalogue verifier checks reviewed Ollama Cloud mappings against
+`https://ollama.com/api/tags`. The daily routability canary probes configured
+cloud routes separately from catalogue presence. Successful runs are persisted
+as execution evidence with `execution_location = external_hosted` and
+`runtime = ollama_cloud`.
+
+`npm run eval:open-models` remains available as an opt-in smoke test when
+`OLLAMA_API_KEY` is supplied.
 
 ## Evaluation
 
@@ -245,9 +256,15 @@ memory creates avoidable pressure for an ordinary Bearing visit.
 ### O4 — observed open-model performance
 
 - [ ] version an open-model task corpus;
-- [ ] run selected models through Ollama Cloud/Hugging Face providers;
+- [x] run selected models through Ollama Cloud as a production hosted route;
+- [ ] run selected models through Hugging Face providers;
 - [ ] compare hosted and local runs of the same model/version where possible;
 - [x] persist execution evidence separately from model capability evidence;
+- [x] preserve hosted execution-provider identity (OpenRouter/direct/Ollama Cloud) in observed run evidence;
+- [x] use reviewed route-specific Ollama Cloud pricing rather than overwriting canonical model pricing;
+- [x] check reviewed Ollama Cloud mappings in catalogue verification and daily routability probes;
+- [ ] add durable per-route routability history rather than keeping alternate-route canary detail only in the scheduled-run result;
+- [ ] compare the same model through local Ollama and Ollama Cloud in one deliberate experiment;
 - [ ] connect human outcomes only after support is sufficient.
 
 ## Guardrails

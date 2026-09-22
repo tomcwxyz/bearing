@@ -4,6 +4,31 @@ All notable changes to Bearing will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.0.0-beta.4] — 2026-09-22
+
+This release makes **Ollama Cloud** a first-class hosted execution route while keeping it explicitly separate from local Ollama.
+
+### Added
+
+- **Ollama Cloud hosted runs** — reviewed models can expose Ollama Cloud alongside Bearing's default hosted route. Provider choice is explicit rather than a silent provider swap.
+- **Reviewed cloud route registry** — Ollama Cloud model IDs and route-specific prices are versioned separately from each model's canonical/OpenRouter pricing, including reviewed peak pricing where applicable.
+- **Cloud execution observations** — successful cloud runs record `external_hosted / ollama_cloud`, the runtime model ID, token counts, throughput and timing when Ollama returns them.
+- **Cloud catalogue checks** — weekly catalogue verification compares every reviewed Ollama Cloud mapping with Ollama's public cloud catalogue.
+- **Cloud routability canaries** — the daily runtime check probes reviewed Ollama Cloud routes when `OLLAMA_API_KEY` is configured.
+- **Route provenance in public routed-run data** — dataset v1.2 can expose execution location, execution route and runtime model ID from observed execution evidence.
+
+### Changed
+
+- **Hosted routing now has route identity** — OpenRouter remains Bearing's default when it is available, direct-provider routes remain the next fallback, and Ollama Cloud can be chosen explicitly or used as the execution path for reviewed cloud-only models.
+- **Trio preserves the selected hosted route** — choosing Ollama Cloud for the anchor carries that provider into the experiment while other candidates use their normal hosted routes.
+- **Challenger preserves reused provider provenance** — an answer already run through Ollama Cloud remains labelled as such when it is challenged.
+- **Cost evidence is provider-specific** — Ollama Cloud runs use the reviewed Ollama Cloud price rather than presenting the model's OpenRouter price as if it applied to every provider.
+
+### Privacy
+
+- Local Ollama remains browser-to-`localhost`; prompts and answers stay on the user's device.
+- Ollama Cloud is labelled hosted execution and never presented as local merely because it belongs to the Ollama ecosystem.
+
 ## [1.0.0-beta.3] — 2026-09-21
 
 This release turns Ollama from a local-fit verification aid into a first-class local execution route for reviewed recommended chat models, while tightening the evidence and browser-permission boundaries around it.

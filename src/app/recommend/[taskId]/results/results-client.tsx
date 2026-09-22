@@ -57,6 +57,12 @@ interface ResultsClientProps {
   benchmarkBySlug: Record<string, BenchmarkEvidence>
   featuredAlternatives: FeaturedAlternative[]
   decisionConfidence: RecommendationConfidence
+  ollamaCloudRoutes: Record<string, {
+    modelId: string
+    inputPer1m: number
+    outputPer1m: number
+    checkedAt: string
+  }>
 }
 
 const UNKNOWN_EVIDENCE: RecommendationEvidence = {
@@ -244,6 +250,7 @@ export function ResultsClient({
   benchmarkBySlug,
   featuredAlternatives,
   decisionConfidence,
+  ollamaCloudRoutes,
 }: ResultsClientProps) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
   const [selectionId, setSelectionId] = useState<string | null>(null)
@@ -608,6 +615,7 @@ export function ResultsClient({
                     : undefined
                 }
                 hardwareProfile={hardwareProfile}
+                ollamaCloudRoute={ollamaCloudRoutes[model.slug]}
               />
             </div>
           </div>
