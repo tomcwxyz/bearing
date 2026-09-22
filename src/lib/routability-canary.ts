@@ -1,4 +1,5 @@
 import { DIRECT_PROVIDERS } from './openrouter'
+import { getOllamaCloudRoute } from './ollama-cloud'
 import {
   listRoutabilityCandidates,
   saveRoutabilityObservations,
@@ -139,6 +140,57 @@ export async function probeOpenRouterModel(openrouterId: string): Promise<ProbeR
   )
 }
 
+export async function probeOllamaCloudModel(slug: string): Promise<ProbeResult> {
+  const route = getOllamaCloudRoute(slug)
+  if (!route) {
+    return {
+      status: 'degraded',
+      source: 'ollama-cloud-runtime',
+      note: 'No reviewed Ollama Cloud route is configured.',
+    }
+  }
+
+  const apiKey = process.env.OLLAMA_API_KEY
+  if (!apiKey) {
+    return {
+      status: 'degraded',
+      source: 'ollama-cloud-runtime',
+      note: 'OLLAMA_API_KEY is not configured; Ollama Cloud runtime availability was not tested.',
+    }
+  }
+
+  try {
+    const response = await fetch('https://ollama.com/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: route.modelId,
+        messages: CANARY_MESSAGES,
+        stream: false,
+        options: { num_predict: 1 },
+      }),
+    })
+
+    if (response.ok) {
+      return { status: 'healthy', source: 'ollama-cloud-runtime', note: null }
+    }
+
+    const body = await response.text().catch(() => '')
+    return classifyProbeFailure('ollama-cloud-runtime', response.status, body)
+  } catch (error) {
+    return {
+      status: 'degraded',
+      source: 'ollama-cloud-runtime',
+      note: error instanceof Error
+        ? `Ollama Cloud probe failed before a provider response: ${error.message}`
+        : 'Ollama Cloud probe failed before a provider response.',
+    }
+  }
+}
+
 export async function probeDirectProvider(slug: string): Promise<ProbeResult> {
   const provider = DIRECT_PROVIDERS[slug]
   if (!provider) {
@@ -173,6 +225,7 @@ export interface RoutabilityRunSummary {
   unavailable: number
   skipped: number
   observations: RoutabilityObservation[]
+  alternateRoutes: Array<RoutabilityObservation & { route: string }>
 }
 
 /**
@@ -186,15 +239,22 @@ export async function runRoutabilityCanary(): Promise<RoutabilityRunSummary> {
   const candidates = await listRoutabilityCandidates()
   const checkedAt = new Date().toISOString()
   const observations: RoutabilityObservation[] = []
+  const alternateRoutes: Array<RoutabilityObservation & { route: string }> = []
   let skipped = 0
 
   for (const candidate of candidates) {
     let probe: ProbeResult | null = null
+    let primaryRoute: 'openrouter' | 'direct' | 'ollama_cloud' | null = null
 
     if (candidate.openrouterId) {
       probe = await probeOpenRouterModel(candidate.openrouterId)
+      primaryRoute = 'openrouter'
     } else if (DIRECT_PROVIDERS[candidate.slug]) {
       probe = await probeDirectProvider(candidate.slug)
+      primaryRoute = 'direct'
+    } else if (getOllamaCloudRoute(candidate.slug)) {
+      probe = await probeOllamaCloudModel(candidate.slug)
+      primaryRoute = 'ollama_cloud'
     }
 
     if (!probe) {
@@ -209,6 +269,18 @@ export async function runRoutabilityCanary(): Promise<RoutabilityRunSummary> {
       note: probe.note,
       checkedAt,
     })
+
+    if (getOllamaCloudRoute(candidate.slug) && primaryRoute !== 'ollama_cloud') {
+      const cloudProbe = await probeOllamaCloudModel(candidate.slug)
+      alternateRoutes.push({
+        slug: candidate.slug,
+        route: 'ollama_cloud',
+        status: cloudProbe.status,
+        source: cloudProbe.source,
+        note: cloudProbe.note,
+        checkedAt,
+      })
+    }
   }
 
   await saveRoutabilityObservations(observations)
@@ -220,5 +292,6 @@ export async function runRoutabilityCanary(): Promise<RoutabilityRunSummary> {
     unavailable: observations.filter((item) => item.status === 'unavailable').length,
     skipped,
     observations,
+    alternateRoutes,
   }
 }
