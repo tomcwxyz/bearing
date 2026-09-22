@@ -81,12 +81,35 @@ const OUTPUT_TOKEN_ESTIMATES: Record<string, number> = {
   very_long: 16000,
 }
 
-export function estimateCost(model: Model, inputLength: string, outputLength: string = 'medium'): number {
+export function estimateCostFromPricing(
+  pricing: Model['pricing'],
+  inputLength: string,
+  outputLength: string = 'medium',
+): number {
   const inputTokens = INPUT_TOKEN_ESTIMATES[inputLength] ?? INPUT_TOKEN_ESTIMATES.medium
   const outputTokens = OUTPUT_TOKEN_ESTIMATES[outputLength] ?? OUTPUT_TOKEN_ESTIMATES.medium
-  const inputCost = (inputTokens / 1_000_000) * model.pricing.input_per_1m
-  const outputCost = (outputTokens / 1_000_000) * model.pricing.output_per_1m
+  const inputCost = (inputTokens / 1_000_000) * pricing.input_per_1m
+  const outputCost = (outputTokens / 1_000_000) * pricing.output_per_1m
   return inputCost + outputCost
+}
+
+export function costFromTokenUsage(
+  pricing: Model['pricing'],
+  inputTokens: number | null | undefined,
+  outputTokens: number | null | undefined,
+): number | null {
+  if (inputTokens == null && outputTokens == null) return null
+  const input = Math.max(0, Number(inputTokens ?? 0))
+  const output = Math.max(0, Number(outputTokens ?? 0))
+  if (!Number.isFinite(input) || !Number.isFinite(output)) return null
+  return (
+    (input / 1_000_000) * pricing.input_per_1m +
+    (output / 1_000_000) * pricing.output_per_1m
+  )
+}
+
+export function estimateCost(model: Model, inputLength: string, outputLength: string = 'medium'): number {
+  return estimateCostFromPricing(model.pricing, inputLength, outputLength)
 }
 
 // Log-scale cost scoring with floor — prevents the most expensive model
