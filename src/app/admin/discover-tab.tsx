@@ -257,7 +257,7 @@ export default function DiscoverTab({ initialModels, matchedCount: initialMatche
                             <span className={source.status === 'candidate' ? 'text-teal'
                               : source.status === 'review' ? 'text-amber-700' : 'text-navy/50'}>
                               {source.status === 'candidate' ? 'Candidate'
-                                : source.status === 'review' ? 'Review variants' : 'No match'}
+                                : source.status === 'review' ? 'Review match' : 'No match'}
                             </span>
                             {source.latestSnapshot && (
                               <span className="text-navy/50">
@@ -267,6 +267,23 @@ export default function DiscoverTab({ initialModels, matchedCount: initialMatche
                             {source.flags.length > 0 && <div className="text-amber-700">
                               {source.flags.slice(0, 2).join(', ')}
                             </div>}
+                            {source.status !== 'none' && source.alternatives.length > 0 && (
+                              <details className="mt-1 text-navy/60">
+                                <summary className="cursor-pointer hover:text-teal">Why this match?</summary>
+                                <ul className="mt-1 space-y-1 border-l border-cream-dark pl-2">
+                                  {source.alternatives.map(alt => (
+                                    <li key={alt.name}>
+                                      <span className="font-medium">{alt.name}</span>
+                                      {' · '}{Math.round(alt.score * 100)}% name similarity
+                                      {alt.flags.length > 0 && (
+                                        <span className="block text-amber-700">{alt.flags.join(', ')}</span>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                                <span className="block mt-1">Similarity is not verified benchmark evidence.</span>
+                              </details>
+                            )}
                           </div>
                         ))}
                       </div>
