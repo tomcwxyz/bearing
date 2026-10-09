@@ -58,6 +58,8 @@ export async function GET(
       sourceSnapshotDate: result.snapshotDate,
       completedAt: new Date().toISOString(),
       durationSeconds: Math.round((Date.now() - started) / 1000),
+      duplicatesRemoved: result.duplicatesRemoved ?? 0,
+      conflictingKeys: result.conflictingKeys ?? 0,
     }
     console.info('[benchmark-refresh] complete', JSON.stringify(summary))
     return NextResponse.json({ ok: true, summary })

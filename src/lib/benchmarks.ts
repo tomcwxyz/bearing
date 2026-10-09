@@ -1,3 +1,4 @@
+import { deduplicateSnapshotRows } from './benchmark-dedup'
 // Benchmark ingestion + read helpers.
 //
 // External sources (LMArena, LiveBench, ...) publish per-category scores for
@@ -164,12 +165,23 @@ export async function resolveAlias(
 export async function ingestSnapshot(rows: SnapshotRow[]): Promise<{
   inserted: number
   unmatched: string[]
+  duplicatesRemoved: number
+  conflictingKeys: number
 }> {
-  if (rows.length === 0) return { inserted: 0, unmatched: [] }
+  if (rows.length === 0) return { inserted: 0, unmatched: [], duplicatesRemoved: 0, conflictingKeys: 0 }
+
+  const { rows: distinctRows, duplicatesRemoved, conflictingKeys } = deduplicateSnapshotRows(rows)
+  if (duplicatesRemoved) {
+    console.warn('[benchmark-ingest] collapsed duplicate source rows', {
+      sources: [...new Set(rows.map(row => row.source))],
+      duplicatesRemoved,
+      conflictingKeys,
+    })
+  }
 
   // Normalise per cohort.
   const cohorts = new Map<string, { min: number; max: number }>()
-  for (const r of rows) {
+  for (const r of distinctRows) {
     const key = `${r.source}::${r.sourceCategory}::${r.snapshotDate}`
     const c = cohorts.get(key)
     if (!c) {
@@ -181,7 +193,7 @@ export async function ingestSnapshot(rows: SnapshotRow[]): Promise<{
   }
 
   // Pre-load alias map for the sources we're touching to avoid N round-trips.
-  const sources = [...new Set(rows.map(r => r.source))]
+  const sources = [...new Set(distinctRows.map(r => r.source))]
   const aliasMap = new Map<string, string>() // key: `${source}::${sourceModelName}`
   for (const source of sources) {
     const aliasRows = await getDb()`
@@ -199,10 +211,10 @@ export async function ingestSnapshot(rows: SnapshotRow[]): Promise<{
 
   // Neon HTTP driver: batching JSON recordsets avoids one remote DB call
   // per benchmark row. A full leaderboard refresh can contain thousands of
-  // rows and previously exceeded the serverless function's time budget.
+  // distinctRows and previously exceeded the serverless function's time budget.
   const BATCH_SIZE = 300
-  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-    const records = rows.slice(i, i + BATCH_SIZE).map(r => {
+  for (let i = 0; i < distinctRows.length; i += BATCH_SIZE) {
+    const records = distinctRows.slice(i, i + BATCH_SIZE).map(r => {
       const cohortKey = `${r.source}::${r.sourceCategory}::${r.snapshotDate}`
       const cohort = cohorts.get(cohortKey)!
       const range = cohort.max - cohort.min
@@ -249,7 +261,7 @@ export async function ingestSnapshot(rows: SnapshotRow[]): Promise<{
     inserted += records.length
   }
 
-  return { inserted, unmatched: [...unmatched] }
+  return { inserted, unmatched: [...unmatched], duplicatesRemoved, conflictingKeys }
 }
 
 interface BenchmarkBucket {

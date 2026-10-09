@@ -19,6 +19,10 @@ export interface IngestResult {
   unmatched: string[]
   /** ISO date (YYYY-MM-DD) the snapshot was tagged with. */
   snapshotDate: string
+  /** Rows omitted because their SQL conflict keys duplicate other rows in this run. */
+  duplicatesRemoved?: number
+  /** Duplicate source keys with different scores, votes or metric types. */
+  conflictingKeys?: number
 }
 
 // EcoLogits resolves per-model against a remote model list, so it reports the
