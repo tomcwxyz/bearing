@@ -289,3 +289,14 @@ describe('evaluation variant safety', () => {
     expect(flags).toContain('evaluation:effort-high')
   })
 })
+
+
+describe('OpenRouter versioned names', () => {
+  it('finds the Mistral Large 4 Preview benchmark while marking preview as review', () => {
+    const model = { slug: 'mistral-large-4-0', name: 'Mistral: Mistral Large 4', provider: 'Mistral' }
+    const matches = rankSourceNames(model, [{ name: 'Mistral Large 4 Preview' }])
+    expect(matches).toHaveLength(1)
+    expect(matches[0].flags).toContain('evaluation:preview')
+    expect(autoMatchSlug('Mistral Large 4 Preview', [model])).toBeNull()
+  })
+})
