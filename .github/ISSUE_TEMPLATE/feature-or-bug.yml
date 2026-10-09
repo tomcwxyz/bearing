@@ -1,0 +1,35 @@
+name: Feature or bug
+description: Suggest a product improvement or report a reproducible issue.
+title: "[Product] "
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Contribution type
+      options:
+        - Bug
+        - Feature or usability improvement
+        - Documentation
+        - Developer experience
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened or what should change?
+      description: Give the outcome you're trying to achieve, rather than only a proposed technical solution.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce or an illustrative example
+      description: Public or synthetic examples only; redact API keys, personal data and raw prompts.
+    validations:
+      required: false
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour and acceptance criteria
+    validations:
+      required: false
