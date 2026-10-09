@@ -1,0 +1,75 @@
+name: Contributor workbench smoke
+
+on:
+  pull_request:
+    paths:
+      - 'src/app/demo/**'
+      - 'src/lib/contributor-*'
+      - 'src/lib/__tests__/contributor-fixtures.test.ts'
+      - 'scripts/dev-demo.mjs'
+      - 'src/components/nav*'
+      - 'src/app/layout.tsx'
+      - 'src/lib/registry.ts'
+      - 'package.json'
+      - '.github/workflows/contributor-workbench.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'src/app/demo/**'
+      - 'src/lib/contributor-*'
+      - 'scripts/dev-demo.mjs'
+      - '.github/workflows/contributor-workbench.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workbench-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  workbench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Check offline scoring fixtures
+        run: npx vitest run src/lib/__tests__/contributor-fixtures.test.ts
+      - name: Build without credentials
+        env:
+          NEON_DATABASE_URL: ''
+          ANTHROPIC_API_KEY: ''
+          OPENROUTER_API_KEY: ''
+        run: npm run build
+      - name: Exercise the local workbench route
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run dev:demo > /tmp/bearing-workbench.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; pkill -P "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in $(seq 1 60); do
+            if curl -fsS --max-time 4 http://localhost:3000/demo -o /tmp/bearing-demo.html 2>/dev/null; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat /tmp/bearing-workbench.log
+              exit 1
+            fi
+            sleep 2
+          done
+          if [[ "$ready" != 1 ]]; then
+            cat /tmp/bearing-workbench.log
+            exit 1
+          fi
+          grep -q 'Explore how Bearing decides' /tmp/bearing-demo.html
+          curl -fsS --max-time 15 http://localhost:3000/models -o /tmp/bearing-models.html
+          grep -q 'Model Registry' /tmp/bearing-models.html
+          echo 'Local workbench and static model catalogue are accessible without credentials.'
