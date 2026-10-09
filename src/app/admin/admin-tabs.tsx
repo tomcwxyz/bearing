@@ -9,6 +9,7 @@ import DiscoverTab from './discover-tab'
 import BenchmarksTab from './benchmarks-tab'
 import MaintenanceTab from './maintenance-tab'
 import type { AdminModel } from '@/db/models'
+import type { DraftPublishMeta } from '@/lib/draft-publish'
 import type { ModelVerificationSummary } from '@/db/model-verification'
 import type { UsageSummary, ActivityPoint, ModeCount, SignupPoint } from './types'
 import type { InsightsSummary, TaskTypeCount, LeaderboardEntry, OutcomeBreakdown, CapabilityDemand, LocalFitCalibration } from './types'
@@ -30,6 +31,7 @@ type TabKey = typeof TABS[number]['key']
 interface AdminTabsProps {
   models: AdminModel[]
   verification: ModelVerificationSummary[]
+  draftPublishMeta: DraftPublishMeta[]
   initialDiscover: {
     newModels: DiscoverModel[]
     matchedCount: number
@@ -53,7 +55,7 @@ interface AdminTabsProps {
   activeSlugs: string[]
 }
 
-function AdminTabsInner({ models, verification, initialDiscover, initialUsage, initialInsights, initialBenchmarks, initialMaintenance, activeSlugs }: AdminTabsProps) {
+function AdminTabsInner({ models, verification, draftPublishMeta, initialDiscover, initialUsage, initialInsights, initialBenchmarks, initialMaintenance, activeSlugs }: AdminTabsProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const activeTab = (searchParams.get('tab') as TabKey) || 'models'
@@ -81,7 +83,7 @@ function AdminTabsInner({ models, verification, initialDiscover, initialUsage, i
       </div>
 
       <div className="mt-6">
-        {activeTab === 'models' && <ModelsTable models={models} verification={verification} />}
+        {activeTab === 'models' && <ModelsTable models={models} verification={verification} draftPublishMeta={draftPublishMeta} />}
         {activeTab === 'usage' && <UsageTab initialData={initialUsage} />}
         {activeTab === 'insights' && <InsightsTab initialData={initialInsights} />}
         {activeTab === 'discover' && <DiscoverTab initialModels={initialDiscover.newModels} matchedCount={initialDiscover.matchedCount} />}
