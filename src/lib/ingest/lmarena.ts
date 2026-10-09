@@ -20,6 +20,7 @@ import { noopLog, type IngestOptions, type IngestResult } from './types'
 const HF_BASE = 'https://datasets-server.huggingface.co/rows'
 const DATASET = 'lmarena-ai/leaderboard-dataset'
 const PAGE_SIZE = 100
+const PAGE_CONCURRENCY = 6
 
 interface HFRow {
   row_idx: number
@@ -67,17 +68,27 @@ async function fetchSubset(
   log: (m: string) => void,
   split = 'latest',
 ): Promise<HFRow[]> {
-  const all: HFRow[] = []
-  let offset = 0
-  while (true) {
-    const url = `${HF_BASE}?dataset=${encodeURIComponent(DATASET)}&config=${subset}&split=${split}&offset=${offset}&length=${PAGE_SIZE}`
-    const data = await fetchPage(url, log)
-    all.push(...data.rows)
-    if (offset + data.rows.length >= data.num_rows_total) break
-    offset += data.rows.length
-    await sleep(2000) // gentle pacing between pages
+  const url = (offset: number) => `${HF_BASE}?dataset=${encodeURIComponent(DATASET)}&config=${subset}&split=${split}&offset=${offset}&length=${PAGE_SIZE}`
+  const first = await fetchPage(url(0), log)
+  if (!Number.isFinite(first.num_rows_total) || first.num_rows_total < 0 || first.num_rows_total > 1000000) {
+    throw new Error(`Invalid LMArena row count for ${subset}`)
   }
-  return all
+  const result = [...first.rows]
+  const offsets: number[] = []
+  for (let offset = PAGE_SIZE; offset < first.num_rows_total; offset += PAGE_SIZE) offsets.push(offset)
+  for (let start = 0; start < offsets.length; start += PAGE_CONCURRENCY) {
+    const batch = offsets.slice(start, start + PAGE_CONCURRENCY)
+    const pages = await Promise.all(batch.map(offset => fetchPage(url(offset), log)))
+    for (let i = 0; i < pages.length; i++) {
+      if (!pages[i].rows.length) throw new Error(`Incomplete LMArena page: ${subset} at ${batch[i]}`)
+      result.push(...pages[i].rows)
+    }
+    log(`  ${subset}: fetched ${result.length}/${first.num_rows_total} rows`)
+  }
+  if (result.length !== first.num_rows_total) {
+    throw new Error(`Incomplete LMArena ${subset} result: ${result.length}/${first.num_rows_total}`)
+  }
+  return result
 }
 
 function toSnapshotRows(hfRows: HFRow[], categoryOverride: string | null): SnapshotRow[] {
@@ -101,9 +112,7 @@ export async function ingestLmArena(opts: IngestOptions = {}): Promise<IngestRes
   log('Pulling LMArena snapshots from Hugging Face...')
 
   const textRows = await fetchSubset('text', log)
-  await sleep(1000)
   const webdevRows = await fetchSubset('webdev', log)
-  await sleep(1000)
   const visionRows = await fetchSubset('vision', log)
   log(`  text:   ${textRows.length} rows`)
   log(`  webdev: ${webdevRows.length} rows`)
@@ -117,6 +126,7 @@ export async function ingestLmArena(opts: IngestOptions = {}): Promise<IngestRes
     ...toSnapshotRows(visionRows, 'vision_overall'),
   ]
 
+  if (!all.length) throw new Error('LMArena returned no rows; refusing empty refresh')
   const { inserted, unmatched } = await ingestSnapshot(all)
   const snapshotDate = all[0]?.snapshotDate ?? new Date().toISOString().slice(0, 10)
 
