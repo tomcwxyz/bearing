@@ -1,3 +1,5 @@
+import type { DiscoverCoverage } from '@/lib/discover-coverage'
+
 // Shared types for the admin UI. Kept separate from `actions.ts` because
 // Next.js 'use server' files must only export async functions — type exports
 // there get transformed into runtime references and throw on SSR.
@@ -26,4 +28,5 @@ export interface DiscoverModel {
   description: string | null
   supportedParameters: string[]
   created: number
+  benchmark?: DiscoverCoverage
 }

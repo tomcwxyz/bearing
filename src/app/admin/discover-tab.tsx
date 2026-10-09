@@ -3,6 +3,7 @@
 import { useState, useTransition, useMemo, useEffect } from 'react'
 import {
   syncPricing,
+  fetchDiscoverData,
   estimateModelScores,
   importModel,
   suggestAliasesForImport,
@@ -85,20 +86,44 @@ function formatPrice(price: number): string {
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function DiscoverTab({ initialModels, matchedCount }: DiscoverTabProps) {
-  const [models] = useState(initialModels)
+export default function DiscoverTab({ initialModels, matchedCount: initialMatchedCount }: DiscoverTabProps) {
+  const [models, setModels] = useState(initialModels)
+  const [matchedCount, setMatchedCount] = useState(initialMatchedCount)
+  const [coverageFilter, setCoverageFilter] = useState<'all' | 'candidate' | 'review' | 'none'>('all')
+  const [isAuditing, startAuditTransition] = useTransition()
   const [search, setSearch] = useState('')
   const [syncBanner, setSyncBanner] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [isSyncing, startSyncTransition] = useTransition()
   const [importingModel, setImportingModel] = useState<DiscoverModel | null>(null)
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return models
-    const q = search.toLowerCase()
-    return models.filter(
-      m => m.name.toLowerCase().includes(q) || m.provider.toLowerCase().includes(q),
+    const q = search.toLowerCase().trim()
+    return models.filter(m =>
+      (coverageFilter === 'all' || m.benchmark?.status === coverageFilter)
+      && (!q || m.name.toLowerCase().includes(q) || m.provider.toLowerCase().includes(q)),
     )
-  }, [models, search])
+  }, [models, search, coverageFilter])
+
+  const coverageCounts = useMemo(() => ({
+    candidate: models.filter(m => m.benchmark?.status === 'candidate').length,
+    review: models.filter(m => m.benchmark?.status === 'review').length,
+    none: models.filter(m => m.benchmark?.status === 'none').length,
+    unavailable: models.filter(m => !m.benchmark).length,
+  }), [models])
+
+  function refreshCatalogueAudit() {
+    setSyncBanner(null)
+    startAuditTransition(async () => {
+      try {
+        const result = await fetchDiscoverData()
+        setModels(result.newModels)
+        setMatchedCount(result.matchedCount)
+        setSyncBanner({ type: 'success', message: 'Discover catalogue and benchmark coverage rechecked against stored source snapshots.' })
+      } catch (error) {
+        setSyncBanner({ type: 'error', message: error instanceof Error ? error.message : 'Catalogue audit failed' })
+      }
+    })
+  }
 
   function handleSync() {
     setSyncBanner(null)
@@ -145,6 +170,39 @@ export default function DiscoverTab({ initialModels, matchedCount }: DiscoverTab
         )}
       </section>
 
+      {/* Audit the entire OpenRouter Discover range against ingested quality
+          evidence; proposed matches are never presented as confirmed aliases. */}
+      <section className="rounded-lg border border-cream-dark bg-white p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-display text-lg text-navy">Benchmark coverage audit</h2>
+            <p className="mt-1 text-sm text-navy/60">
+              {coverageCounts.candidate} likely matches · {coverageCounts.review} require review · {coverageCounts.none} without a match
+              {coverageCounts.unavailable > 0 ? ` · ${coverageCounts.unavailable} unverified (database unavailable)` : ''}
+            </p>
+            <p className="mt-1 text-xs text-navy/50">
+              Candidates are suggestions, not approved benchmark evidence. Freshness refers to the evaluation date, not the time data was fetched.
+            </p>
+          </div>
+          <button className="btn-secondary text-xs" onClick={refreshCatalogueAudit} disabled={isAuditing}>
+            {isAuditing ? 'Checking…' : 'Recheck catalogue'}
+          </button>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {([
+            ['all', 'All models'], ['candidate', 'Likely match'],
+            ['review', 'Needs review'], ['none', 'No match'],
+          ] as const).map(([value, label]) => (
+            <button key={value} onClick={() => setCoverageFilter(value)}
+              aria-pressed={coverageFilter === value}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium ${coverageFilter === value
+                ? 'border-teal bg-teal/10 text-teal' : 'border-cream-dark text-navy/60 hover:border-teal/40'}`}>
+              {label}{value === 'all' ? ` (${models.length})` : ` (${coverageCounts[value]})`}
+            </button>
+          ))}
+        </div>
+      </section>
+
       {/* Search */}
       <div>
         <input
@@ -172,6 +230,7 @@ export default function DiscoverTab({ initialModels, matchedCount }: DiscoverTab
                 <th className="px-4 py-3 font-medium">Modality</th>
                 <th className="px-4 py-3 font-medium">Context</th>
                 <th className="px-4 py-3 font-medium">Pricing (per 1M)</th>
+                <th className="px-4 py-3 font-medium">Benchmark evidence</th>
                 <th className="px-4 py-3 font-medium" />
               </tr>
             </thead>
@@ -186,6 +245,32 @@ export default function DiscoverTab({ initialModels, matchedCount }: DiscoverTab
                   <td className="px-4 py-3 text-navy/70">{(model.contextWindow / 1000).toFixed(0)}k</td>
                   <td className="px-4 py-3 text-navy/70">
                     {formatPrice(model.pricing.input_per_1m)} / {formatPrice(model.pricing.output_per_1m)}
+                  </td>
+                  <td className="px-4 py-3 text-navy/70">
+                    {model.benchmark ? (
+                      <div className="space-y-1.5">
+                        {model.benchmark.sources.map(source => (
+                          <div key={source.source} className="text-xs" title={source.sourceModelName
+                            ? `${source.sourceModelName} · ${source.qualityCategories} categories · last fetched ${source.lastCapturedAt ?? 'unknown'}`
+                            : 'No corresponding evaluation found in stored snapshots'}>
+                            <span className="font-medium">{source.source === 'lmarena' ? 'LMArena' : 'AA'}:</span>{' '}
+                            <span className={source.status === 'candidate' ? 'text-teal'
+                              : source.status === 'review' ? 'text-amber-700' : 'text-navy/50'}>
+                              {source.status === 'candidate' ? 'Candidate'
+                                : source.status === 'review' ? 'Review variants' : 'No match'}
+                            </span>
+                            {source.latestSnapshot && (
+                              <span className="text-navy/50">
+                                {' · '}{source.latestSnapshot.slice(0, 10)}{source.stale ? ' · stale' : ''}
+                              </span>
+                            )}
+                            {source.flags.length > 0 && <div className="text-amber-700">
+                              {source.flags.slice(0, 2).join(', ')}
+                            </div>}
+                          </div>
+                        ))}
+                      </div>
+                    ) : <span className="text-xs text-navy/50">Audit unavailable</span>}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
@@ -845,8 +930,8 @@ function BenchmarkAliasPanel({
           <h3 className="font-display text-lg text-navy">Benchmark matches</h3>
           <p className="text-xs text-navy/60">
             Confirm which external-source variants represent this model. Selected aliases are
-            written when you save the import. Flagged candidates (mini, distill, vl, …) need a
-            judgment call.
+            written when you save the import. Reasoning modes and effort settings are
+            separate evaluations: review flagged variants before including them.
           </p>
         </div>
         <div className="text-xs text-navy/50">

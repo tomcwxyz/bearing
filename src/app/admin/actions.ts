@@ -42,6 +42,8 @@ import {
   type OutcomeBreakdown, type CapabilityDemand, type LocalFitCalibration,
 } from '@/lib/dashboard'
 import type { DiscoverModel } from './types'
+import { getDiscoverBenchmarkNames } from '@/db/discover-benchmark'
+import { assessDiscoverCoverage } from '@/lib/discover-coverage'
 
 async function requireAdmin(): Promise<string> {
   const user = await getCurrentUser()
@@ -151,9 +153,10 @@ export async function fetchDiscoverData(): Promise<{
   matchedCount: number
 }> {
   await requireAdmin()
-  const [orModels, existingIds] = await Promise.all([
+  const [orModels, existingIds, benchmarkNames] = await Promise.all([
     fetchOpenRouterModels(),
     getOpenRouterIds(),
+    getDiscoverBenchmarkNames().catch(() => null),
   ])
 
   const newModels: DiscoverModel[] = []
@@ -189,6 +192,10 @@ export async function fetchDiscoverData(): Promise<{
 
   // Sort newest first
   newModels.sort((a, b) => b.created - a.created)
+  if (benchmarkNames) {
+    const coverage = assessDiscoverCoverage(newModels, benchmarkNames)
+    for (const model of newModels) model.benchmark = coverage[model.id]
+  }
 
   return { newModels, matchedCount }
 }

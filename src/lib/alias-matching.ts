@@ -136,6 +136,34 @@ export function matchTokens(modelTokens: Set<string>, sourceTokens: Set<string>)
   return { subset, score, flags, confidence }
 }
 
+/** External evaluation variants must not silently become benchmark evidence
+ * for a base model. Effort levels, reasoning modes and harnesses are separate
+ * measurements; an admin may confirm them explicitly during import. */
+export function evaluationVariant(name: string): string | null {
+  const lower = name.toLowerCase()
+  const harness = lower.match(/(?:codex|agent|tool)[-_ ]?harness/)
+  if (harness) return harness[0].replace(/[_ ]/g, '-')
+  const nonReasoning = /\bnon[- ]?reasoning\b/.test(lower)
+  const reasoning = /\breasoning\b/.test(lower)
+  const effortInParens = lower.match(/\([^)]*\b(xhigh|high|medium|med|low|max|minimal|adaptive)\b[^)]*\)/)
+  const effortSuffix = lower.match(/[-_](xhigh|high|medium|med|low|max|minimal)$/)
+  const effort = (effortInParens?.[1] ?? effortSuffix?.[1])?.replace(/^med$/, 'medium')
+  if (nonReasoning) return 'non-reasoning'
+  if (reasoning && effort) return `reasoning-${effort}`
+  if (reasoning) return 'reasoning'
+  if (effort) return `effort-${effort}`
+  if (/\(preview\)|\(experimental\)/.test(lower)) return 'preview'
+  return null
+}
+
+function withVariantSafety(sourceName: string, model: BearingModelMeta, match: TokenMatch): TokenMatch {
+  const sourceVariant = evaluationVariant(sourceName)
+  const modelVariant = evaluationVariant(`${model.slug} ${model.name}`)
+  if (!sourceVariant || sourceVariant === modelVariant) return match
+  const flags = [...match.flags, `evaluation:${sourceVariant}`]
+  return { ...match, flags, confidence: 'weak' }
+}
+
 export interface BearingModelMeta {
   slug: string
   name: string
@@ -189,7 +217,7 @@ export function rankSourceNames(
 
   const out: RankedSourceName[] = []
   for (const cand of candidates) {
-    const m = matchTokens(modelTokens, tokenise(cand.name))
+    const m = withVariantSafety(cand.name, model, matchTokens(modelTokens, tokenise(cand.name)))
     if (!m.subset) continue
     out.push({ name: cand.name, slug: cand.slug, score: m.score, confidence: m.confidence, flags: m.flags })
   }
@@ -218,9 +246,9 @@ export function rankSlugs(
 
   const out: RankedSlug[] = []
   for (const model of models) {
-    const modelTokens = tokenise(`${model.slug} ${model.name}`)
+    const modelTokens = tokenise(`${model.slug} ${model.name.replace(VENDOR_LABEL_RE, '')}`)
     if (modelTokens.size < minQueryTokens) continue
-    const m = matchTokens(modelTokens, sourceTokens)
+    const m = withVariantSafety(sourceName, model, matchTokens(modelTokens, sourceTokens))
     if (!m.subset) continue
     out.push({ slug: model.slug, name: model.name, score: m.score, confidence: m.confidence, flags: m.flags })
   }

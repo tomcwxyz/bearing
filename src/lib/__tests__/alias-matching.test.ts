@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  matchTokens, tokenise, rankSlugs, rankSourceNames, autoMatchSlug,
+  matchTokens, tokenise, rankSlugs, rankSourceNames, autoMatchSlug, evaluationVariant,
   type BearingModelMeta,
 } from '../alias-matching'
 import { resolveModelName } from '../ecologits-grounding'
@@ -70,7 +70,7 @@ describe('rankSourceNames (forward, import form)', () => {
   it('flags mini sibling, ranks unflagged base first', () => {
     const out = rankSourceNames(models[1], AA_SAMPLE)
     expect(out[0].name).toBe('GPT-5.4 (xhigh)')
-    expect(out[0].flags).toEqual([])
+    expect(out[0].flags).toContain('evaluation:effort-xhigh')
     const mini = out.find(s => s.name.includes('mini'))
     expect(mini?.flags).toContain('mini')
   })
@@ -106,7 +106,8 @@ describe('rankSlugs (reverse, unmatched UI)', () => {
   it('maps a source name to the right slug as exact', () => {
     const out = rankSlugs('Claude 4.5 Haiku (Reasoning)', models)
     expect(out[0].slug).toBe('claude-haiku-4.5')
-    expect(out[0].confidence).toBe('exact')
+    expect(out[0].confidence).toBe('weak')
+    expect(out[0].flags).toContain('evaluation:reasoning')
   })
 
   it('every paren-effort GPT variant resolves to the base slug', () => {
@@ -128,7 +129,7 @@ describe('rankSlugs (reverse, unmatched UI)', () => {
 
 describe('autoMatchSlug (strict auto-apply)', () => {
   it('applies an exact-unique match', () => {
-    expect(autoMatchSlug('Claude 4.5 Haiku (Non-reasoning)', models)).toBe('claude-haiku-4.5')
+    expect(autoMatchSlug('Claude Haiku 4.5', models)).toBe('claude-haiku-4.5')
   })
 
   it('refuses a flagged (VL) match', () => {
@@ -265,5 +266,26 @@ describe('resolveModelName (EcoLogits API slugs)', () => {
 
   it('returns null when nothing matches', () => {
     expect(resolveModelName('random-model', ['gpt-4', 'claude-3-haiku'])).toBeNull()
+  })
+})
+
+describe('evaluation variant safety', () => {
+  it('extracts reasoning, effort and harness identities without conflating them', () => {
+    expect(evaluationVariant('GPT-5.6 Sol (high)')).toBe('effort-high')
+    expect(evaluationVariant('GPT-5.6 Sol (Non-reasoning)')).toBe('non-reasoning')
+    expect(evaluationVariant('Claude Opus 5 (Adaptive Reasoning, Max Effort)')).toBe('reasoning-max')
+    expect(evaluationVariant('gpt-5.6-sol-xhigh (codex-harness)')).toBe('codex-harness')
+    expect(evaluationVariant('Claude Haiku 4.5')).toBeNull()
+  })
+
+  it('never auto-maps an evaluation variant onto an unqualified model', () => {
+    const sol = [{ slug: 'gpt-5.6-sol', name: 'OpenAI: GPT-5.6 Sol', provider: 'OpenAI' }]
+    expect(autoMatchSlug('GPT-5.6 Sol (high)', sol)).toBeNull()
+    expect(autoMatchSlug('GPT-5.6 Sol (low)', sol)).toBeNull()
+    expect(autoMatchSlug('GPT-5.6 Sol (Non-reasoning)', sol)).toBeNull()
+    expect(autoMatchSlug('gpt-5.6-sol-xhigh', sol)).toBeNull()
+    expect(autoMatchSlug('gpt-5.6-sol', sol)).toBe('gpt-5.6-sol')
+    const flags = rankSourceNames(sol[0], [{ name: 'GPT-5.6 Sol (high)' }])[0].flags
+    expect(flags).toContain('evaluation:effort-high')
   })
 })
