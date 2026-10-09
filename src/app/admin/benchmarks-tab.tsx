@@ -82,6 +82,7 @@ export default function BenchmarksTab({ initialData, activeSlugs }: BenchmarksTa
             message: `${source}: upserted ${r.inserted} of ${r.fetched} rows`
               + (r.autoMatched.length > 0 ? `, auto-matched ${r.autoMatched.length}` : '')
               + (r.unmatched.length > 0 ? `, ${r.unmatched.length} need review` : '')
+              + (r.duplicatesRemoved ? `, ${r.duplicatesRemoved} duplicate rows resolved (${r.conflictingKeys ?? 0} conflicting keys)` : '')
               + ` (snapshot ${r.snapshotDate})`,
           })
           const next = await fetchBenchmarksData()
