@@ -246,7 +246,7 @@ export function rankSlugs(
 
   const out: RankedSlug[] = []
   for (const model of models) {
-    const modelTokens = tokenise(`${model.slug} ${model.name}`)
+    const modelTokens = tokenise(`${model.slug} ${model.name.replace(VENDOR_LABEL_RE, '')}`)
     if (modelTokens.size < minQueryTokens) continue
     const m = withVariantSafety(sourceName, model, matchTokens(modelTokens, sourceTokens))
     if (!m.subset) continue
