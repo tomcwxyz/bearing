@@ -20,7 +20,7 @@ import type { DiscoverModel } from './types'
 // Live benchmark re-ingest (reingestSource server action) runs on this route's
 // function. LMArena paginates 3 subsets with paced sleeps, so the default
 // serverless timeout is too short — give admin actions headroom.
-export const maxDuration = 120
+export const maxDuration = 300
 
 export default async function AdminPage() {
   const user = await getCurrentUser()
