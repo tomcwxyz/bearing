@@ -14,6 +14,8 @@ interface NavLink {
 interface NavClientProps {
   links: NavLink[]
   userEmail: string | null
+  hideAuth?: boolean
+  homeHref?: string
 }
 
 function AuthLinks({ userEmail, onNavigate }: { userEmail: string | null; onNavigate?: () => void }) {
@@ -40,14 +42,14 @@ function AuthLinks({ userEmail, onNavigate }: { userEmail: string | null; onNavi
   )
 }
 
-export function NavClient({ links, userEmail }: NavClientProps) {
+export function NavClient({ links, userEmail, hideAuth = false, homeHref = '/' }: NavClientProps) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
   return (
     <header className="bg-navy text-cream border-b border-navy-light">
       <nav className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-        <Link href="/" className="font-display text-xl font-bold tracking-tight">
+        <Link href={homeHref} className="font-display text-xl font-bold tracking-tight">
           Bearing
         </Link>
 
@@ -76,7 +78,7 @@ export function NavClient({ links, userEmail }: NavClientProps) {
               </Link>
             ),
           )}
-          <AuthLinks userEmail={userEmail} />
+          {!hideAuth && <AuthLinks userEmail={userEmail} />}
         </div>
 
         {/* Mobile hamburger button */}
@@ -136,9 +138,11 @@ export function NavClient({ links, userEmail }: NavClientProps) {
                 </Link>
               ),
             )}
-            <div className="py-1">
-              <AuthLinks userEmail={userEmail} onNavigate={() => setOpen(false)} />
-            </div>
+            {!hideAuth && (
+              <div className="py-1">
+                <AuthLinks userEmail={userEmail} onNavigate={() => setOpen(false)} />
+              </div>
+            )}
           </div>
         </div>
       )}

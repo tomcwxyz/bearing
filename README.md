@@ -205,6 +205,25 @@ npm run dev
 
 For production, ensure `CRON_SECRET` is configured alongside the application/database/provider credentials so scheduled maintenance fails closed rather than running unauthenticated.
 
+### Work without a database or API keys
+
+Contributors can inspect the real ranking logic with synthetic tasks and the
+committed model catalogue. This runs on Windows, macOS and Linux:
+
+```bash
+npm ci
+npm run dev:demo
+```
+
+Open [http://localhost:3000/demo](http://localhost:3000/demo), choose a task
+and experiment with priorities or local-only requirements. **No Neon database,
+provider API key or other external service is used.** The workbench is explicitly
+limited to the local development server; it is not a substitute for testing
+database, authentication, live classifier or model execution flows.
+
+See [the local contributor workbench guide](docs/local-workbench.md) for
+boundaries, tests and how to propose methodology improvements.
+
 ## Testing and CI
 
 The repository CI workflow runs:

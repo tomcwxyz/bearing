@@ -1,5 +1,6 @@
 import registryData from '@/data/bearing-registry.json'
 import type { ModelClass } from './model-class'
+import { contributorDemoEnabled } from './contributor-demo-mode'
 
 export type Factor = 'cost' | 'speed' | 'quality' | 'privacy' | 'sustainability' | 'transparency' | 'capability'
 
@@ -236,6 +237,7 @@ export function getDefaultWeights(): Record<Factor, number> {
 
 /** Try DB first, fall back to static JSON if DB unavailable. */
 export async function getAllModelsLive(): Promise<Model[]> {
+  if (contributorDemoEnabled()) return getAllModels()
   try {
     const { getAllModelsFromDb } = await import('@/db/models')
     return await getAllModelsFromDb()
@@ -248,6 +250,7 @@ export async function getAllModelsLive(): Promise<Model[]> {
 /** Detail-page lookup: DB first (so freshly imported active models resolve),
  *  fall back to static JSON. */
 export async function getModelLive(slug: string): Promise<Model | undefined> {
+  if (contributorDemoEnabled()) return getModel(slug)
   try {
     const { getModelForAdmin } = await import('@/db/models')
     const fromDb = await getModelForAdmin(slug)

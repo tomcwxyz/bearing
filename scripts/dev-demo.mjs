@@ -2,10 +2,11 @@ import { spawn } from 'node:child_process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-// Explicit empty values win over any .env.local file when Next starts.
-// The contributor experience never needs maintained DB or provider keys.
+// Explicit environment values win over .env.local when Next starts.
+// Do not use or expose maintained credentials during local exploration.
 const environment = {
   ...process.env,
+  NODE_ENV: 'development',
   BEARING_CONTRIBUTOR_DEMO: '1',
   NEON_DATABASE_URL: '',
   ANTHROPIC_API_KEY: '',
@@ -15,6 +16,7 @@ const environment = {
   GEMINI_API_KEY: '',
   RESEND_API_KEY: '',
   OLLAMA_API_KEY: '',
+  NEXT_PUBLIC_PLAUSIBLE_DOMAIN: '',
   AUTH_SECRET: 'bearing-contributor-demo-development-only-secret',
 }
 const nextCli = resolve(dirname(fileURLToPath(import.meta.url)), '../node_modules/next/dist/bin/next')
