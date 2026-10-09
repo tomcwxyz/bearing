@@ -11,6 +11,14 @@
     {
       "path": "/api/admin/routability-verify",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/admin/benchmark-refresh/lmarena",
+      "schedule": "0 6 * * 1"
+    },
+    {
+      "path": "/api/admin/benchmark-refresh/artificialanalysis",
+      "schedule": "0 7 * * 1"
     }
   ]
 }
