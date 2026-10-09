@@ -1,6 +1,7 @@
 // Discover is a *live* OpenRouter catalogue. Source candidates are evidence
 // proposals, not confirmed aliases; never present them as grounded scores.
 import { rankSourceNames, type BearingModelMeta } from './alias-matching'
+import { familyOf } from './model-identity'
 
 export type QualitySource = 'lmarena' | 'artificialanalysis'
 export type CoverageStatus = 'candidate' | 'review' | 'none'
@@ -21,6 +22,8 @@ export interface SourceCoverage {
   latestSnapshot: string | null
   lastCapturedAt: string | null
   flags: string[]
+  reasons: string[]
+  alternatives: { name: string; score: number; flags: string[] }[]
   stale: boolean
 }
 export interface DiscoverCoverage {
@@ -53,17 +56,18 @@ export function assessDiscoverCoverage(
   for (const source of SOURCES) bySource.set(source, [])
   for (const row of snapshots) bySource.get(row.source)?.push(row)
 
-  // Token-index candidates once: large OpenRouter catalogues shouldn't need
-  // every model to compare against every historic source name.
+  // Match within a model family. Indexing by the *smallest surface token*
+  // dropped valid matches whenever spelling, word order or routing identifiers
+  // varied; family gates retain those candidates without a full cross-product.
   const indexes = new Map<QualitySource, Map<string, SourceBenchmarkName[]>>()
   for (const source of SOURCES) {
     const index = new Map<string, SourceBenchmarkName[]>()
     for (const row of bySource.get(source) ?? []) {
-      for (const token of new Set(row.sourceModelName.toLowerCase().match(/[a-z]{3,}/g) ?? [])) {
-        const group = index.get(token) ?? []
-        group.push(row)
-        index.set(token, group)
-      }
+      const family = familyOf(row.sourceModelName)
+      if (!family) continue
+      const bucket = index.get(family) ?? []
+      bucket.push(row)
+      index.set(family, bucket)
     }
     indexes.set(source, index)
   }
@@ -75,14 +79,10 @@ export function assessDiscoverCoverage(
     }
     const sourceCoverage: SourceCoverage[] = []
     for (const source of SOURCES) {
-      const tokens = meta.name.replace(/^[^:]+:\s*/, '').toLowerCase().match(/[a-z]{3,}/g) ?? []
-      const index = indexes.get(source)!
-      // Find smallest candidate bucket. Fall back to all names when no
-      // long alpha token is present (e.g. unusually named numerical models).
-      const buckets = tokens.map(t => index.get(t)).filter((v): v is SourceBenchmarkName[] => !!v)
-      const pool = buckets.length
-        ? buckets.reduce((best, next) => next.length < best.length ? next : best)
-        : bySource.get(source)!
+      const family = familyOf(meta.name.replace(/^[^:]+:\s*/, ''))
+      const pool = family
+        ? (indexes.get(source)?.get(family) ?? [])
+        : (bySource.get(source) ?? [])
       const metaByName = new Map(pool.map(row => [row.sourceModelName, row]))
       const ranked = rankSourceNames(meta, pool.map(row => ({ name: row.sourceModelName })))
       const safe = ranked.filter(r => r.flags.length === 0 && r.confidence !== 'weak')
@@ -96,6 +96,8 @@ export function assessDiscoverCoverage(
         latestSnapshot: details?.latestSnapshot ?? null,
         lastCapturedAt: details?.lastCapturedAt ?? null,
         flags: chosen?.flags ?? [],
+        reasons: chosen?.reasons ?? [],
+        alternatives: ranked.slice(0, 4).map(r => ({ name: r.name, score: r.score, flags: r.flags })),
         stale: isStaleSnapshot(details?.latestSnapshot ?? null, now),
       })
     }
