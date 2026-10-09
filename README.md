@@ -229,7 +229,9 @@ See [`docs/plans/2026-09-13-bearing-1-reorientation.md`](docs/plans/2026-09-13-b
 
 ## Contributing
 
-The scoring engine, model evidence and policies are intentionally inspectable. Contributions are welcome, especially where they improve model freshness, evidence provenance, evaluation coverage or transparent decision logic.
+The scoring engine, model evidence and policies are intentionally inspectable. **No Neon access is required to contribute.** Improve model evidence, tests, documentation, product design, evaluation coverage, schema proposals and the methodology itself.
+
+Start with [CONTRIBUTING.md](CONTRIBUTING.md), [contribution routes](docs/contributing/index.md), [methodology challenges](docs/contributing/methodology.md), or the [database relationship guide](docs/architecture/data-model.md). The checked-in model registry is generated from Neon, so please open an evidence-correction issue rather than assuming raw JSON edits will become canonical.
 
 ## Licence
 

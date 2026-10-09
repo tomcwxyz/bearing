@@ -22,6 +22,20 @@ nav:
   - How Bearing Works: how-bearing-works.md
   - How We Rate Models: model-ratings.md
   - Public Data Model: public-data.md
+  - Contributing:
+      - Get Involved: contributing/index.md
+      - Challenge the Methodology: contributing/methodology.md
+  - Architecture:
+      - Data Model and Relationships: architecture/data-model.md
+      - Safe Schema Changes: architecture/schema-changes.md
+      - Decision Record Template: architecture/decisions/0000-template.md
   - Changelog: changelog.md
 extra_css:
   - stylesheets/bearing.css
+
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
