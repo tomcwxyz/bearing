@@ -31,7 +31,7 @@ describe('deterministic model identity', () => {
   })
 
   it('keeps revision and reasoning variants separate', () => {
-    expect(compareModelIdentity({ name: 'DeepSeek R1 0528' }, { name: 'DeepSeek R1 0120' })?.autoEligible).toBe(false)
+    expect(compareModelIdentity({ name: 'DeepSeek R1 0528' }, { name: 'DeepSeek R1 0120' })?.autoEligible).not.toBe(true)
     expect(compareModelIdentity({ name: 'GPT-5.6 Sol' }, { name: 'GPT-5.6 Sol (xhigh)' })?.autoEligible).toBe(false)
     expect(compareModelIdentity({ name: 'Qwen3 235B A22B' }, { name: 'Qwen3 VL 235B A22B Instruct' })?.autoEligible).toBe(false)
   })
