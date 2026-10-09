@@ -7,6 +7,8 @@ import type { AdminModel } from '@/db/models'
 import type { ModelVerificationSummary } from '@/db/model-verification'
 import { assessModelFreshness, freshnessLabel } from '@/lib/model-freshness'
 import { verifyCatalogueAdmin } from './freshness-actions'
+import DraftPublishingQueue from './draft-publishing-queue'
+import type { DraftPublishMeta } from '@/lib/draft-publish'
 
 function ageLabel(ageDays: number | null): string {
   if (ageDays == null) return 'never'
@@ -52,7 +54,7 @@ function FreshnessCell({ summary }: { summary?: ModelVerificationSummary }) {
       </span>
       <div className="font-mono text-[10px] text-navy/45">
         {mappingSource} · {ageLabel(assessment.ageDays)}
-      </div>
+      </div>}
     </div>
   )
 }
@@ -60,13 +62,18 @@ function FreshnessCell({ summary }: { summary?: ModelVerificationSummary }) {
 export default function ModelsTable({
   models,
   verification,
+  draftPublishMeta,
 }: {
   models: AdminModel[]
   verification: ModelVerificationSummary[]
+  draftPublishMeta: DraftPublishMeta[]
 }) {
   const router = useRouter()
   const [isVerifying, startVerifying] = useTransition()
   const [feedback, setFeedback] = useState<string | null>(null)
+  const drafts = models.filter(m => !m.active)
+  const live = models.filter(m => m.active)
+  const [showLive, setShowLive] = useState(drafts.length === 0)
 
   const verificationBySlug = useMemo(
     () => new Map(verification.map((row) => [row.slug, row])),
@@ -145,7 +152,11 @@ export default function ModelsTable({
         </div>
       </div>
 
-      <div className="mt-6 overflow-x-auto rounded-lg border border-cream-dark">
+      <div className="mt-6 flex flex-wrap items-center gap-3 border-b border-cream-dark pb-3">
+        <button onClick={() => setShowLive(false)} className={`text-sm font-medium ${!showLive ? 'text-teal' : 'text-navy/50'}`}>Drafts to publish ({drafts.length})</button>
+        <button onClick={() => setShowLive(true)} className={`text-sm font-medium ${showLive ? 'text-teal' : 'text-navy/50'}`}>Live models ({live.length})</button>
+      </div>
+      {!showLive ? <div className="mt-5"><DraftPublishingQueue drafts={drafts} metadata={draftPublishMeta}/></div> : <div className="mt-6 overflow-x-auto rounded-lg border border-cream-dark">
         <table className="w-full text-left text-sm">
           <thead className="bg-cream-dark/60">
             <tr>
@@ -159,7 +170,7 @@ export default function ModelsTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-cream-dark">
-            {models.map((model) => (
+            {live.map((model) => (
               <tr key={model.slug} className="hover:bg-cream-dark/20">
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2">
