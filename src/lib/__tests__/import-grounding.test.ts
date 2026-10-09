@@ -141,14 +141,14 @@ describe('suggestBenchmarkAliases', () => {
     expect(sonnetMatches.length).toBe(3)
   })
 
-  it('flags GPT-5.4 mini/nano siblings rather than excluding them, ranking unflagged first', () => {
+  it('flags GPT-5.4 effort variants and mini/nano siblings without excluding them', () => {
     const out = suggestBenchmarkAliases(
       meta('gpt-5.4', 'GPT 5.4', 'OpenAI'),
       'artificialanalysis',
       AA_SAMPLE,
     )
-    // Top results have no flags (the base GPT-5.4 variants), not mini/nano.
-    expect(out[0].flags).toEqual([])
+    // Base-family effort levels must be flagged as distinct evaluations.
+    expect(out[0].flags.some(flag => flag.startsWith('evaluation:'))).toBe(true)
     expect(out[0].name.includes('mini')).toBe(false)
     expect(out[0].name.includes('nano')).toBe(false)
     expect(out[0].name).toMatch(/^GPT-5\.4 \(/)

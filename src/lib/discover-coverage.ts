@@ -75,7 +75,7 @@ export function assessDiscoverCoverage(
     }
     const sourceCoverage: SourceCoverage[] = []
     for (const source of SOURCES) {
-      const tokens = (meta.slug + ' ' + meta.name.replace(/^[^:]+:\s*/, '')).toLowerCase().match(/[a-z]{3,}/g) ?? []
+      const tokens = meta.name.replace(/^[^:]+:\s*/, '').toLowerCase().match(/[a-z]{3,}/g) ?? []
       const index = indexes.get(source)!
       // Find smallest candidate bucket. Fall back to all names when no
       // long alpha token is present (e.g. unusually named numerical models).

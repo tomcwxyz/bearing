@@ -152,7 +152,7 @@ export function evaluationVariant(name: string): string | null {
   if (reasoning && effort) return `reasoning-${effort}`
   if (reasoning) return 'reasoning'
   if (effort) return `effort-${effort}`
-  if (/\(preview\)|\(experimental\)/.test(lower)) return 'preview'
+  if (/\b(preview|experimental)\b/.test(lower)) return 'preview'
   return null
 }
 
@@ -212,7 +212,7 @@ export function rankSourceNames(
   // — the two can differ ("Moonshot" vs "MoonshotAI"). A vendor word genuinely
   // part of the model name ("MiniMax M2.5", "DeepSeek R1") has no colon and so
   // survives.
-  const modelTokens = tokenise(`${model.slug} ${model.name.replace(VENDOR_LABEL_RE, '')}`)
+  const modelTokens = tokenise(model.name.replace(VENDOR_LABEL_RE, '') || model.slug)
   if (modelTokens.size < minQueryTokens) return []
 
   const out: RankedSourceName[] = []
