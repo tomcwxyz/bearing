@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Contribution guide
+    url: https://github.com/tomcwxyz/bearing/blob/master/CONTRIBUTING.md
+    about: Read the contribution routes and requirements before proposing a change.

@@ -1,0 +1,60 @@
+name: Methodology challenge
+description: Question an assumption, metric, scoring rule, evidence source or evaluation method.
+title: "[Methodology] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Methodology is open for challenge.** A well-supported counterexample or alternative interpretation is a valuable contribution, even without a proposed code change. See [the challenge guide](https://github.com/tomcwxyz/bearing/blob/master/docs/contributing/methodology.md).
+  - type: input
+    id: claim
+    attributes:
+      label: Which assumption or decision are you questioning?
+      placeholder: "Example: price outweighs quality on long-context research tasks"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Task classification / clarification
+        - Capability gates
+        - Weighting / scoring
+        - Model task fitness
+        - Benchmarks / model variants
+        - Privacy / sustainability / openness
+        - Recommendation confidence
+        - Evaluation / golden tasks
+        - Human outcomes / learning
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence or reproducible counterexample
+      description: Give task conditions, expected and actual decisions (if known), public sources and dates. Use synthetic or public examples, not private prompts.
+    validations:
+      required: true
+  - type: textarea
+    id: alternative
+    attributes:
+      label: Alternative explanation or proposed change
+      description: Include possible trade-offs and reasons the current behaviour might be justified.
+    validations:
+      required: false
+  - type: textarea
+    id: evaluation
+    attributes:
+      label: How would we know an improvement worked?
+      description: Suggest a test, a comparison, a golden task or evidence to gather. "Needs investigation" is a valid outcome.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Checks
+      options:
+        - label: I have not included private task content or identifying user records.
+          required: true
