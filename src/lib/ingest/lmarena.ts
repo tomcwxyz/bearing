@@ -127,10 +127,11 @@ export async function ingestLmArena(opts: IngestOptions = {}): Promise<IngestRes
   ]
 
   if (!all.length) throw new Error('LMArena returned no rows; refusing empty refresh')
-  const { inserted, unmatched } = await ingestSnapshot(all)
+  const { inserted, unmatched, duplicatesRemoved, conflictingKeys } = await ingestSnapshot(all)
+  if (duplicatesRemoved) log(`  collapsed ${duplicatesRemoved} duplicate leaderboard rows (${conflictingKeys} conflicting source keys)`)
   const snapshotDate = all[0]?.snapshotDate ?? new Date().toISOString().slice(0, 10)
 
   const { autoMatched, stillUnmatched } = await autoMatchUnmatched('lmarena', unmatched, log)
 
-  return { source: 'lmarena', fetched: all.length, inserted, autoMatched, unmatched: stillUnmatched, snapshotDate }
+  return { source: 'lmarena', fetched: all.length, inserted, autoMatched, unmatched: stillUnmatched, snapshotDate, duplicatesRemoved, conflictingKeys }
 }
