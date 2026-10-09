@@ -205,6 +205,18 @@ npm run dev
 
 For production, ensure `CRON_SECRET` is configured alongside the application/database/provider credentials so scheduled maintenance fails closed rather than running unauthenticated.
 
+## Testing database changes without Neon
+
+Run all versioned SQL migrations against an isolated, disposable PostgreSQL
+database. This requires Docker, not a Neon account:
+
+```bash
+npm run db:test:migrations
+```
+
+The container has no published ports, is destroyed after the test and uses
+synthetic historical records only. See [database contribution guidance](docs/database-contributions.md).
+
 ## Testing and CI
 
 The repository CI workflow runs:

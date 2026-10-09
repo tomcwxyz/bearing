@@ -1,0 +1,39 @@
+name: Disposable database migration checks
+
+on:
+  pull_request:
+    paths:
+      - 'src/db/migrations/**'
+      - 'scripts/db/**'
+      - '.github/workflows/database-migrations.yml'
+      - 'package.json'
+  push:
+    branches: [master]
+    paths:
+      - 'src/db/migrations/**'
+      - 'scripts/db/**'
+      - '.github/workflows/database-migrations.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database-migrations-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  postgres:
+    name: Disposable PostgreSQL 16
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate migrations on isolated Postgres
+        run: node scripts/db/check-migrations.mjs
