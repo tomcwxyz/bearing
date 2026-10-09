@@ -12,6 +12,8 @@ import {
 import { fetchOpenRouterModels, convertPricing, inferCapabilities, extractProvider } from '@/lib/openrouter'
 import { getBenchmarkSummary, getUnmatchedSourceModels, listAliases } from '@/lib/benchmarks'
 import { rankSlugs } from '@/lib/alias-matching'
+import { getDiscoverBenchmarkNames } from '@/db/discover-benchmark'
+import { assessDiscoverCoverage } from '@/lib/discover-coverage'
 import AdminTabs from './admin-tabs'
 import type { DiscoverModel } from './types'
 
@@ -32,7 +34,7 @@ export default async function AdminPage() {
     usageSummary, activity, modes, signups,
     insightsSummary, taskTypes, leaderboard, outcomes, capabilities, localFitCalibration,
     orModels, existingIds,
-    benchmarkSummary, benchmarkAliases, benchmarkUnmatched,
+    benchmarkSummary, benchmarkAliases, benchmarkUnmatched, discoverBenchmarkNames,
   ] = await Promise.all([
     getAllModelsForAdmin(),
     // Keep admin usable while migration 026 is being rolled out. Once the
@@ -63,6 +65,7 @@ export default async function AdminPage() {
     getBenchmarkSummary().catch(() => []),
     listAliases().catch(() => []),
     getUnmatchedSourceModels().catch(() => []),
+    getDiscoverBenchmarkNames().catch(() => null),
   ])
 
   // Build discover data: OpenRouter models not in our DB
@@ -94,6 +97,10 @@ export default async function AdminPage() {
     })
   }
   newModels.sort((a, b) => b.created - a.created)
+  if (discoverBenchmarkNames) {
+    const coverage = assessDiscoverCoverage(newModels, discoverBenchmarkNames)
+    for (const model of newModels) model.benchmark = coverage[model.id]
+  }
 
   // Pre-rank slug suggestions for each unmatched source model (same logic as
   // fetchBenchmarksData) so the Benchmarks tab shows guesses on first render.
