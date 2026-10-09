@@ -40,3 +40,14 @@ describe('full Discover benchmark audit', () => {
     expect(isStaleSnapshot('2026-10-01', new Date('2026-10-09'))).toBe(false)
   })
 })
+
+
+describe('OpenRouter Mistral version suffix', () => {
+  it('lists Mistral Large 4 Preview as a candidate for manual review', () => {
+    const result = assessDiscoverCoverage([
+      { id: 'mistralai/mistral-large-4-0', name: 'Mistral: Mistral Large 4', provider: 'Mistral' },
+    ], [snapshot('artificialanalysis', 'Mistral Large 4 Preview')], new Date('2026-10-09'))
+    expect(result['mistralai/mistral-large-4-0'].sources[1].status).toBe('review')
+    expect(result['mistralai/mistral-large-4-0'].sources[1].sourceModelName).toBe('Mistral Large 4 Preview')
+  })
+})
