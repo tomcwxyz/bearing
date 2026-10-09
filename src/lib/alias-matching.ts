@@ -152,7 +152,7 @@ export function evaluationVariant(name: string): string | null {
   if (reasoning && effort) return `reasoning-${effort}`
   if (reasoning) return 'reasoning'
   if (effort) return `effort-${effort}`
-  if (/\(preview\)|\(experimental\)/.test(lower)) return 'preview'
+  if (/\b(preview|experimental)\b/.test(lower)) return 'preview'
   return null
 }
 
