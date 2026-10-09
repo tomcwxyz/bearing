@@ -142,6 +142,11 @@ export default function BenchmarksTab({ initialData, activeSlugs }: BenchmarksTa
             {isPending && !reingesting ? 'Reloading...' : 'Reload view'}
           </button>
         </div>
+        <p className="mb-3 text-xs text-navy/60">
+          Coverage here means stored benchmark rows linked to registered Bearing models,
+          including historical source results. It is not the percentage of models in
+          Discover with available benchmarks. Check Discover for model-by-model matching.
+        </p>
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-navy/70">
