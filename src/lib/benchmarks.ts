@@ -73,6 +73,7 @@ export const CATEGORY_TO_TASKS: Record<BenchmarkSource, Record<string, TaskType[
     // reasoning + analysis signal. Also a reasonable proxy for qa breadth.
     aa_intelligence: ['reasoning', 'analyse', 'qa'],
     aa_coding: ['code'],
+    aa_agentic: ['code', 'reasoning'],
     aa_math: ['math'],
     // Knowledge-style multi-choice benchmarks → qa + analyse.
     mmlu_pro: ['qa', 'analyse'],
@@ -89,6 +90,9 @@ export const CATEGORY_TO_TASKS: Record<BenchmarkSource, Record<string, TaskType[
     // weaker proxy for `reasoning` (planning multi-step actions).
     tau2: ['code', 'reasoning'],
     terminalbench_hard: ['code', 'reasoning'],
+    terminalbench_v2_1: ['code', 'reasoning'],
+    tau2_telecom: ['reasoning', 'extract'],
+    tau_banking: ['reasoning', 'analyse'],
     lcr: ['code'],
   },
   // MTEB (Massive Text Embedding Benchmark). All four sub-categories collapse
@@ -193,27 +197,45 @@ export async function ingestSnapshot(rows: SnapshotRow[]): Promise<{
   const unmatched = new Set<string>()
   let inserted = 0
 
-  for (const r of rows) {
-    const cohortKey = `${r.source}::${r.sourceCategory}::${r.snapshotDate}`
-    const cohort = cohorts.get(cohortKey)!
-    const range = cohort.max - cohort.min
-    const linear = range > 0 ? (r.rawScore - cohort.min) / range : 1.0
-    // A pre-computed score (absolute-curve sources) bypasses cohort scaling.
-    const normalised = r.normalisedScore != null
-      ? Math.max(0, Math.min(1, r.normalisedScore))
-      : (r.lowerIsBetter ? 1 - linear : linear)
-    const signalType = r.signalType ?? 'task'
-
-    const bearingSlug = aliasMap.get(`${r.source}::${r.sourceModelName}`) ?? null
-    if (!bearingSlug) unmatched.add(`${r.source}::${r.sourceModelName}`)
-
+  // Neon HTTP driver: batching JSON recordsets avoids one remote DB call
+  // per benchmark row. A full leaderboard refresh can contain thousands of
+  // rows and previously exceeded the serverless function's time budget.
+  const BATCH_SIZE = 300
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const records = rows.slice(i, i + BATCH_SIZE).map(r => {
+      const cohortKey = `${r.source}::${r.sourceCategory}::${r.snapshotDate}`
+      const cohort = cohorts.get(cohortKey)!
+      const range = cohort.max - cohort.min
+      const linear = range > 0 ? (r.rawScore - cohort.min) / range : 1.0
+      const normalised = r.normalisedScore != null
+        ? Math.max(0, Math.min(1, r.normalisedScore))
+        : (r.lowerIsBetter ? 1 - linear : linear)
+      const bearingSlug = aliasMap.get(`${r.source}::${r.sourceModelName}`) ?? null
+      if (!bearingSlug) unmatched.add(`${r.source}::${r.sourceModelName}`)
+      return {
+        source: r.source,
+        source_category: r.sourceCategory,
+        source_model_name: r.sourceModelName,
+        bearing_slug: bearingSlug,
+        raw_score: r.rawScore,
+        normalised_score: normalised,
+        vote_count: r.voteCount,
+        snapshot_date: r.snapshotDate,
+        signal_type: r.signalType ?? 'task',
+      }
+    })
     await sql`
       INSERT INTO benchmark_snapshots (
         source, source_category, source_model_name, bearing_slug,
         raw_score, normalised_score, vote_count, snapshot_date, signal_type
-      ) VALUES (
-        ${r.source}, ${r.sourceCategory}, ${r.sourceModelName}, ${bearingSlug},
-        ${r.rawScore}, ${normalised}, ${r.voteCount}, ${r.snapshotDate}, ${signalType}
+      )
+      SELECT incoming.source, incoming.source_category, incoming.source_model_name,
+        incoming.bearing_slug, incoming.raw_score, incoming.normalised_score,
+        incoming.vote_count, incoming.snapshot_date, incoming.signal_type
+      FROM jsonb_to_recordset(${JSON.stringify(records)}::jsonb) AS incoming(
+        source text, source_category text, source_model_name text,
+        bearing_slug text, raw_score double precision, normalised_score double precision,
+        vote_count integer, snapshot_date date, signal_type text
       )
       ON CONFLICT (source, source_category, source_model_name, snapshot_date)
       DO UPDATE SET
@@ -224,7 +246,7 @@ export async function ingestSnapshot(rows: SnapshotRow[]): Promise<{
         signal_type = EXCLUDED.signal_type,
         captured_at = now()
     `
-    inserted++
+    inserted += records.length
   }
 
   return { inserted, unmatched: [...unmatched] }
