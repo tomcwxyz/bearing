@@ -213,7 +213,7 @@ The repository CI workflow runs:
 npx tsc --noEmit
 npm run lint
 npm test
-npm run eval:golden
+npm run eval:ranking
 npm run build
 ```
 
