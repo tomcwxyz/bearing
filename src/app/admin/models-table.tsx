@@ -54,7 +54,7 @@ function FreshnessCell({ summary }: { summary?: ModelVerificationSummary }) {
       </span>
       <div className="font-mono text-[10px] text-navy/45">
         {mappingSource} · {ageLabel(assessment.ageDays)}
-      </div>}
+      </div>
     </div>
   )
 }
@@ -218,7 +218,7 @@ export default function ModelsTable({
             ))}
           </tbody>
         </table>
-      </div>
+      </div>}
     </div>
   )
 }
