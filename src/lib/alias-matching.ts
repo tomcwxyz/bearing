@@ -1,3 +1,5 @@
+import { compareModelIdentity } from './model-identity'
+
 // Shared model-name alias matcher.
 //
 // One tokeniser + one scorer, used by every place that maps an external
@@ -178,6 +180,7 @@ export interface AliasCandidate {
 }
 
 export interface RankedSourceName extends AliasCandidate {
+  reasons?: string[]
   score: number
   confidence: MatchConfidence
   /** Non-blocking notes — extra disambiguator tokens the admin should weigh. */
@@ -221,10 +224,29 @@ export function rankSourceNames(
     if (!m.subset) continue
     out.push({ name: cand.name, slug: cand.slug, score: m.score, confidence: m.confidence, flags: m.flags })
   }
+  // Precision first: the existing token matcher wins whenever it finds a
+  // plausible candidate. The deterministic identity fallback recovers different
+  // separators, abbreviations and mild misspellings, but only after matching
+  // the model family and numeric version. Fuzzy proposals require review.
+  if (out.length === 0) {
+    for (const cand of candidates) {
+      const assessment = compareModelIdentity(
+        { name: model.name.replace(VENDOR_LABEL_RE, '') || model.slug, provider: model.provider },
+        { name: cand.name },
+      )
+      if (!assessment) continue
+      out.push({
+        name: cand.name, slug: cand.slug, score: assessment.score,
+        confidence: assessment.autoEligible ? 'exact' : 'weak',
+        flags: assessment.flags, reasons: assessment.reasons,
+      })
+    }
+  }
   return out.sort(bySuitability(s => s.name))
 }
 
 export interface RankedSlug {
+  reasons?: string[]
   slug: string
   name: string
   score: number
@@ -246,11 +268,25 @@ export function rankSlugs(
 
   const out: RankedSlug[] = []
   for (const model of models) {
-    const modelTokens = tokenise(`${model.slug} ${model.name.replace(VENDOR_LABEL_RE, '')}`)
+    const modelTokens = tokenise(model.name.replace(VENDOR_LABEL_RE, '') || model.slug)
     if (modelTokens.size < minQueryTokens) continue
     const m = withVariantSafety(sourceName, model, matchTokens(modelTokens, sourceTokens))
     if (!m.subset) continue
     out.push({ slug: model.slug, name: model.name, score: m.score, confidence: m.confidence, flags: m.flags })
+  }
+  if (out.length === 0) {
+    for (const model of models) {
+      const assessment = compareModelIdentity(
+        { name: model.name.replace(VENDOR_LABEL_RE, '') || model.slug, provider: model.provider },
+        { name: sourceName },
+      )
+      if (!assessment) continue
+      out.push({
+        slug: model.slug, name: model.name, score: assessment.score,
+        confidence: assessment.autoEligible ? 'exact' : 'weak',
+        flags: assessment.flags, reasons: assessment.reasons,
+      })
+    }
   }
   return out.sort(bySuitability(s => s.slug))
 }
