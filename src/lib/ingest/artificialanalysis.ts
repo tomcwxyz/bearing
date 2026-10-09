@@ -16,7 +16,10 @@ import { ingestSnapshot, type SnapshotRow } from '../benchmarks'
 import { autoMatchUnmatched } from './auto-match'
 import { noopLog, type IngestOptions, type IngestResult } from './types'
 
-const AA_URL = 'https://artificialanalysis.ai/api/v2/data/llms/models'
+// V2 replaces /data/llms/models on 4 November 2026. Pro includes granular
+// evaluations; Free supplies headline indices and performance.
+const AA_PRO_URL = 'https://artificialanalysis.ai/api/v2/language/models'
+const AA_FREE_URL = 'https://artificialanalysis.ai/api/v2/language/models/free'
 
 interface AaEvaluations {
   artificial_analysis_intelligence_index?: number | null
@@ -45,11 +48,20 @@ interface AaModel {
   evaluations: AaEvaluations
   median_output_tokens_per_second: number | null
   median_time_to_first_token_seconds: number | null
+  performance?: {
+    median_output_tokens_per_second?: number | null
+    median_time_to_first_token_seconds?: number | null
+  }
 }
 
 interface AaResponse {
-  status: number
+  tier?: string
   data: AaModel[]
+  pagination?: {
+    has_more: boolean
+    page: number
+    total_pages: number
+  }
 }
 
 // Map AA's evaluation keys to our `source_category` strings (must align with
@@ -58,6 +70,11 @@ const EVAL_KEY_TO_CATEGORY: Record<string, string> = {
   artificial_analysis_intelligence_index: 'aa_intelligence',
   artificial_analysis_coding_index: 'aa_coding',
   artificial_analysis_math_index: 'aa_math',
+  artificial_analysis_agentic_index: 'aa_agentic',
+  terminalbench_v2_1: 'terminalbench_v2_1',
+  tau2_telecom: 'tau2_telecom',
+  tau_banking: 'tau_banking',
+  aa_lcr: 'lcr',
   mmlu_pro: 'mmlu_pro',
   gpqa: 'gpqa',
   hle: 'hle',
@@ -72,26 +89,66 @@ const EVAL_KEY_TO_CATEGORY: Record<string, string> = {
 }
 
 async function fetchModels(log: (m: string) => void): Promise<AaModel[]> {
-  const apiKey = process.env.ARTIFICIAL_ANALYSIS_API_KEY
-  if (!apiKey) throw new Error('ARTIFICIAL_ANALYSIS_API_KEY not set')
+  const apiKey = process.env.AA_API_KEY ?? process.env.ARTIFICIAL_ANALYSIS_API_KEY
+  if (!apiKey) throw new Error('AA_API_KEY or ARTIFICIAL_ANALYSIS_API_KEY not set')
 
-  // AA occasionally returns a transient 500 with "Could not query the database
-  // for the schema cache. Retrying." — back off and retry a handful of times.
-  let lastError: Error | null = null
-  for (let attempt = 1; attempt <= 5; attempt++) {
-    const res = await fetch(AA_URL, { headers: { 'x-api-key': apiKey } })
-    if (res.ok) {
-      const body = (await res.json()) as AaResponse | { error: string; details?: string }
-      if ('data' in body) return body.data
-      lastError = new Error(`AA transient error: ${body.error}${body.details ? ' — ' + body.details : ''}`)
-    } else {
-      lastError = new Error(`AA returned HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`)
+  // Pro and commercial keys receive the granular category scores. Free keys
+  // are supported, but return only AA's headline indices.
+  let endpoint = AA_PRO_URL
+  const models: AaModel[] = []
+  let page = 1
+
+  while (true) {
+    let body: AaResponse | null = null
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      const res = await fetch(`${endpoint}?page=${page}`, {
+        headers: { 'x-api-key': apiKey },
+        cache: 'no-store',
+        signal: AbortSignal.timeout(25000),
+      })
+      if (res.status === 403 && endpoint === AA_PRO_URL) {
+        log('  AA key has Free access: using headline indices')
+        endpoint = AA_FREE_URL
+        models.length = 0
+        page = 1
+        break
+      }
+      if (res.ok) {
+        const parsed = await res.json() as AaResponse
+        if (!Array.isArray(parsed.data)) throw new Error('Unexpected AA response: missing data array')
+        body = parsed
+        break
+      }
+      const msg = (await res.text()).slice(0, 250)
+      if (res.status === 401 || res.status === 403) {
+        throw new Error(`Artificial Analysis access rejected (HTTP ${res.status}): ${msg}`)
+      }
+      if (res.status !== 429 && res.status < 500) {
+        throw new Error(`Artificial Analysis returned HTTP ${res.status}: ${msg}`)
+      }
+      if (attempt === 4) throw new Error(`Artificial Analysis HTTP ${res.status} after retries: ${msg}`)
+      const backoff = 1500 * 2 ** (attempt - 1)
+      log(`  AA HTTP ${res.status}; retrying in ${backoff}ms`)
+      await new Promise(resolve => setTimeout(resolve, backoff))
     }
-    const wait = 3000 * 2 ** (attempt - 1)
-    log(`  attempt ${attempt} failed (${lastError.message}); retrying in ${wait}ms`)
-    await new Promise(r => setTimeout(r, wait))
+    if (!body) continue // Free fallback changed the endpoint.
+
+    for (const model of body.data) {
+      models.push({
+        ...model,
+        median_output_tokens_per_second:
+          model.performance?.median_output_tokens_per_second
+          ?? model.median_output_tokens_per_second ?? null,
+        median_time_to_first_token_seconds:
+          model.performance?.median_time_to_first_token_seconds
+          ?? model.median_time_to_first_token_seconds ?? null,
+      })
+    }
+    if (!body.pagination?.has_more) break
+    page++
+    if (page > 100) throw new Error('AA pagination exceeded 100 pages; refusing partial import')
   }
-  throw lastError ?? new Error('AA fetch failed')
+  return models
 }
 
 function buildSnapshotRows(models: AaModel[], snapshotDate: string): SnapshotRow[] {
