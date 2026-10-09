@@ -14,6 +14,8 @@ import { getBenchmarkSummary, getUnmatchedSourceModels, listAliases } from '@/li
 import { rankSlugs } from '@/lib/alias-matching'
 import { getDiscoverBenchmarkNames } from '@/db/discover-benchmark'
 import { assessDiscoverCoverage } from '@/lib/discover-coverage'
+import { latestLmArenaRuns } from '@/db/benchmark-refresh-runs'
+import { listDraftPublishMeta } from '@/db/draft-publishing'
 import AdminTabs from './admin-tabs'
 import type { DiscoverModel } from './types'
 
@@ -35,6 +37,7 @@ export default async function AdminPage() {
     insightsSummary, taskTypes, leaderboard, outcomes, capabilities, localFitCalibration,
     orModels, existingIds,
     benchmarkSummary, benchmarkAliases, benchmarkUnmatched, discoverBenchmarkNames,
+    refreshRuns, draftPublishMeta,
   ] = await Promise.all([
     getAllModelsForAdmin(),
     // Keep admin usable while migration 026 is being rolled out. Once the
@@ -66,6 +69,8 @@ export default async function AdminPage() {
     listAliases().catch(() => []),
     getUnmatchedSourceModels().catch(() => []),
     getDiscoverBenchmarkNames().catch(() => null),
+    latestLmArenaRuns().catch(() => []),
+    listDraftPublishMeta().catch(() => []),
   ])
 
   // Build discover data: OpenRouter models not in our DB
@@ -122,6 +127,7 @@ export default async function AdminPage() {
         <AdminTabs
           models={models}
           verification={verification}
+          draftPublishMeta={draftPublishMeta}
           initialDiscover={{ newModels, matchedCount }}
           initialUsage={{ summary: usageSummary, activity, modes, signups }}
           initialInsights={{
@@ -136,6 +142,7 @@ export default async function AdminPage() {
             summary: benchmarkSummary,
             aliases: benchmarkAliases,
             unmatched: benchmarkUnmatchedWithSuggestions,
+            refreshRuns,
           }}
           initialMaintenance={{
             cronConfigured: Boolean(process.env.CRON_SECRET),
