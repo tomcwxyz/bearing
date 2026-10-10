@@ -153,3 +153,37 @@ export async function updateModelPricing(
 export async function deactivateModel(slug: string): Promise<void> {
   await getDb()`UPDATE models SET active = false, updated_at = now() WHERE slug = ${slug}`
 }
+
+/** Read all identifiers, including inactive drafts, for import reconciliation. */
+export async function listImportIdentities(): Promise<import('@/lib/import-identity').ImportIdentity[]> {
+  const rows = await getDb()`SELECT slug, name, provider, openrouter_id, provider_model_id, active FROM models`
+  return rows.map(row => ({
+    slug: String(row.slug), name: String(row.name), provider: String(row.provider),
+    openrouterId: row.openrouter_id as string | null,
+    providerModelId: row.provider_model_id as string | null,
+    active: row.active === true,
+  }))
+}
+
+/** Atomic insert: unlike upsertModel, this cannot overwrite curated registry data. */
+export async function insertImportedDraft(model: Parameters<typeof upsertModel>[0]): Promise<boolean> {
+  const rows = await getDb()`
+    INSERT INTO models (
+      slug, name, provider, tier, pricing, context_window,
+      capabilities, strengths, weaknesses, task_fitness,
+      speed_score, privacy_score, transparency, sustainability,
+      openrouter_id, active
+    ) VALUES (
+      ${model.slug}, ${model.name}, ${model.provider}, ${model.tier},
+      ${JSON.stringify(model.pricing)}::jsonb, ${model.context_window},
+      ${model.capabilities}::text[], ${model.strengths}::text[], ${model.weaknesses}::text[],
+      ${JSON.stringify(model.task_fitness)}::jsonb,
+      ${model.speed_score}, ${model.privacy_score},
+      ${JSON.stringify(model.transparency)}::jsonb, ${JSON.stringify(model.sustainability)}::jsonb,
+      ${model.openrouter_id ?? null}, false
+    )
+    ON CONFLICT (slug) DO NOTHING
+    RETURNING slug
+  `
+  return rows.length === 1
+}
