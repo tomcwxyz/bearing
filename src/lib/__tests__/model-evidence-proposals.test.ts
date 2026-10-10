@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { validateEvidenceProposal } from '../model-evidence-proposals'
+import { isEvidenceProposalCurrent } from '../model-evidence-current'
+import { getAllModels } from '../registry'
 
 const example = {
   schema_version: 1, id: 'context-example-2026', model_slug: 'fictional-model',
@@ -43,6 +45,16 @@ describe('public model evidence proposals', () => {
       evaluation: 'Replay representative golden tasks and inspect top-three ranking changes before rollout.',
       evidence: { ...example.evidence, variant: 'fictional-model-release-2026' },
     }).proposed).toBe(0.8)
+  })
+  it('recognises current values and blocks stale changes before review', () => {
+    const model = getAllModels()[0]
+    expect(isEvidenceProposalCurrent(model, {
+      field: 'context_window', expected: model.context_window,
+    })).toBe(true)
+    expect(isEvidenceProposalCurrent(model, {
+      field: 'context_window', expected: model.context_window + 1,
+    })).toBe(false)
+    expect(isEvidenceProposalCurrent(null, { field: 'name', expected: model.name })).toBe(false)
   })
   it('requires a genuine calendar date and a rationale', () => {
     expect(() => validateEvidenceProposal({ ...example, evidence: { ...example.evidence, observed_on: '2026-02-31' } })).toThrow()

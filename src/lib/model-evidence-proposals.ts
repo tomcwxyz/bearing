@@ -1,7 +1,6 @@
 import type { TaskType, Capability } from './registry'
 
-export type EvidenceField = 'name' | 'context_window' | 'pricing.input_per_1m'
-  | 'pricing.output_per_1m' | 'capabilities' | 'task_fitness.' & string
+export type EvidenceField = string
 
 export interface EvidenceProposal {
   schema_version: 1

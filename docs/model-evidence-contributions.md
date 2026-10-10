@@ -60,7 +60,7 @@ For pricing, context and capability corrections, catalogue verification is reset
 
 ### What happens to the registry?
 
-Neon remains the canonical store. Accepting a proposal changes Neon, and the normal `scripts/generate-registry.ts` snapshot generation picks up that value. A future JSON regeneration therefore does **not** erase the correction.
+Neon remains the canonical store. Accepting a proposal changes Neon immediately, and the normal `scripts/generate-registry.ts` snapshot generation picks up that value. **The recommendation scoring engine uses a bundled registry snapshot**, so the changed value affects scoring only after the next build and deployment. Acceptance itself does not silently redeploy Bearing. A future JSON regeneration therefore does **not** erase the correction.
 
 There is an important additional safeguard: `npm run db:seed` now inserts only missing slugs. It no longer performs an unconditional upsert of old snapshot rows over the maintained catalogue. Automatic provider verification observes discrepancies; separately accepting fresh external drift may still require judgement and could change a reviewed field again. The audit trail preserves what was accepted and why.
 

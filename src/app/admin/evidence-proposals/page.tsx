@@ -34,7 +34,8 @@ export default async function EvidenceProposalsPage() {
       <p className="mt-3 max-w-3xl text-sm leading-6 text-grey-blue">
         Public correction proposals merged into the repository are shown here for
         deliberate maintainer review. Nothing is applied automatically.
-        Acceptance updates the canonical Neon row, never the generated JSON snapshot.
+        Acceptance updates the canonical Neon row. The bundled scoring snapshot reflects
+        an accepted change only after the next build and deployment.
         Stale changes are blocked, and every decision is recorded.
       </p>
       {proposals.length === 0 ? (

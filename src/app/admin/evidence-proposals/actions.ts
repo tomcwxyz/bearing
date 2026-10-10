@@ -55,5 +55,5 @@ export async function reviewModelEvidence(
   revalidatePath('/admin')
   revalidatePath('/models')
   revalidatePath('/models/' + proposal.model_slug)
-  return { ok: true, message: decision === 'accept' ? 'Applied to the canonical catalogue and recorded in the audit.' : 'Rejection recorded.' }
+  return { ok: true, message: decision === 'accept' ? 'Applied to Neon and recorded in the audit. Redeploy to refresh the bundled scoring snapshot.' : 'Rejection recorded.' }
 }
