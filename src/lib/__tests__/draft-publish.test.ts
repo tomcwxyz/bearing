@@ -15,12 +15,12 @@ describe('batch publication readiness', () => {
   it('allows missing benchmarks with explicit warnings', () => {
     const result = assessDraftReadiness(draft, meta)
     expect(result.ready).toBe(true)
-    expect(result.warnings).toContain('No approved benchmark mapping')
+    expect(result.warnings).toContain('No benchmark evidence linked')
   })
   it('does not block publishing merely because an external catalogue is unverified', () => {
     const result = assessDraftReadiness(draft, { ...meta, verificationStatus: 'unavailable' })
     expect(result.ready).toBe(true)
-    expect(result.warnings).toContain('Catalogue verification reports unavailable')
+    expect(result.warnings).toContain('Model availability check failed')
   })
   it('blocks invalid pricing, contexts, scores and required fields', () => {
     const result = assessDraftReadiness({
@@ -34,6 +34,6 @@ describe('batch publication readiness', () => {
   it('remains publishable with missing routing ID but highlights the limitation', () => {
     const result = assessDraftReadiness(draft, { ...meta, openrouterId: null })
     expect(result.ready).toBe(true)
-    expect(result.warnings).toContain('No model routing identifier')
+    expect(result.warnings).toContain('No API identifier recorded')
   })
 })
