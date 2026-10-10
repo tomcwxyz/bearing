@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { AdminModel } from '@/db/models'
 import { assessDraftReadiness, type DraftPublishMeta } from '@/lib/draft-publish'
-import { publishDraftBatch } from './draft-publish-actions'
+import { publishDraftBatch, verifySelectedDrafts } from './draft-publish-actions'
 
 export default function DraftPublishingQueue({
   drafts, metadata,
@@ -19,6 +19,8 @@ export default function DraftPublishingQueue({
   const [acknowledge, setAcknowledge] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [isPublishing, startPublishing] = useTransition()
+  const [isVerifying, startVerifying] = useTransition()
+  const [verificationResults, setVerificationResults] = useState<Record<string, string>>({})
 
   const metaMap = useMemo(() => new Map(metadata.map(m => [m.slug, m])), [metadata])
   const assessments = useMemo(() => drafts.map(model => {
@@ -38,6 +40,23 @@ export default function DraftPublishingQueue({
     setSelected(prev => prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug])
     setReview(false)
     setAcknowledge(false)
+  }
+
+  function verifySelected() {
+    if (!selected.length) return
+    setFeedback(null)
+    startVerifying(async () => {
+      try {
+        const result = await verifySelectedDrafts(selected)
+        setFeedback(`Verified ${result.checked} selected drafts: ${result.current} available, ${result.attention} need attention, ${result.unavailable} unavailable.` + (result.missing.length ? ` ${result.missing.length} could not be checked.` : '') + (result.sourceIssues.length ? ` Source issues: ${result.sourceIssues.join('; ')}` : ''))
+        setVerificationResults(Object.fromEntries(selected.map(slug => [slug, 'checked'])))
+        setReview(false)
+        setAcknowledge(false)
+        router.refresh()
+      } catch (error) {
+        setFeedback(error instanceof Error ? error.message : 'Verification failed')
+      }
+    })
   }
 
   function publish() {
@@ -72,7 +91,7 @@ export default function DraftPublishingQueue({
           <h2 className="font-display text-xl text-navy">Drafts to review</h2>
           <p className="mt-1 text-sm text-navy/60">
             {drafts.length} drafts · {readySlugs.length} with valid configuration.
-            Benchmark and catalogue warnings can be acknowledged before publishing.
+            Verify selected models against external catalogues, then review any remaining warnings before publishing.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -84,7 +103,12 @@ export default function DraftPublishingQueue({
             onClick={() => { setSelected([]); setReview(false); setAcknowledge(false) }}>
             Clear
           </button>
-          <button disabled={selected.length === 0 || isPublishing}
+          <button disabled={selected.length === 0 || isPublishing || isVerifying}
+            className="btn-secondary text-xs disabled:opacity-40"
+            onClick={verifySelected}>
+            {isVerifying ? 'Verifying selected…' : `Verify selected (${selected.length})`}
+          </button>
+          <button disabled={selected.length === 0 || isPublishing || isVerifying}
             className="btn-primary text-xs disabled:opacity-40"
             onClick={() => setReview(true)}>
             Review {selected.length} to publish
@@ -123,8 +147,9 @@ export default function DraftPublishingQueue({
                 </td>
                 <td className="px-3 py-3">
                   <p className={ready ? 'text-teal text-xs font-medium' : 'text-coral text-xs font-medium'}>
-                    {ready ? warnings.length ? 'Review warnings' : 'Ready' : 'Needs editing'}
+                    {ready ? warnings.length ? `Ready to publish · ${warnings.length} check${warnings.length === 1 ? '' : 's'} outstanding` : 'Ready to publish' : 'Needs editing'}
                   </p>
+                  {verificationResults[model.slug] && <p className="text-xs text-teal">Verification attempted · reload to see latest status</p>}
                   {blockers.concat(warnings).map(message =>
                     <p key={message} className="mt-1 text-xs text-navy/55">{message}</p>)}
                 </td>
