@@ -23,6 +23,7 @@ export const ALL_TASK_TYPES = [
   'translate',
   'conversation',
   'embedding',
+  'agentic',
 ] as const
 
 export type TaskType = typeof ALL_TASK_TYPES[number]
@@ -42,6 +43,7 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   translate: 'translation',
   conversation: 'conversation',
   embedding: 'embedding (vector search / RAG)',
+  agentic: 'agentic work (multi-step tool use)',
 }
 
 // Model classes live in model-class.ts (client-safe, no registry JSON);
