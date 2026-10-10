@@ -225,6 +225,10 @@ function qualityScore(
   benchmarkScores: BenchmarkScoreMap | undefined,
   blend: number,
 ): number {
+  // Agent performance cannot be inferred from general task fitness. Until
+  // comparable agent benchmark evidence is ingested, keep the quality factor
+  // neutral instead of assigning fabricated per-model agent grades.
+  if (taskType === 'agentic') return 0.5
   const curated = model.task_fitness[taskType]
   if (curated === undefined) {
     // Post-v0.8 every registry row carries all twelve canonical keys, so a

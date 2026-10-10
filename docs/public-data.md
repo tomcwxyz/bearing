@@ -273,3 +273,7 @@ requires otherwise.
 - `execution_observations` are reserved for actual execution evidence.
 - `verification_probe` means a fixed runtime check, not the user's real task.
 - Operational provider availability is separate from intrinsic model quality.
+
+## Agentic assessment (planned separate dataset)
+
+The `agentic` task classification is being introduced without retroactively assigning model ratings. The existing decision dataset remains schema **2.1**; historical `is_agentic` observations retain their meaning. A separate, versioned agent evidence dataset is planned, with model slug, workflow, dimension, nullable score, source, benchmark, snapshot date, methodology, harness, sample size and confidence. **No agent assessment endpoint is published yet.** See [agentic evidence methodology](scoring/agentic-evidence.md).
