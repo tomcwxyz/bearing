@@ -225,7 +225,7 @@ function qualityScore(
   benchmarkScores: BenchmarkScoreMap | undefined,
   blend: number,
 ): number {
-  const curated = model.task_fitness[taskType]
+  // Agent performance cannot be inferred from general task fitness. Until\n  // comparable agent benchmark evidence is ingested, keep the quality factor\n  // neutral instead of assigning fabricated per-model agent grades.\n  if (taskType === 'agentic') return 0.5\n  const curated = model.task_fitness[taskType]
   if (curated === undefined) {
     // Post-v0.8 every registry row carries all twelve canonical keys, so a
     // miss either means the classifier returned a value outside the enum
