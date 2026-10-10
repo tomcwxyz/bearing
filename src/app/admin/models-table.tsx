@@ -128,6 +128,7 @@ export default function ModelsTable({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <Link href="/admin/retirement-review" className="rounded-md border border-navy/15 px-3 py-2 text-sm font-medium text-navy/70 hover:bg-navy/5">Retirement review</Link>
           <Link
             href="/admin/catalogue-review"
             className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
