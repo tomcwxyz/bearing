@@ -28,3 +28,7 @@ Benchmark observations must record the harness and task set where known. SWE-ben
 5. Test classifier, ranking, admin forms, dataset export and docs before merging.
 
 No agent performance grades have been inferred for the existing catalogue.
+
+## Classifier and scoring implementation status
+
+The classifier prompt and tool schema now accept `agentic`. Use it when the outcome is execution of a delegated action workflow; keep `is_agentic` independent for tool-assisted research, coding and analysis. Until verified agent benchmarks exist, the `agentic` task quality factor is neutral (0.5) for every model. This is **not a grade**. Existing tool/extended-thinking capability heuristics may still affect recommendations and should not be presented as measured agent success. The open decision dataset remains v2.1; no agent evidence observations are published yet.
