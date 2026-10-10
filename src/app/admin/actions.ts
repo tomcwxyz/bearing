@@ -12,6 +12,8 @@ import {
   deactivateModel,
   updateModelPricing,
   getOpenRouterIds,
+  listImportIdentities,
+  insertImportedDraft,
   type AdminModel,
 } from '@/db/models'
 import { isUserAdmin } from '@/db/users'
@@ -45,6 +47,7 @@ import {
 import type { DiscoverModel } from './types'
 import { getDiscoverBenchmarkNames } from '@/db/discover-benchmark'
 import { assessDiscoverCoverage } from '@/lib/discover-coverage'
+import { findImportConflicts } from '@/lib/import-identity'
 
 async function requireAdmin(): Promise<string> {
   const user = await getCurrentUser()
@@ -386,7 +389,20 @@ export async function importModel(formData: FormData): Promise<{ success: boolea
       openrouter_id: formData.get('openrouter_id') as string,
       active: false,
     }
-    await upsertModel(model)
+    const conflicts = findImportConflicts({
+      slug: model.slug, name: model.name, provider: model.provider,
+      openrouterId: model.openrouter_id,
+    }, await listImportIdentities())
+    if (conflicts.length) {
+      return {
+        success: false,
+        error: 'Possible existing model: ' + conflicts.slice(0, 3)
+          .map(item => `${item.name} (${item.slug}; ${item.reason})`).join('; ') +
+          '. Review the existing model before importing.',
+      }
+    }
+    const inserted = await insertImportedDraft(model)
+    if (!inserted) return { success: false, error: 'Model slug already exists. Import cancelled without changes.' }
 
     const aliasesRaw = formData.get('selected_aliases') as string | null
     if (aliasesRaw) {
