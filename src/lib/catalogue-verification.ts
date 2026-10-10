@@ -85,7 +85,6 @@ export function assessOpenRouterCatalogue(
   let unmapped = 0
 
   for (const model of models) {
-    if (!model.active) continue
     if (!model.openrouterId) {
       unmapped++
       continue

@@ -76,7 +76,6 @@ export function assessProviderCatalogue(
 ): ProviderVerificationReport {
   const providerModels = allModels.filter(
     (model) =>
-      model.active &&
       model.provider.toLowerCase() === snapshot.provider.toLowerCase() &&
       model.providerModelId,
   )

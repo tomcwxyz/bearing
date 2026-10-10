@@ -123,7 +123,8 @@ describe('assessOpenRouterCatalogue', () => {
       verifiedAt,
     )
 
-    expect(report.checked).toBe(0)
+    expect(report.checked).toBe(1)
+    expect(report.current).toBe(1)
     expect(report.newCandidates).toBe(0)
   })
 })

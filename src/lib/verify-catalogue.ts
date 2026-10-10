@@ -1,3 +1,4 @@
+import { recordAvailabilityObservations } from '@/db/model-retirement'
 import { listModelsForVerification, saveVerificationObservations, type VerificationObservation } from '@/db/model-verification'
 import { assessOpenRouterCatalogue, type CatalogueVerificationReport } from './catalogue-verification'
 import { fetchOpenRouterModels } from './openrouter'
@@ -89,6 +90,7 @@ export async function runCatalogueVerification(selectedSlugs?: string[]): Promis
   }
 
   await saveVerificationObservations(observations)
+  await recordAvailabilityObservations(observations)
 
   const counts = observationCounts(observations)
   const activeCount = models.filter((model) => model.active).length
