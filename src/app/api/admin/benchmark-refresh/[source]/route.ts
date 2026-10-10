@@ -1,7 +1,8 @@
 import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { ingestArtificialAnalysis } from '@/lib/ingest/artificialanalysis'
-import { ingestLmArena } from '@/lib/ingest/lmarena'
+import { ingestLmArenaSubset } from '@/lib/ingest/lmarena'
+import { withLmArenaRun, LMARENA_SUBSETS } from '@/db/benchmark-refresh-runs'
 
 // Vercel Cron sends Authorization: Bearer CRON_SECRET. The short-lived manual
 // token is for an operator-triggered first refresh; never expose it to clients.
@@ -9,8 +10,8 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
-type Source = 'lmarena' | 'artificialanalysis'
-const sources = new Set<Source>(['lmarena', 'artificialanalysis'])
+type Source = 'lmarena-text' | 'lmarena-webdev' | 'lmarena-vision' | 'artificialanalysis'
+const sources = new Set<Source>([...LMARENA_SUBSETS.map(s => `lmarena-${s}` as Source), 'artificialanalysis'])
 
 function validBearer(header: string | null, token: string | undefined): boolean {
   if (!token || !header) return false
@@ -39,8 +40,9 @@ export async function GET(
 
   try {
     const started = Date.now()
-    const result = source === 'lmarena'
-      ? await ingestLmArena()
+    const result = source.startsWith('lmarena-')
+      ? await withLmArenaRun(source.slice('lmarena-'.length) as typeof LMARENA_SUBSETS[number], () =>
+          ingestLmArenaSubset(source.slice('lmarena-'.length) as typeof LMARENA_SUBSETS[number]))
       : await ingestArtificialAnalysis()
 
     if (result.fetched === 0 || result.inserted === 0) {

@@ -26,7 +26,7 @@ const SOURCES: Array<{
   refetch: ReingestSource | null
   disabledReason?: string
 }> = [
-  { source: 'lmarena', refetch: 'lmarena' },
+  { source: 'lmarena', refetch: null, disabledReason: 'Refresh each subset below' },
   { source: 'artificialanalysis', refetch: 'artificialanalysis' },
   { source: 'ecologits', refetch: 'ecologits' },
   { source: 'mteb', refetch: null, disabledReason: 'Seed data — re-curate via script' },
@@ -90,6 +90,8 @@ export default function BenchmarksTab({ initialData, activeSlugs }: BenchmarksTa
         } else {
           setFeedback({ type: 'error', message: res.error ?? `Re-fetch ${source} failed` })
         }
+      } catch (error) {
+        setFeedback({ type: 'error', message: error instanceof Error ? error.message : 'Re-fetch failed' })
       } finally {
         setReingesting(null)
       }
@@ -244,6 +246,42 @@ export default function BenchmarksTab({ initialData, activeSlugs }: BenchmarksTa
             </table>
           </div>
         )}
+      </section>
+
+      {/* Independent subset run statuses. A timed-out function must never
+          make the whole LMArena source appear successfully refreshed. */}
+      <section className="rounded-lg border border-cream-dark bg-white p-5">
+        <h2 className="font-display text-lg text-navy">LMArena refreshes</h2>
+        <p className="mt-1 mb-4 text-sm text-navy/60">Text, WebDev and Vision run separately. Retry only what failed; each subset keeps its own result.</p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {(['text', 'webdev', 'vision'] as const).map(subset => {
+            const run = data.refreshRuns.find(r => r.subset === subset)
+            const source = `lmarena-${subset}` as ReingestSource
+            const busy = reingesting === source
+            return (
+              <div key={subset} className="rounded-md border border-cream-dark p-3">
+                <div className="flex items-center justify-between">
+                  <strong className="text-navy capitalize">{subset === 'webdev' ? 'WebDev' : subset}</strong>
+                  <span className={`text-xs ${run?.status === 'succeeded' ? 'text-teal' : run?.status === 'failed' || run?.status === 'interrupted' ? 'text-coral' : 'text-navy/50'}`}>
+                    {run?.status ?? 'Not run'}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-navy/60">Snapshot: {run?.snapshotDate ?? '—'}</p>
+                <p className="text-xs text-navy/60">Rows: {run?.inserted?.toLocaleString() ?? '—'}</p>
+                {run?.error && <p className="mt-2 text-xs text-coral">{run.error}</p>}
+                <button
+                  type="button"
+                  className="mt-3 text-sm text-teal hover:text-teal-light disabled:opacity-40"
+                  disabled={isPending}
+                  onClick={() => handleReingest(source)}
+                >
+                  {busy ? 'Refreshing…' : 'Refresh this subset'}
+                </button>
+              </div>
+            )
+          })}
+        </div>
+        {data.refreshRuns.length === 0 && <p className="mt-3 text-xs text-navy/50">Run history will appear after migration 034 is applied.</p>}
       </section>
 
       {/* Unmatched */}

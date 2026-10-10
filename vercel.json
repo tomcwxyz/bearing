@@ -13,12 +13,20 @@
       "schedule": "0 5 * * *"
     },
     {
-      "path": "/api/admin/benchmark-refresh/lmarena",
+      "path": "/api/admin/benchmark-refresh/artificialanalysis",
+      "schedule": "0 7 * * 1"
+    },
+    {
+      "path": "/api/admin/benchmark-refresh/lmarena-text",
       "schedule": "0 6 * * 1"
     },
     {
-      "path": "/api/admin/benchmark-refresh/artificialanalysis",
-      "schedule": "0 7 * * 1"
+      "path": "/api/admin/benchmark-refresh/lmarena-webdev",
+      "schedule": "20 6 * * 1"
+    },
+    {
+      "path": "/api/admin/benchmark-refresh/lmarena-vision",
+      "schedule": "40 6 * * 1"
     }
   ]
 }

@@ -102,36 +102,46 @@ function toSnapshotRows(hfRows: HFRow[], categoryOverride: string | null): Snaps
   }))
 }
 
+/** Refresh one independently recoverable LMArena dataset. The caller tracks
+ * its own status. Retrying text never prevents WebDev or Vision progressing. */
+export async function ingestLmArenaSubset(
+  subset: 'text' | 'webdev' | 'vision',
+  opts: IngestOptions = {},
+): Promise<IngestResult> {
+  const log = opts.log ?? noopLog
+  log(`Refreshing LMArena ${subset}…`)
+  const raw = await fetchSubset(subset, log)
+  if (raw.length === 0) throw new Error(`Empty ${subset} dataset; refresh not applied`)
+  const rows = toSnapshotRows(raw, subset === 'text' ? null : `${subset}_overall`)
+  const { inserted, unmatched, duplicatesRemoved, conflictingKeys } = await ingestSnapshot(rows)
+  const dates = rows.map(row => row.snapshotDate).filter(Boolean).sort()
+  const snapshotDate = dates.at(-1) ?? ''
+  const { autoMatched, stillUnmatched } = await autoMatchUnmatched('lmarena', unmatched, log)
+  return {
+    source: 'lmarena', fetched: raw.length, inserted, autoMatched,
+    unmatched: stillUnmatched, snapshotDate, duplicatesRemoved, conflictingKeys,
+  }
+}
+
 /**
  * Fetch all three LMArena subsets and upsert them. Idempotent via the snapshot
  * unique constraint — safe to re-run.
  */
 export async function ingestLmArena(opts: IngestOptions = {}): Promise<IngestResult> {
-  const log = opts.log ?? noopLog
-
-  log('Pulling LMArena snapshots from Hugging Face...')
-
-  const textRows = await fetchSubset('text', log)
-  const webdevRows = await fetchSubset('webdev', log)
-  const visionRows = await fetchSubset('vision', log)
-  log(`  text:   ${textRows.length} rows`)
-  log(`  webdev: ${webdevRows.length} rows`)
-  log(`  vision: ${visionRows.length} rows`)
-
-  // text rows already carry per-category labels; webdev/vision have a single
-  // category each, which we tag explicitly so the task map can resolve them.
-  const all: SnapshotRow[] = [
-    ...toSnapshotRows(textRows, null),
-    ...toSnapshotRows(webdevRows, 'webdev_overall'),
-    ...toSnapshotRows(visionRows, 'vision_overall'),
-  ]
-
-  if (!all.length) throw new Error('LMArena returned no rows; refusing empty refresh')
-  const { inserted, unmatched, duplicatesRemoved, conflictingKeys } = await ingestSnapshot(all)
-  if (duplicatesRemoved) log(`  collapsed ${duplicatesRemoved} duplicate leaderboard rows (${conflictingKeys} conflicting source keys)`)
-  const snapshotDate = all[0]?.snapshotDate ?? new Date().toISOString().slice(0, 10)
-
-  const { autoMatched, stillUnmatched } = await autoMatchUnmatched('lmarena', unmatched, log)
-
-  return { source: 'lmarena', fetched: all.length, inserted, autoMatched, unmatched: stillUnmatched, snapshotDate, duplicatesRemoved, conflictingKeys }
+  // CLI compatibility: all three subsets are still available as a single
+  // command, but the Vercel cron/admin UI invoke each subset independently.
+  const results: IngestResult[] = []
+  for (const subset of ['text', 'webdev', 'vision'] as const) {
+    results.push(await ingestLmArenaSubset(subset, opts))
+  }
+  return {
+    source: 'lmarena',
+    fetched: results.reduce((n, r) => n + r.fetched, 0),
+    inserted: results.reduce((n, r) => n + r.inserted, 0),
+    autoMatched: [...new Set(results.flatMap(r => r.autoMatched))],
+    unmatched: [...new Set(results.flatMap(r => r.unmatched))],
+    snapshotDate: results.map(r => r.snapshotDate).sort().at(-1) ?? '',
+    duplicatesRemoved: results.reduce((n, r) => n + (r.duplicatesRemoved ?? 0), 0),
+    conflictingKeys: results.reduce((n, r) => n + (r.conflictingKeys ?? 0), 0),
+  }
 }

@@ -28,7 +28,8 @@ import {
 } from '@/lib/import-grounding'
 import { fetchEcoLogitsScore } from '@/lib/ecologits-grounding'
 import { computeSustainabilityComposite } from '@/lib/registry'
-import { ingestLmArena } from '@/lib/ingest/lmarena'
+import { ingestLmArenaSubset } from '@/lib/ingest/lmarena'
+import { withLmArenaRun, latestLmArenaRuns, type RefreshRun, type RefreshSubset } from '@/db/benchmark-refresh-runs'
 import { ingestArtificialAnalysis } from '@/lib/ingest/artificialanalysis'
 import { ingestEcoLogits } from '@/lib/ingest/ecologits'
 import type { IngestResult } from '@/lib/ingest/types'
@@ -535,15 +536,17 @@ export interface BenchmarksData {
   summary: { source: string; totalRows: number; matchedRows: number; latestSnapshot: string | null }[]
   aliases: BenchmarkAlias[]
   unmatched: UnmatchedSourceModel[]
+  refreshRuns: RefreshRun[]
 }
 
 export async function fetchBenchmarksData(): Promise<BenchmarksData> {
   await requireAdmin()
-  const [summary, aliases, unmatched, models] = await Promise.all([
+  const [summary, aliases, unmatched, models, refreshRuns] = await Promise.all([
     getBenchmarkSummary(),
     listAliases(),
     getUnmatchedSourceModels(),
     getActiveModelsForMatching(),
+    latestLmArenaRuns().catch(() => []),
   ])
 
   // Attach ranked slug suggestions to each unmatched row so the admin confirms a
@@ -555,7 +558,7 @@ export async function fetchBenchmarksData(): Promise<BenchmarksData> {
       .map(r => ({ slug: r.slug, confidence: r.confidence, flags: r.flags })),
   }))
 
-  return { summary, aliases, unmatched: withSuggestions }
+  return { summary, aliases, unmatched: withSuggestions, refreshRuns }
 }
 
 export async function addBenchmarkAlias(
@@ -583,7 +586,7 @@ export async function removeBenchmarkAlias(
 }
 
 /** Sources that can be re-fetched live from the admin UI. */
-export type ReingestSource = 'lmarena' | 'artificialanalysis' | 'ecologits'
+export type ReingestSource = 'lmarena-text' | 'lmarena-webdev' | 'lmarena-vision' | 'artificialanalysis' | 'ecologits'
 
 /**
  * Re-fetch a benchmark source from its live origin and upsert fresh snapshots.
@@ -599,9 +602,13 @@ export async function reingestSource(
   try {
     let result: IngestResult
     switch (source) {
-      case 'lmarena':
-        result = await ingestLmArena()
+      case 'lmarena-text':
+      case 'lmarena-webdev':
+      case 'lmarena-vision': {
+        const subset = source.slice('lmarena-'.length) as RefreshSubset
+        result = await withLmArenaRun(subset, () => ingestLmArenaSubset(subset))
         break
+      }
       case 'artificialanalysis':
         result = await ingestArtificialAnalysis()
         break

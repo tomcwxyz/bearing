@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useTransition, useMemo, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   syncPricing,
   fetchDiscoverData,
@@ -87,6 +89,7 @@ function formatPrice(price: number): string {
 // ---------------------------------------------------------------------------
 
 export default function DiscoverTab({ initialModels, matchedCount: initialMatchedCount }: DiscoverTabProps) {
+  const router = useRouter()
   const [models, setModels] = useState(initialModels)
   const [matchedCount, setMatchedCount] = useState(initialMatchedCount)
   const [coverageFilter, setCoverageFilter] = useState<'all' | 'candidate' | 'review' | 'none'>('all')
@@ -95,6 +98,7 @@ export default function DiscoverTab({ initialModels, matchedCount: initialMatche
   const [syncBanner, setSyncBanner] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [isSyncing, startSyncTransition] = useTransition()
   const [importingModel, setImportingModel] = useState<DiscoverModel | null>(null)
+  const [savedDraft, setSavedDraft] = useState(false)
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
@@ -203,6 +207,9 @@ export default function DiscoverTab({ initialModels, matchedCount: initialMatche
         </div>
       </section>
 
+      {savedDraft && <div className="rounded-md border border-teal/30 bg-cream p-4 text-sm text-navy">
+        Draft saved. <Link href="/admin?tab=models&view=drafts" className="font-semibold text-teal underline">Review drafts and publish together →</Link>
+      </div>}
       {/* Search */}
       <div>
         <input
@@ -308,7 +315,7 @@ export default function DiscoverTab({ initialModels, matchedCount: initialMatche
       {importingModel && (
         <ImportModal
           model={importingModel}
-          onClose={() => setImportingModel(null)}
+          onClose={() => { setImportingModel(null); setSavedDraft(true); router.refresh() }}
         />
       )}
     </div>
