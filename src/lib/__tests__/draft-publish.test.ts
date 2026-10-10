@@ -8,7 +8,7 @@ const draft = {
   pricing: { input_per_1m: 2, output_per_1m: 8 },
   task_fitness: { code: 0.8 }, speed_score: 0.6, privacy_score: 0.5,
   capabilities: ['tools'],
-} as AdminModel
+} as unknown as AdminModel
 const meta = { slug: 'mistral-large-4', openrouterId: 'mistralai/mistral-large-4', providerModelId: null, verificationStatus: 'unknown', benchmarkSources: [] }
 
 describe('batch publication readiness', () => {
