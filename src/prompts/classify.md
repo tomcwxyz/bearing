@@ -5,7 +5,7 @@ Return JSON only, no other text.
 ## Output schema
 
 {
-  "task_type": "summarise" | "extract" | "generate" | "comms" | "code" | "math" | "reasoning" | "analyse" | "research" | "qa" | "translate" | "conversation" | "embedding",
+  "task_type": "summarise" | "extract" | "generate" | "comms" | "code" | "math" | "reasoning" | "analyse" | "research" | "qa" | "translate" | "conversation" | "embedding" | "agentic",
   "task_subtype": string | null,
   "complexity": "simple" | "moderate" | "complex",
   "input_length": "short" | "medium" | "long" | "very_long",
@@ -33,7 +33,7 @@ Return JSON only, no other text.
   "pipeline_stages": [
     {
       "stage": number,
-      "task_type": "summarise" | "extract" | "generate" | "comms" | "code" | "math" | "reasoning" | "analyse" | "research" | "qa" | "translate" | "conversation" | "embedding",
+      "task_type": "summarise" | "extract" | "generate" | "comms" | "code" | "math" | "reasoning" | "analyse" | "research" | "qa" | "translate" | "conversation" | "embedding" | "agentic",
       "description": string,
       "requires_capabilities": string[],
       "input_length": "short" | "medium" | "long" | "very_long",
@@ -45,7 +45,7 @@ Return JSON only, no other text.
 
 ## Task type definitions (v0.9)
 
-Thirteen canonical types, organised by what the user *wants out*.
+Fourteen canonical types, organised by what the user *wants out*.
 
 - **summarise**: Condense longer input into shorter output.
 - **extract**: Pull structured data out of unstructured input (includes OCR, transcription, table extraction).
@@ -59,14 +59,14 @@ Thirteen canonical types, organised by what the user *wants out*.
 - **qa**: Short factual question-answer — definitions, lookups, factual recall, one-shot.
 - **translate**: Convert text between human languages.
 - **conversation**: Ongoing multi-turn dialogue — chatbots, tutoring, brainstorming.
-- **embedding**: Convert text into numerical vectors for semantic search, retrieval-augmented generation (RAG), clustering, deduplication, or similarity ranking. The model's output is a fixed-dimensional vector, not generated text. Pick this when the user describes building an index, a retrieval system, a vector database, or any "find similar items" / RAG workflow.
+- **agentic**: Execute a delegated multi-step workflow involving actions, tool calls and decisions over time, where successful completion of the workflow itself is the outcome (e.g. triage a support inbox and update tickets). Do NOT use merely because a research, analysis or coding task happens to call tools; use `is_agentic: true` for those instead.\n- **embedding**: Convert text into numerical vectors for semantic search, retrieval-augmented generation (RAG), clustering, deduplication, or similarity ranking. The model's output is a fixed-dimensional vector, not generated text. Pick this when the user describes building an index, a retrieval system, a vector database, or any "find similar items" / RAG workflow.
 
 Note: `vision` and `other` are NOT task types. Vision is a capability
 (`needs_vision: true`); see "Classify by intent" below. When no type fits,
 set `clarification_needed: true` and `confidence < 0.5` instead of
 escape-valving.
 
-## Classify by intent, not by mechanism
+## Agentic work versus agentic execution\n\nChoose `agentic` only when the user delegates responsibility for executing a multi-step action workflow, not simply for producing a report, answer, code or research. `is_agentic` is independent: it may be true for a research or coding task with autonomous execution. For `agentic`, set `is_agentic: true` and `needs_tools: true`. A request to write a plan is `reasoning`; a request to carry out the plan across systems is `agentic`.\n\n## Classify by intent, not by mechanism
 
 Pick the task_type based on **what the user wants to end up with**, not how
 the work gets done. The means (browser automation, OCR, tool calls, file
