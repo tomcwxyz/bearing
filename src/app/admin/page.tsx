@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { getCurrentUser } from '@/lib/auth'
 import { getAllModelsForAdmin, getOpenRouterIds } from '@/db/models'
 import { isUserAdmin } from '@/db/users'
@@ -123,6 +124,7 @@ export default async function AdminPage() {
     <div className="flex flex-1 flex-col items-center px-4 py-12 sm:py-16">
       <div className="w-full max-w-5xl">
         <h1 className="font-display text-4xl text-navy">Admin</h1>
+        <Link href="/admin/evidence-proposals" className="mt-3 inline-block text-sm font-medium text-teal hover:underline">Community model evidence →</Link>
 
         <AdminTabs
           models={models}

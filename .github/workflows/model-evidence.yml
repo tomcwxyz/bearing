@@ -1,0 +1,48 @@
+name: Public evidence proposal checks
+
+on:
+  pull_request:
+    paths:
+      - 'src/data/model-proposals/**'
+      - 'src/data/model-evidence-proposals.json'
+      - 'src/lib/model-evidence-*'
+      - 'scripts/sync-model-proposals.ts'
+      - 'src/app/admin/evidence-proposals/**'
+      - '.github/workflows/model-evidence.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'src/data/model-proposals/**'
+      - 'src/data/model-evidence-proposals.json'
+      - 'src/lib/model-evidence-*'
+      - 'scripts/sync-model-proposals.ts'
+      - 'src/app/admin/evidence-proposals/**'
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Validate proposals and generated manifest
+        run: npm run evidence:validate
+      - name: Validate evidence format and stale-value protections
+        run: npx vitest run src/lib/__tests__/model-evidence-proposals.test.ts
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Build without Neon credentials
+        env:
+          NEON_DATABASE_URL: ''
+          ANTHROPIC_API_KEY: ''
+          OPENROUTER_API_KEY: ''
+        run: npm run build

@@ -17,7 +17,7 @@ async function seed() {
   const sql = neon(databaseUrl)
   const models = Object.entries(registryData.models)
 
-  console.log(`Seeding ${models.length} models...`)
+  console.log(`Inserting missing entries from ${models.length} snapshot models (existing rows are never overwritten)...`)
 
   for (const [slug, model] of models) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,22 +38,7 @@ async function seed() {
         ${JSON.stringify(m.sustainability)}::jsonb,
         ${m.local_info ? JSON.stringify(m.local_info) : null}::jsonb
       )
-      ON CONFLICT (slug) DO UPDATE SET
-        name = EXCLUDED.name,
-        provider = EXCLUDED.provider,
-        tier = EXCLUDED.tier,
-        pricing = EXCLUDED.pricing,
-        context_window = EXCLUDED.context_window,
-        capabilities = EXCLUDED.capabilities,
-        strengths = EXCLUDED.strengths,
-        weaknesses = EXCLUDED.weaknesses,
-        task_fitness = EXCLUDED.task_fitness,
-        speed_score = EXCLUDED.speed_score,
-        privacy_score = EXCLUDED.privacy_score,
-        transparency = EXCLUDED.transparency,
-        sustainability = EXCLUDED.sustainability,
-        local_info = EXCLUDED.local_info,
-        updated_at = now()
+      ON CONFLICT (slug) DO NOTHING
     `
     console.log(`  ✓ ${slug}`)
   }
