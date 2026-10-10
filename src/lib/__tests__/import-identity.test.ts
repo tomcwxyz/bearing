@@ -23,4 +23,4 @@ describe('import identity safeguards', () => {
   it('does not confuse distinct generations', () => {
     expect(findImportConflicts({ slug: 'claude-sonnet-5', name: 'Claude Sonnet 5', provider: 'Anthropic' }, existing)).toHaveLength(0)
   })
-}
+})
