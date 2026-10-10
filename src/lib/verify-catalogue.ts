@@ -43,8 +43,10 @@ function observationCounts(observations: VerificationObservation[]) {
  * that provider's catalogue request succeeds. OpenRouter remains the broad
  * fallback. A source failure never becomes an `unavailable` observation.
  */
-export async function runCatalogueVerification(): Promise<CatalogueVerificationRunReport> {
-  const models = await listModelsForVerification()
+export async function runCatalogueVerification(selectedSlugs?: string[]): Promise<CatalogueVerificationRunReport> {
+  const allModels = await listModelsForVerification()
+  const selected = selectedSlugs ? new Set(selectedSlugs) : null
+  const models = selected ? allModels.filter(model => selected.has(model.slug)) : allModels
 
   const [providerFetch, openRouterAttempt, ollamaCloudAttempt] = await Promise.all([
     fetchProviderCatalogues(),
