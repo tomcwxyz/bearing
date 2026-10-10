@@ -18,7 +18,9 @@
     "db:apply-open-weight-corrections": "tsx scripts/apply-reviewed-open-weight-corrections.ts",
     "db:seed": "tsx scripts/seed-models.ts",
     "db:generate": "tsx scripts/generate-registry.ts",
-    "prebuild": "tsx scripts/generate-registry.ts"
+    "prebuild": "tsx scripts/sync-model-proposals.ts && tsx scripts/generate-registry.ts",
+    "evidence:sync": "tsx scripts/sync-model-proposals.ts",
+    "evidence:validate": "tsx scripts/sync-model-proposals.ts --check"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",

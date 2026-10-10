@@ -1,0 +1,90 @@
+name: Public evidence proposal checks
+
+on:
+  pull_request:
+    paths:
+      - 'src/data/model-proposals/**'
+      - 'src/data/model-evidence-proposals.json'
+      - 'src/lib/model-evidence-*'
+      - 'scripts/sync-model-proposals.ts'
+      - 'src/app/admin/evidence-proposals/**'
+      - '.github/workflows/model-evidence.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'src/data/model-proposals/**'
+      - 'src/data/model-evidence-proposals.json'
+      - 'src/lib/model-evidence-*'
+      - 'scripts/sync-model-proposals.ts'
+      - 'src/app/admin/evidence-proposals/**'
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Validate proposals and generated manifest
+        run: npm run evidence:validate
+      - name: Validate evidence format and stale-value protections
+        run: npx vitest run src/lib/__tests__/model-evidence-proposals.test.ts
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Replay schema and check audit constraints without Neon
+        shell: bash
+        run: |
+          set -euo pipefail
+          container="bearing-evidence-${RANDOM}-${RANDOM}"
+          docker run --detach --rm --name "$container" --network none \
+            --env POSTGRES_PASSWORD=disposable-only \
+            --env POSTGRES_DB=bearing_test postgres:16 >/dev/null
+          trap 'docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
+          ready=0
+          for attempt in $(seq 1 60); do
+            if docker exec "$container" psql -U postgres -d bearing_test -X -tAc 'SELECT 1' >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" != 1 ]; then echo 'Postgres not ready'; exit 1; fi
+          for migration in src/db/migrations/*.sql; do
+            echo "Applying $migration"
+            docker exec -i "$container" psql -U postgres -d bearing_test -X -v ON_ERROR_STOP=1 -q < "$migration"
+          done
+          docker exec -i "$container" psql -U postgres -d bearing_test -X -v ON_ERROR_STOP=1 <<'SQL'
+          DO $audit$
+          BEGIN
+            IF to_regclass('public.model_evidence_reviews') IS NULL THEN
+              RAISE EXCEPTION 'Missing evidence audit table';
+            END IF;
+            INSERT INTO model_evidence_reviews (
+              proposal_id, proposal_digest, model_slug, field,
+              expected_value, proposed_value, evidence, status
+            ) VALUES (
+              'fictional-correction-test', 'test-digest', 'fictional-model',
+              'context_window', '8192'::jsonb, '16384'::jsonb,
+              '{"url":"https://example.org"}'::jsonb, 'accepted'
+            );
+            IF (SELECT COUNT(*) FROM model_evidence_reviews WHERE proposal_id='fictional-correction-test') <> 1 THEN
+              RAISE EXCEPTION 'Audit row did not persist';
+            END IF;
+          END
+          $audit$;
+          SQL
+      - name: Build without Neon credentials
+        env:
+          NEON_DATABASE_URL: ''
+          ANTHROPIC_API_KEY: ''
+          OPENROUTER_API_KEY: ''
+        run: npm run build
