@@ -41,12 +41,12 @@ export function assessDraftReadiness(
     blockers.push('Task scores must be between 0 and 1')
   }
   if (taskScores.length === 0) warnings.push('No task scores yet')
-  if (!meta.benchmarkSources.length) warnings.push('No approved benchmark mapping')
-  if (!meta.openrouterId && !meta.providerModelId) warnings.push('No model routing identifier')
+  if (!meta.benchmarkSources.length) warnings.push('No benchmark evidence linked')
+  if (!meta.openrouterId && !meta.providerModelId) warnings.push('No API identifier recorded')
   if (meta.verificationStatus === 'unavailable') {
-    warnings.push('Catalogue verification reports unavailable')
+    warnings.push('Model availability check failed')
   } else if (!meta.verificationStatus || meta.verificationStatus === 'unknown') {
-    warnings.push('Catalogue has not been verified')
+    warnings.push('Model availability not yet checked')
   }
   if ((model.capabilities ?? []).length === 0) warnings.push('No capabilities listed')
   return { blockers, warnings, ready: blockers.length === 0 }
