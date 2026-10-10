@@ -66,6 +66,17 @@ describe('runtime classification validation', () => {
     expect(result.needs_code).toBe(true)
   })
 
+  it('accepts an agentic workflow while retaining the separate execution flag', () => {
+    const result = validateClassification(validClassification({
+      task_type: 'agentic', is_agentic: true, needs_tools: true,
+    }))
+    expect(result.task_type).toBe('agentic')
+    expect(result.is_agentic).toBe(true)
+    expect(CLASSIFY_TOOL.input_schema.properties.task_type).toMatchObject({
+      enum: expect.arrayContaining(['agentic']),
+    })
+  })
+
   it('accepts task_type=embedding', () => {
     const result = validateClassification(validClassification({
       task_type: 'embedding',
