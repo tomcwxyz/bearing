@@ -102,6 +102,10 @@ export default function DraftPublishingQueue({
             Select all eligible
           </button>
           <button className="btn-secondary text-xs"
+            onClick={() => { setSelected(assessments.slice(0, 100).map(item => item.model.slug)); setReview(false); setAcknowledge(false) }}>
+            Select all drafts (first 100)
+          </button>
+          <button className="btn-secondary text-xs"
             onClick={() => { setSelected([]); setReview(false); setAcknowledge(false) }}>
             Clear
           </button>
@@ -149,7 +153,7 @@ export default function DraftPublishingQueue({
                 <td className="px-3 py-3">
                   <input type="checkbox" aria-label={`Select ${model.name}`}
                     checked={selected.includes(model.slug)}
-                    disabled={!ready || isPublishing}
+                    disabled={isPublishing || isVerifying || (!selected.includes(model.slug) && selected.length >= 100)}
                     onChange={() => toggle(model.slug)}
                     className="accent-teal" />
                 </td>
