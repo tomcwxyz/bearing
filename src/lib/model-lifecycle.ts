@@ -11,7 +11,7 @@ export function modelLifecycleStatus(
 
 export function validateLifecycleSlugs(requested: unknown): string[] {
   if (!Array.isArray(requested) || requested.length < 1 || requested.length > 100 ||
-    requested.some(slug => typeof slug !== 'string' || !/^[a-zA-Z0-9._/-]{1,140}$/.test(slug))) {
+    requested.some(slug => typeof slug !== 'string' || !/^[a-zA-Z0-9._/-]{1,140}$/.test(slug) || slug.split('/').some(part => !part || part === '.' || part === '..'))) {
     throw new Error('Select between 1 and 100 valid model identifiers')
   }
   return [...new Set(requested as string[])]
