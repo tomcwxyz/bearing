@@ -9,7 +9,6 @@ import {
   getAllModelsForAdmin,
   getModelForAdmin,
   upsertModel,
-  deactivateModel,
   updateModelPricing,
   getOpenRouterIds,
   listImportIdentities,
@@ -17,6 +16,7 @@ import {
   type AdminModel,
 } from '@/db/models'
 import { isUserAdmin } from '@/db/users'
+import { retireModels } from '@/db/model-lifecycle'
 import { fetchOpenRouterModels, convertPricing, inferCapabilities, extractProvider, type OpenRouterModel } from '@/lib/openrouter'
 import {
   getBenchmarkSummary, getUnmatchedSourceModels, listAliases, upsertAlias, deleteAlias,
@@ -87,7 +87,7 @@ export async function saveModelAdmin(formData: FormData): Promise<{ success: boo
       privacy_score: parseFloat(formData.get('privacy_score') as string),
       transparency: JSON.parse(formData.get('transparency') as string),
       sustainability: JSON.parse(formData.get('sustainability') as string),
-      active: formData.get('active') === 'true',
+      active: false, // New models start as drafts; edits retain existing lifecycle state.
     }
     await upsertModel(model)
     return { success: true }
@@ -99,8 +99,10 @@ export async function saveModelAdmin(formData: FormData): Promise<{ success: boo
 export async function deactivateModelAdmin(slug: string): Promise<{ success: boolean; error?: string }> {
   await requireAdmin()
   try {
-    await deactivateModel(slug)
-    return { success: true }
+    const retired = await retireModels([slug], 'Retired by administrator from the model editor', 'admin:legacy-action', 'live')
+    return retired.includes(slug)
+      ? { success: true }
+      : { success: false, error: 'Only live models can be retired' }
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : 'Deactivation failed' }
   }
