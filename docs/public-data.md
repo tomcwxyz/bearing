@@ -11,6 +11,10 @@ The public model deliberately separates four stages:
 That distinction is important. A model being recommended as suitable for local
 hardware is not evidence that the person actually ran it locally.
 
+## Catalogue verification and public data
+
+Live-model bulk checks and the weekly catalogue verification job update operational verification metadata and append source-specific availability observations. They **do not** change editorial task-fitness grades, the historic recommendations, or the public dataset schema. The recommendation/decision export remains at schema 2.1. A model's current verification status is distinct from its assessed quality or from a successful runtime probe. Provider catalogue failures and missing mapping IDs are not published as model-unavailability facts.
+
 ## Public datasets
 
 ### Recommendation / decision dataset
