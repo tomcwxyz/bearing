@@ -1,3 +1,4 @@
+import { combineCatalogueObservations } from './combine-catalogue-observations'
 import { selectModelsForVerification, verificationCoverage, type UnverifiedModel } from './verification-scope'
 import { recordAvailabilityObservations } from '@/db/model-retirement'
 import { listModelsForVerification, saveVerificationObservations, type VerificationObservation } from '@/db/model-verification'
@@ -54,10 +55,13 @@ export async function runCatalogueVerification(selectedSlugs?: string[]): Promis
   const [providerFetch, openRouterAttempt, ollamaCloudAttempt] = await Promise.all([
     fetchProviderCatalogues(),
     fetchOpenRouterModels()
-      .then((openRouterModels) => ({
+      .then((openRouterModels) => {
+        if (openRouterModels.length === 0) throw new Error('OpenRouter returned an empty catalogue')
+        return {
         report: assessOpenRouterCatalogue(models, openRouterModels),
         error: null as string | null,
-      }))
+        }
+      })
       .catch((error: unknown) => ({
         report: null,
         error: error instanceof Error ? error.message : 'OpenRouter catalogue request failed',
@@ -74,25 +78,18 @@ export async function runCatalogueVerification(selectedSlugs?: string[]): Promis
     assessProviderCatalogue(models, snapshot),
   )
 
-  // Start with broad OpenRouter evidence, then let successful provider-native
-  // observations replace it for explicitly mapped models.
-  const chosen = new Map<string, VerificationObservation>()
-  for (const observation of openRouterAttempt.report?.observations ?? []) {
-    chosen.set(observation.slug, observation)
-  }
-  for (const report of providerReports) {
-    for (const observation of report.observations) {
-      chosen.set(observation.slug, observation)
-    }
-  }
-
-  const observations = [...chosen.values()]
+  // Retain independent availability evidence for every successful route.
+  // Retirement review needs to see a healthy alternative route as well as
+  // any missing provider-native ID.
+  const openRouterObservations = openRouterAttempt.report?.observations ?? []
+  const nativeObservations = providerReports.flatMap(report => report.observations)
+  const observations = combineCatalogueObservations(openRouterObservations, nativeObservations)
   if (observations.length === 0 && openRouterAttempt.error && providerFetch.snapshots.length === 0) {
     throw new Error(`No catalogue source could be verified. OpenRouter: ${openRouterAttempt.error}`)
   }
 
   await saveVerificationObservations(observations)
-  await recordAvailabilityObservations(observations)
+  await recordAvailabilityObservations([...openRouterObservations, ...nativeObservations])
 
   const counts = observationCounts(observations)
   const coverage = verificationCoverage(models, observations)
