@@ -234,32 +234,32 @@ export function getDefaultWeights(): Record<Factor, number> {
   return registryData.scoring_methodology.default_weights as Record<Factor, number>
 }
 
-/** Try DB first, fall back to static JSON if DB unavailable. */
+/** Use the DB as the source of truth in production. Static registry
+ * fallback is for offline/local development only: a stale bundle may still
+ * contain a model that has since been retired. */
 export async function getAllModelsLive(): Promise<Model[]> {
   try {
     const { getAllModelsFromDb } = await import('@/db/models')
     return await getAllModelsFromDb()
-  } catch {
-    // DB unavailable (local dev, build time) — use static JSON
+  } catch (error) {
+    if (process.env.NODE_ENV === 'production') throw error
     return getAllModels()
   }
 }
 
-/** Detail-page lookup: DB first (so freshly imported active models resolve),
- *  fall back to static JSON. */
+/** Never serve a retired or draft model from the bundled registry after the
+ * database has confirmed it is inactive or absent. */
 export async function getModelLive(slug: string): Promise<Model | undefined> {
   try {
     const { getModelForAdmin } = await import('@/db/models')
     const fromDb = await getModelForAdmin(slug)
-    // Drafts (active = false) shouldn't be publicly viewable.
-    if (fromDb?.active) {
-      // Strip the active flag — public Model type doesn't carry it.
-      // eslint ignoreRestSiblings covers the omitted-via-rest `active` binding.
-      const { active, ...model } = fromDb
-      return model
-    }
-  } catch {
-    // DB unavailable — fall through to static JSON
+    if (!fromDb?.active) return undefined
+    const { active: _active, lifecycleStatus: _lifecycleStatus,
+      retiredAt: _retiredAt, retirementReason: _retirementReason,
+      retiredBy: _retiredBy, ...model } = fromDb
+    return model
+  } catch (error) {
+    if (process.env.NODE_ENV === 'production') throw error
+    return getModel(slug)
   }
-  return getModel(slug)
 }
