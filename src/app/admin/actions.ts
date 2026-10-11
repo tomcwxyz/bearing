@@ -97,9 +97,9 @@ export async function saveModelAdmin(formData: FormData): Promise<{ success: boo
 }
 
 export async function deactivateModelAdmin(slug: string): Promise<{ success: boolean; error?: string }> {
-  await requireAdmin()
+  const actor = await requireAdmin()
   try {
-    const retired = await retireModels([slug], 'Retired by administrator from the model editor', 'admin:legacy-action', 'live')
+    const retired = await retireModels([slug], 'Retired by administrator from the legacy admin action', actor, 'live')
     return retired.includes(slug)
       ? { success: true }
       : { success: false, error: 'Only live models can be retired' }
