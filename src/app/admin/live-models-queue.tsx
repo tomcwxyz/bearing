@@ -7,6 +7,7 @@ import type { AdminModel } from '@/db/models'
 import type { ModelVerificationSummary, VerificationObservation } from '@/db/model-verification'
 import { assessModelFreshness, freshnessLabel } from '@/lib/model-freshness'
 import { verifyLiveModelsAdmin } from './freshness-actions'
+import LifecycleBatchDialog from './lifecycle-batch-dialog'
 
 type BatchResult = Awaited<ReturnType<typeof verifyLiveModelsAdmin>>
 type View = 'all' | 'needs-check' | 'unverified' | 'attention'
@@ -39,6 +40,8 @@ export default function LiveModelsQueue({
   const [isVerifying, startVerifying] = useTransition()
   const [result, setResult] = useState<BatchResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [retirementReview, setRetirementReview] = useState(false)
+  const [retirementFeedback, setRetirementFeedback] = useState<string | null>(null)
 
   const bySlug = useMemo(
     () => new Map(verification.map(item => [item.slug, item])),
@@ -59,6 +62,7 @@ export default function LiveModelsQueue({
   const allVisibleSelected = displayed.length > 0 && displayed.every(model => selected.includes(model.slug))
 
   function toggle(slug: string) {
+    setRetirementReview(false)
     setSelected(current => current.includes(slug)
       ? current.filter(value => value !== slug)
       : current.length < 100 ? [...current, slug] : current)
@@ -104,19 +108,24 @@ export default function LiveModelsQueue({
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <button type="button" className="btn-secondary text-xs" disabled={isVerifying}
-            onClick={() => setSelected(displayed.slice(0, 100).map(model => model.slug))}>
+            onClick={() => { setSelected(displayed.slice(0, 100).map(model => model.slug)); setRetirementReview(false) }}>
             Select visible{displayed.length > 100 ? ' (first 100)' : ''}
           </button>
           <button type="button" className="btn-secondary text-xs" disabled={isVerifying}
-            onClick={() => { setView('needs-check'); setSelected(needsCheck.slice(0, 100).map(model => model.slug)) }}>
+            onClick={() => { setView('needs-check'); setSelected(needsCheck.slice(0, 100).map(model => model.slug)); setRetirementReview(false) }}>
             Select needing review{needsCheck.length > 100 ? ' (first 100)' : ''}
           </button>
           <button type="button" className="btn-secondary text-xs" disabled={isVerifying}
-            onClick={() => setSelected([])}>Clear selection</button>
+            onClick={() => { setSelected([]); setRetirementReview(false) }}>Clear selection</button>
           <button type="button" className="btn-secondary text-xs disabled:opacity-40"
             disabled={isVerifying || selected.length === 0}
             onClick={() => verify(selected)}>
             {isVerifying ? 'Verifying…' : `Verify selected (${selected.length})`}
+          </button>
+          <button type="button" className="rounded-md border border-coral/30 px-3 py-2 text-xs text-coral disabled:opacity-40"
+            disabled={isVerifying || selected.length === 0}
+            onClick={() => setRetirementReview(true)}>
+            Review retirement ({selected.length})
           </button>
         </div>
         {models.length > 100 && <p className="mt-2 text-xs text-navy/50">
@@ -124,6 +133,16 @@ export default function LiveModelsQueue({
         </p>}
       </div>
 
+      {retirementFeedback && <p role="status" className="rounded-lg border border-cream-dark p-3 text-sm text-navy">{retirementFeedback}</p>}
+      {retirementReview && <LifecycleBatchDialog operation="retire" selected={selected}
+        onCancel={() => setRetirementReview(false)}
+        onComplete={outcome => {
+          setRetirementFeedback(`Retired ${outcome.changed.length} live models.` +
+            (outcome.skipped.length ? ` ${outcome.skipped.length} not changed because they were no longer live.` : ''))
+          setSelected([])
+          setRetirementReview(false)
+          router.refresh()
+        }} />}
       {error && <p role="alert" className="rounded-md border border-coral/30 p-3 text-sm text-coral">{error}</p>}
       {result && (
         <div role="status" className="rounded-lg border border-cream-dark bg-white p-4 text-sm text-navy">
