@@ -72,6 +72,16 @@ export async function saveModelAdmin(formData: FormData): Promise<{ success: boo
 
   try {
     const slug = formData.get('slug') as string
+    const mode = formData.get('mode')
+    if (mode === 'create' || mode === 'edit') {
+      const existing = await getModelForAdmin(slug)
+      if (mode === 'create' && existing) {
+        return { success: false, error: 'This model already exists, including retired models. Edit or restore its existing record instead.' }
+      }
+      if (mode === 'edit' && !existing) {
+        return { success: false, error: 'Model no longer exists. Reload before editing.' }
+      }
+    }
     const model = {
       slug,
       name: formData.get('name') as string,
