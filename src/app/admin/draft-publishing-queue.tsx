@@ -6,6 +6,7 @@ import Link from 'next/link'
 import type { AdminModel } from '@/db/models'
 import { assessDraftReadiness, type DraftPublishMeta } from '@/lib/draft-publish'
 import { publishDraftBatch, verifySelectedDrafts } from './draft-publish-actions'
+import LifecycleBatchDialog from './lifecycle-batch-dialog'
 
 export default function DraftPublishingQueue({
   drafts, metadata,
@@ -21,6 +22,7 @@ export default function DraftPublishingQueue({
   const [isPublishing, startPublishing] = useTransition()
   const [isVerifying, startVerifying] = useTransition()
   const [verificationResults, setVerificationResults] = useState<Record<string, string>>({})
+  const [legacyReview, setLegacyReview] = useState(false)
 
   const metaMap = useMemo(() => new Map(metadata.map(m => [m.slug, m])), [metadata])
   const assessments = useMemo(() => drafts.map(model => {
@@ -116,6 +118,19 @@ export default function DraftPublishingQueue({
         </div>
       </header>
 
+      {selected.length > 0 && <button type="button" className="text-xs text-navy/50 underline"
+        disabled={isPublishing || isVerifying} onClick={() => setLegacyReview(true)}>
+        Formerly live? Move selected legacy records to retired
+      </button>}
+      {legacyReview && <LifecycleBatchDialog operation="legacy" selected={selected}
+        onCancel={() => setLegacyReview(false)}
+        onComplete={result => {
+          setFeedback(`Moved ${result.changed.length} legacy models to retired.` +
+            (result.skipped.length ? ` ${result.skipped.length} no longer eligible.` : ''))
+          setSelected([])
+          setLegacyReview(false)
+          router.refresh()
+        }} />}
       {feedback && <p role="status" className="rounded-md border border-cream-dark bg-cream p-3 text-sm text-navy">{feedback}</p>}
       <div className="overflow-x-auto rounded-lg border border-cream-dark">
         <table className="w-full text-left text-sm">
