@@ -1,6 +1,9 @@
 import { getAllModelsLive, isModelClass, type ModelClass } from '@/lib/registry'
 import ModelsList from './models-list'
 
+// Publication state changes independently of deployments; always use live DB data.
+export const dynamic = 'force-dynamic'
+
 export default async function ModelsPage({
   searchParams,
 }: {
