@@ -151,6 +151,18 @@ Runtime routability is a separate operational signal. Bearing records whether a 
 
 The current conservative policy requires repeated, recent explicit `unavailable` observations before a model could qualify for blocking. That guard exists and is tested, but production recommendations and execution are not yet hard-filtered by it while more unattended evidence is collected.
 
+### Published-model lifecycle
+
+The canonical model row retains `active` for backward-compatible public selection: only `active = true` models appear in new recommendations. A new nullable `retired_at` distinguishes inactive retired records from inactive drafts:
+
+- `active = false`, `retired_at IS NULL`: **draft**.
+- `active = true`, `retired_at IS NULL`: **live**.
+- `active = false`, `retired_at IS NOT NULL`: **retired**.
+
+Migration 036 introduces a constraint excluding active-and-retired contradictions. A separate `model_lifecycle_events` table records each retirement or restoration, administrator identity, reason and timestamp. Administrative state changes are performed by atomic, audited, server-authorised bulk transitions (at most 100 models per selection), not metadata-edit upserts. Retired models cannot be published through the draft queue, and user history is preserved. Restoring a retired model is an explicit change directly back to live.
+
+The weekly catalogue verification and repeated unavailability streaks **suggest** retirement, but never deactivate models automatically. Missing/failed catalogue checks do not count as evidence for retirement. Legacy inactive models are auto-backfilled to retired only if previous selection, comparison or recommendation records demonstrate public use; otherwise administrators can explicitly archive them after review.
+
 ## 11. Benchmarks and curated evidence
 
 Bearing has curated task-fitness scores and can ingest external benchmark evidence. Disagreement is surfaced as uncertainty rather than hidden.
