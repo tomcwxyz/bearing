@@ -18,7 +18,7 @@ export default async function RetirementReviewPage() {
       <p className="mt-3 text-sm leading-6 text-navy/70">
         Models missing from the same catalogue in at least two checks over six or more days.
         These are suggestions, not automatic removals. Check other routes and provider notices
-        before deactivating. Historical records remain available.
+        before retiring. Historical records remain available.
       </p>
       <p className="mt-5 text-sm text-navy/60">{candidates.length} model{candidates.length === 1 ? '' : 's'} to review</p>
       {candidates.length === 0 ? (
@@ -34,7 +34,7 @@ export default async function RetirementReviewPage() {
                   <h2 className="font-display text-xl text-navy">{model.name}</h2>
                   <p className="mt-1 text-xs text-navy/60">{model.provider} · {model.slug}</p>
                 </div>
-                <span className="text-xs font-medium text-coral">{model.active ? 'Live · review retirement' : 'Inactive · check restoration'}</span>
+                <span className="text-xs font-medium text-coral">{model.active ? 'Live · review retirement' : 'Retired or draft · inspect history'}</span>
               </div>
               <p className="mt-3 text-sm text-navy/70">{model.missingChecks} consecutive missing checks · {model.source}</p>
               <p className="mt-1 text-xs text-navy/55">First: {new Date(model.firstMissingAt).toLocaleDateString('en-GB')} · Latest: {new Date(model.lastMissingAt).toLocaleDateString('en-GB')}</p>
