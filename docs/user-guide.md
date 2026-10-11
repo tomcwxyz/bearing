@@ -265,6 +265,16 @@ The important distinction is:
 - **recommendation confidence** describes the strength of the evidence behind that ordering;
 - neither is a probability that an answer will be correct.
 
+### Checking live models in bulk
+
+In **Admin → Models → Live models**, use **Verify all live** to recheck the whole published catalogue, or select up to 100 models to check a smaller group. Filters show models needing checks, models that are unverified or stale, and models with availability or metadata concerns. The result shows how many models were targeted, verified, flagged or not checked, with details of incomplete source coverage. Use **IDs**, **Review drift** and **Retirement review** to investigate.
+
+**Drafts to publish** retain their separate **Verify selected** flow. A draft is never automatically published because it passed verification.
+
+The Vercel catalogue cron runs **every Monday at 04:00 UTC** and verifies **live models only**. Missing identifiers are reported as not checked. Source failures are reported as incomplete checks, not model removals; failed or empty provider catalogues cannot by themselves provide retirement evidence. The schedule requires the deployed Vercel cron and `CRON_SECRET` to be configured. Check the Vercel cron logs if a weekly run is marked unsuccessful.
+
+Verification cannot prove that a model will run for a real task. Provider catalogue availability, metadata drift, runtime routability and intrinsic task fitness remain distinct. Successful alternative routes are retained as evidence when evaluating a possible retirement. Nothing in this workflow automatically deactivates a model or changes task-quality scores.
+
 ## Admin and maintenance
 
 Administrators have additional tools for maintaining the registry and evidence system, including:
