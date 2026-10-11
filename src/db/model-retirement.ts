@@ -50,7 +50,8 @@ export async function listRetirementCandidates(): Promise<RetirementCandidate[]>
       s.missing_checks, s.first_missing_at, s.last_missing_at,
       s.source, m.verification_note AS note
     FROM streaks s JOIN models m ON m.slug = s.model_slug
-    WHERE s.missing_checks >= 2
+    WHERE m.active = true
+      AND s.missing_checks >= 2
       AND s.last_missing_at >= NOW() - INTERVAL '21 days'
       AND s.first_missing_at <= s.last_missing_at - INTERVAL '6 days'
       AND NOT EXISTS (
