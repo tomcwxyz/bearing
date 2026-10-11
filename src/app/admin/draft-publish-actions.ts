@@ -31,7 +31,7 @@ export async function publishDraftBatch(
   for (const slug of slugs) {
     const model = modelMap.get(slug)
     const meta = metaMap.get(slug)
-    if (!model || model.active || !meta) {
+    if (!model || model.lifecycleStatus !== 'draft' || !meta) {
       skipped.push({ slug, reason: 'Model is not a draft' })
       continue
     }
@@ -69,7 +69,7 @@ export async function verifySelectedDrafts(requested: string[]): Promise<{
   }
   const selected = [...new Set(requested)]
   const models = await getAllModelsForAdmin()
-  const draftSet = new Set(models.filter(model => !model.active).map(model => model.slug))
+  const draftSet = new Set(models.filter(model => model.lifecycleStatus === 'draft').map(model => model.slug))
   const invalid = selected.filter(slug => !draftSet.has(slug))
   if (invalid.length) throw new Error(`Not drafts: ${invalid.join(', ')}`)
   const report = await runCatalogueVerification(selected)
