@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless'
 import type { Model } from '@/lib/registry'
+import { modelLifecycleStatus, type ModelLifecycleStatus } from '@/lib/model-lifecycle'
 
 function getDb() {
   const url = process.env.NEON_DATABASE_URL
@@ -36,11 +37,30 @@ export async function getAllModelsFromDb(): Promise<Model[]> {
   return rows.map(modelRowToModel)
 }
 
-export type AdminModel = Model & { active: boolean }
+export type AdminModel = Model & {
+  active: boolean
+  lifecycleStatus: ModelLifecycleStatus
+  retiredAt: string | null
+  retirementReason: string | null
+  retiredBy: string | null
+}
+
+function adminModelFromRow(row: Record<string, unknown>): AdminModel {
+  const active = row.active === true
+  const retiredAt = row.retired_at == null ? null : String(row.retired_at)
+  return {
+    ...modelRowToModel(row),
+    active,
+    lifecycleStatus: modelLifecycleStatus(active, retiredAt),
+    retiredAt,
+    retirementReason: row.retirement_reason == null ? null : String(row.retirement_reason),
+    retiredBy: row.retired_by == null ? null : String(row.retired_by),
+  }
+}
 
 export async function getAllModelsForAdmin(): Promise<AdminModel[]> {
   const rows = await getDb()`SELECT * FROM models ORDER BY active DESC, name`
-  return rows.map((row) => ({ ...modelRowToModel(row), active: row.active as boolean }))
+  return rows.map(adminModelFromRow)
 }
 
 export async function getModelFromDb(slug: string): Promise<Model | null> {
@@ -51,7 +71,7 @@ export async function getModelFromDb(slug: string): Promise<Model | null> {
 export async function getModelForAdmin(slug: string): Promise<AdminModel | null> {
   const rows = await getDb()`SELECT * FROM models WHERE slug = ${slug}`
   if (rows.length === 0) return null
-  return { ...modelRowToModel(rows[0]), active: rows[0].active as boolean }
+  return adminModelFromRow(rows[0])
 }
 
 export async function getOpenRouterId(slug: string): Promise<string | null> {
@@ -116,7 +136,7 @@ export async function upsertModel(model: {
       ${JSON.stringify(model.sustainability)}::jsonb,
       ${model.local_info ? JSON.stringify(model.local_info) : null}::jsonb,
       ${model.openrouter_id ?? null},
-      ${model.active ?? true},
+      ${model.active ?? false},
       ${model.model_class ?? 'chat'},
       ${model.embedding_dim ?? null},
       ${model.max_input_tokens ?? null},
@@ -131,7 +151,9 @@ export async function upsertModel(model: {
       transparency = EXCLUDED.transparency, sustainability = EXCLUDED.sustainability,
       local_info = EXCLUDED.local_info,
       openrouter_id = COALESCE(EXCLUDED.openrouter_id, models.openrouter_id),
-      active = EXCLUDED.active,
+      -- Editorial updates must not change lifecycle state. Publication and
+      -- retirement are explicit audited operations, never an accidental upsert.
+      active = models.active,
       model_class = EXCLUDED.model_class,
       embedding_dim = EXCLUDED.embedding_dim,
       max_input_tokens = EXCLUDED.max_input_tokens,
@@ -148,10 +170,6 @@ export async function updateModelPricing(
     UPDATE models SET pricing = ${JSON.stringify(pricing)}::jsonb, updated_at = now()
     WHERE slug = ${slug}
   `
-}
-
-export async function deactivateModel(slug: string): Promise<void> {
-  await getDb()`UPDATE models SET active = false, updated_at = now() WHERE slug = ${slug}`
 }
 
 /** Read all identifiers, including inactive drafts, for import reconciliation. */
