@@ -22,9 +22,18 @@ export default async function EvidenceProposalsPage() {
   if (!(await isUserAdmin(user.id))) redirect('/')
 
   const proposals = (manifest as unknown[]).map(validateEvidenceProposal)
-  const [catalogue, reviews] = await Promise.all([
-    getAllModelsForAdmin(), listEvidenceReviews(),
-  ])
+  const catalogue = await getAllModelsForAdmin()
+  // A PR may be deployed before an administrator applies migration 037.
+  // Fail closed with a visible warning, rather than crashing the admin page
+  // or implying review decisions can be made without an audit table.
+  let reviews: Awaited<ReturnType<typeof listEvidenceReviews>> = new Map()
+  let reviewLedgerAvailable = true
+  try {
+    reviews = await listEvidenceReviews()
+  } catch (error) {
+    reviewLedgerAvailable = false
+    console.warn('[evidence-proposals] review ledger unavailable', error)
+  }
   const bySlug = new Map(catalogue.map(model => [model.slug, model]))
 
   return (
@@ -38,6 +47,13 @@ export default async function EvidenceProposalsPage() {
         an accepted change only after the next build and deployment.
         Stale changes are blocked, and every decision is recorded.
       </p>
+      {!reviewLedgerAvailable && (
+        <div role="alert" className="mt-6 rounded-xl border border-coral/30 bg-coral/5 p-5 text-sm text-navy">
+          The evidence review ledger is not available. Apply and verify migration
+          037_reviewed_model_evidence.sql in the intended database before making
+          review decisions. No proposal can be accepted or rejected until then.
+        </div>
+      )}
       {proposals.length === 0 ? (
         <section className="mt-8 rounded-xl border border-cream-dark bg-white p-6">
           <h2 className="font-display text-xl text-navy">No submitted proposals yet</h2>
@@ -57,7 +73,8 @@ export default async function EvidenceProposalsPage() {
             const changedSinceReview = Boolean(review && review.digest !== digest)
             const current = model ? currentModelEvidenceValue(model, proposal.field) : null
             const upToDate = isEvidenceProposalCurrent(model, proposal)
-            const status = changedSinceReview ? 'Previously reviewed ID modified'
+            const status = !reviewLedgerAvailable ? 'Review ledger unavailable'
+              : changedSinceReview ? 'Previously reviewed ID modified'
               : review ? review.status
                 : !model ? 'Model missing'
                   : !upToDate ? 'Stale proposal'
@@ -91,7 +108,7 @@ export default async function EvidenceProposalsPage() {
                     Reviewed {review.reviewedAt}. {review.note ?? ''}{changedSinceReview ? ' Reuse a new proposal ID for later corrections.' : ''}
                   </p>
                 )}
-                {!review && <ReviewControls id={proposal.id} disabled={!upToDate} />}
+                {!review && reviewLedgerAvailable && <ReviewControls id={proposal.id} disabled={!upToDate} />}
               </section>
             )
           })}
