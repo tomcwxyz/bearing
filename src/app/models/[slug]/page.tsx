@@ -1,8 +1,11 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { getModelLive, getAllModels, TASK_TYPE_LABELS } from '@/lib/registry'
+import { getModelLive, TASK_TYPE_LABELS } from '@/lib/registry'
 import { embeddingPriceLabel } from '@/lib/pricing'
 import type { Capability } from '@/lib/registry'
+
+// Retired models must disappear without requiring a new static build.
+export const dynamic = 'force-dynamic'
 
 const capabilityLabels: Record<Capability, string> = {
   vision: 'Vision',
@@ -35,12 +38,6 @@ function tierColour(tier: string): string {
 // rows (e.g. `vision` on archived registry snapshots).
 function taskLabel(task: string): string {
   return (TASK_TYPE_LABELS as Record<string, string>)[task] ?? task
-}
-
-// Pre-render the slugs we know about at build time; Next will render others
-// on demand (dynamicParams defaults to true).
-export function generateStaticParams() {
-  return getAllModels().map((m) => ({ slug: m.slug }))
 }
 
 export default async function ModelDetailPage({
