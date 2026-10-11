@@ -253,6 +253,9 @@ and learn from outcomes.
 - **Live catalogue bulk checks** — published models can now be checked individually, in selected batches of up to 100, or as the whole live catalogue. Live-model filters surface stale verification, missing catalogue IDs, metadata drift and unavailable routes. Results distinguish checked models from ones without evidence.
 - **Safer weekly model verification** — the existing Monday 04:00 UTC Vercel job now targets live models rather than drafts, treats empty/failed provider catalogues as incomplete coverage, retains evidence of healthy alternative routes for retirement review and reports partial cron failures as degraded. No automatic model removal or changes to task-fitness scoring.
 
+- **Model lifecycle** — explicit Draft, Live and Retired catalogue states. Bulk retirement from live models and weekly retirement-candidate review; bulk restoration from a separate retired catalogue; confirmation, reason and audit trail for every transition. Existing inactive models with historical public-use evidence can be backfilled as retired, and ambiguous old records can be archived manually. No destructive deletion.
+- **Migration 036 required before deployment** — adds retirement metadata and lifecycle audit records, preserving existing public `active` filtering and past observations.
+
 ### Architecture and operations
 
 The 1.0 codebase now centres on feature-owned operations under `src/features/`
