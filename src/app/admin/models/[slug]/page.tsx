@@ -138,6 +138,7 @@ export default function AdminModelEditPage() {
   function handleSave() {
     setFeedback(null)
     const formData = new FormData()
+    formData.set('mode', isNew ? 'create' : 'edit')
     formData.set('slug', model.slug)
     formData.set('name', model.name)
     formData.set('provider', model.provider)
