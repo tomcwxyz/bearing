@@ -1,3 +1,4 @@
+import { selectModelsForVerification, verificationCoverage, type UnverifiedModel } from './verification-scope'
 import { recordAvailabilityObservations } from '@/db/model-retirement'
 import { listModelsForVerification, saveVerificationObservations, type VerificationObservation } from '@/db/model-verification'
 import { assessOpenRouterCatalogue, type CatalogueVerificationReport } from './catalogue-verification'
@@ -14,6 +15,8 @@ export interface CatalogueVerificationRunReport extends CatalogueVerificationRep
   skippedProviders: { provider: string; reason: string }[]
   providerFailures: { provider: string; error: string }[]
   openRouterFailure: string | null
+  targeted: number
+  unverifiedModels: UnverifiedModel[]
   ollamaCloudRoutes: {
     checked: number
     current: number
@@ -46,8 +49,7 @@ function observationCounts(observations: VerificationObservation[]) {
  */
 export async function runCatalogueVerification(selectedSlugs?: string[]): Promise<CatalogueVerificationRunReport> {
   const allModels = await listModelsForVerification()
-  const selected = selectedSlugs ? new Set(selectedSlugs) : null
-  const models = selected ? allModels.filter(model => selected.has(model.slug)) : allModels
+  const models = selectModelsForVerification(allModels, selectedSlugs)
 
   const [providerFetch, openRouterAttempt, ollamaCloudAttempt] = await Promise.all([
     fetchProviderCatalogues(),
@@ -93,14 +95,16 @@ export async function runCatalogueVerification(selectedSlugs?: string[]): Promis
   await recordAvailabilityObservations(observations)
 
   const counts = observationCounts(observations)
-  const activeCount = models.filter((model) => model.active).length
+  const coverage = verificationCoverage(models, observations)
 
   return {
     checked: observations.length,
     current: counts.current,
     attention: counts.attention,
     unavailable: counts.unavailable,
-    unmapped: Math.max(0, activeCount - observations.length),
+    unmapped: coverage.unmapped,
+    targeted: coverage.targeted,
+    unverifiedModels: coverage.unverifiedModels,
     newCandidates: openRouterAttempt.report?.newCandidates ?? 0,
     observations,
     providerReports: providerReports.map(({ observations: _observations, ...report }) => report),
