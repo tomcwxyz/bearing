@@ -143,9 +143,25 @@ Catalogue verification can observe:
 
 Potential metadata drift is reviewed before it changes canonical model records.
 
+Automated catalogue verification runs weekly on the **live** registry (Monday 04:00 UTC). Administrators can also check every live model, or up to 100 individually selected live models, while the draft publishing queue has its own selected-draft check. All three use the same provider-native and OpenRouter comparison logic.
+
+Each batch reports **targeted**, **checked**, **current**, **needs attention**, **unavailable**, and **not checked** separately. Missing IDs and unavailable sources never become false `unavailable` observations. An empty provider catalogue is treated as a source failure. Independently observed routes are stored in availability history, so a working OpenRouter route prevents a missing native route being presented as total model disappearance. Metadata changes remain for human review. The weekly route reports source failures as a degraded execution even when other models were checked successfully.
+
 Runtime routability is a separate operational signal. Bearing records whether a model endpoint was healthy, degraded or unavailable. A single failure is not enough to suppress a model, and degraded status is not treated as intrinsic capability evidence.
 
 The current conservative policy requires repeated, recent explicit `unavailable` observations before a model could qualify for blocking. That guard exists and is tested, but production recommendations and execution are not yet hard-filtered by it while more unattended evidence is collected.
+
+### Published-model lifecycle
+
+The canonical model row retains `active` for backward-compatible public selection: only `active = true` models appear in new recommendations. A new nullable `retired_at` distinguishes inactive retired records from inactive drafts:
+
+- `active = false`, `retired_at IS NULL`: **draft**.
+- `active = true`, `retired_at IS NULL`: **live**.
+- `active = false`, `retired_at IS NOT NULL`: **retired**.
+
+Migration 036 introduces a constraint excluding active-and-retired contradictions. A separate `model_lifecycle_events` table records each retirement or restoration, administrator identity, reason and timestamp. Administrative state changes are performed by atomic, audited, server-authorised bulk transitions (at most 100 models per selection), not metadata-edit upserts. Retired models cannot be published through the draft queue, and user history is preserved. In production, public model lookups fail closed if the database cannot be reached rather than using a potentially stale generated registry that still contains retired models. Restoring a retired model is an explicit change directly back to live.
+
+The weekly catalogue verification and repeated unavailability streaks **suggest** retirement, but never deactivate models automatically. Missing/failed catalogue checks do not count as evidence for retirement. Legacy inactive models are auto-backfilled to retired only if previous selection, comparison or recommendation records demonstrate public use; otherwise administrators can explicitly archive them after review.
 
 ## 11. Benchmarks and curated evidence
 

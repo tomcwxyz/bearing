@@ -265,6 +265,28 @@ The important distinction is:
 - **recommendation confidence** describes the strength of the evidence behind that ordering;
 - neither is a probability that an answer will be correct.
 
+### Checking live models in bulk
+
+In **Admin → Models → Live models**, use **Verify all live** to recheck the whole published catalogue, or select up to 100 models to check a smaller group. Filters show models needing checks, models that are unverified or stale, and models with availability or metadata concerns. The result shows how many models were targeted, verified, flagged or not checked, with details of incomplete source coverage. Use **IDs**, **Review drift** and **Retirement review** to investigate.
+
+**Drafts to publish** retain their separate **Verify selected** flow. A draft is never automatically published because it passed verification.
+
+The Vercel catalogue cron runs **every Monday at 04:00 UTC** and verifies **live models only**. Missing identifiers are reported as not checked. Source failures are reported as incomplete checks, not model removals; failed or empty provider catalogues cannot by themselves provide retirement evidence. The schedule requires the deployed Vercel cron and `CRON_SECRET` to be configured. Check the Vercel cron logs if a weekly run is marked unsuccessful.
+
+Verification cannot prove that a model will run for a real task. Provider catalogue availability, metadata drift, runtime routability and intrinsic task fitness remain distinct. Successful alternative routes are retained as evidence when evaluating a possible retirement. Nothing in this workflow automatically deactivates a model or changes task-quality scores.
+
+### Lifecycle: draft, live and retired
+
+Bearing distinguishes **Draft** (never published), **Live** (eligible for new recommendations), and **Retired** (previously live or explicitly archived from a legacy inactive record). Retired models are excluded from public recommendations but retain their permanent slug, identifiers, scores and historical decisions. Retirement is not destructive deletion.
+
+In **Admin → Models**, the **Live models** tab supports selecting up to 100 records for a single **Review retirement** action. Enter a reason and explicitly confirm before retiring. The existing **Retirement candidates** page also supports multi-selection using sustained provider-unavailability evidence from weekly checks; it never retires models automatically. The **Retired** tab shows when and why each model was retired and supports reviewed bulk **Restore to live** operations. Restoring immediately makes a model eligible again; check the provider route first.
+
+The **Drafts to publish** tab only includes new/unpublished records. Administrators can explicitly move older inactive records from Draft to Retired when they know those records were previously live but the database lacks historical evidence. This should not be used for genuinely new unpublished drafts.
+
+Retirement and restoration require administrator authorisation, a reason and a confirmation. Each transition writes an audit event. Editing a model's description, scores or other metadata does **not** change its lifecycle state. Only the transition actions do so.
+
+**Database requirement:** apply migration `036_model_retirement.sql` to the appropriate Neon environment before deploying this release. The migration adds retirement metadata and a lifecycle audit log. Inactive models with prior recommendation, selection or comparison evidence are backfilled as retired; ambiguous inactive records remain drafts for human review. It does not delete or unpublish any currently live model.
+
 ## Admin and maintenance
 
 Administrators have additional tools for maintaining the registry and evidence system, including:

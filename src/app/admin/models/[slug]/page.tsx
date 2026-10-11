@@ -43,7 +43,11 @@ function emptyModel() {
       provider_infrastructure: null as number | null,
       sustainability_score: 0, notes: '',
     },
-    active: true,
+    active: false,
+    lifecycleStatus: 'draft' as 'draft' | 'live' | 'retired',
+    retiredAt: null as string | null,
+    retirementReason: null as string | null,
+    retiredBy: null as string | null,
   }
 }
 
@@ -134,6 +138,7 @@ export default function AdminModelEditPage() {
   function handleSave() {
     setFeedback(null)
     const formData = new FormData()
+    formData.set('mode', isNew ? 'create' : 'edit')
     formData.set('slug', model.slug)
     formData.set('name', model.name)
     formData.set('provider', model.provider)
@@ -148,7 +153,6 @@ export default function AdminModelEditPage() {
     formData.set('privacy_score', String(model.privacy_score))
     formData.set('transparency', JSON.stringify(model.transparency))
     formData.set('sustainability', JSON.stringify(model.sustainability))
-    formData.set('active', String(model.active))
 
     startTransition(async () => {
       const result = await saveModelAdmin(formData)
@@ -238,16 +242,14 @@ export default function AdminModelEditPage() {
               ))}
             </select>
           </Field>
-          <Field label="Status" hint={model.active ? 'Published — visible in recommendations' : 'Draft — hidden from recommendations'}>
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={model.active}
-                onChange={(e) => setModel({ ...model, active: e.target.checked })}
-                className="h-4 w-4 accent-teal"
-              />
-              <span className="text-sm text-navy/80">Active</span>
-            </label>
+          <Field label="Lifecycle" hint="Publication and retirement are reviewed actions, separate from editing scores and metadata.">
+            <p className="text-sm font-medium text-navy">{isNew ? 'Draft' : model.lifecycleStatus === 'live' ? 'Live' : model.lifecycleStatus === 'retired' ? 'Retired' : 'Draft'}</p>
+            {model.lifecycleStatus === 'retired' && model.retirementReason && (
+              <p className="mt-1 text-xs text-navy/65">Retirement reason: {model.retirementReason}</p>
+            )}
+            <p className="mt-1 text-xs text-navy/55">
+              Use Admin → Models to publish drafts, retire live models or explicitly restore retired records.
+            </p>
           </Field>
         </Section>
 

@@ -266,6 +266,9 @@ export async function fetchProviderCatalogues(): Promise<ProviderFetchSummary> {
 
     try {
       const models = await adapter.fetchModels(apiKey)
+      if (models.length === 0) {
+        throw new Error('Provider returned an empty model catalogue; cannot infer removal')
+      }
       snapshots.push({ provider: adapter.provider, source: adapter.source, models })
     } catch (error) {
       failures.push({
