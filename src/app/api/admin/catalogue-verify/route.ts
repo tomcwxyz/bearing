@@ -18,11 +18,17 @@ export async function GET(request: NextRequest) {
 
   try {
     const { observations: _observations, ...summary } = await runOpenRouterCatalogueVerification()
+    // A partial run is useful evidence, but it is not a healthy scheduled check.
+    // Non-2xx status makes provider outages visible in the Vercel cron logs.
+    const sourceFailures = summary.providerFailures.length +
+      (summary.openRouterFailure ? 1 : 0) +
+      (summary.ollamaCloudRoutes.failure ? 1 : 0)
     return NextResponse.json({
-      ok: true,
+      ok: sourceFailures === 0,
+      partial: sourceFailures > 0,
       summary,
       timestamp: new Date().toISOString(),
-    })
+    }, { status: sourceFailures > 0 ? 503 : 200 })
   } catch (error: unknown) {
     return NextResponse.json(
       {
