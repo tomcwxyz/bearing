@@ -143,6 +143,10 @@ Catalogue verification can observe:
 
 Potential metadata drift is reviewed before it changes canonical model records.
 
+Automated catalogue verification runs weekly on the **live** registry (Monday 04:00 UTC). Administrators can also check every live model, or up to 100 individually selected live models, while the draft publishing queue has its own selected-draft check. All three use the same provider-native and OpenRouter comparison logic.
+
+Each batch reports **targeted**, **checked**, **current**, **needs attention**, **unavailable**, and **not checked** separately. Missing IDs and unavailable sources never become false `unavailable` observations. An empty provider catalogue is treated as a source failure. Independently observed routes are stored in availability history, so a working OpenRouter route prevents a missing native route being presented as total model disappearance. Metadata changes remain for human review. The weekly route reports source failures as a degraded execution even when other models were checked successfully.
+
 Runtime routability is a separate operational signal. Bearing records whether a model endpoint was healthy, degraded or unavailable. A single failure is not enough to suppress a model, and degraded status is not treated as intrinsic capability evidence.
 
 The current conservative policy requires repeated, recent explicit `unavailable` observations before a model could qualify for blocking. That guard exists and is tested, but production recommendations and execution are not yet hard-filtered by it while more unattended evidence is collected.
