@@ -15,6 +15,10 @@ hardware is not evidence that the person actually ran it locally.
 
 Live-model bulk checks and the weekly catalogue verification job update operational verification metadata and append source-specific availability observations. They **do not** change editorial task-fitness grades, the historic recommendations, or the public dataset schema. The recommendation/decision export remains at schema 2.1. A model's current verification status is distinct from its assessed quality or from a successful runtime probe. Provider catalogue failures and missing mapping IDs are not published as model-unavailability facts.
 
+## Retired models and historical records
+
+A retired model remains in Bearing's canonical model registry with its original slug. Retiring a model removes it from **future live recommendations**, not from past recommendation, selection, comparison, benchmark or execution evidence. It does not rewrite historical data or change the public export schema. The retained lifecycle ledger is an operational audit record and is **not** a new public dataset endpoint.
+
 ## Public datasets
 
 ### Recommendation / decision dataset
