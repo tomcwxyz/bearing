@@ -18,7 +18,7 @@ export function ReviewControls({ id, disabled }: { id: string; disabled: boolean
         if (!result.ok) setError(result.message)
         else router.refresh()
       } catch {
-        setError('Review failed. Check database migration 036 and retry.')
+        setError('Review failed. Check database migration 037 and retry.')
       }
     })
   }

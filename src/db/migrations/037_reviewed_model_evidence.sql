@@ -1,4 +1,4 @@
--- 036: audit explicitly reviewed public model evidence.
+-- 037: audit explicitly reviewed public model evidence.
 CREATE TABLE IF NOT EXISTS model_evidence_reviews (
   proposal_id TEXT PRIMARY KEY,
   proposal_digest TEXT NOT NULL,

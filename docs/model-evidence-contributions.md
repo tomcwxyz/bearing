@@ -70,7 +70,7 @@ There is an important additional safeguard: `npm run db:seed` now inserts only m
 - Proposals must contain dated public HTTPS evidence, a rationale and a before/after value. Avoid credentials, private user prompts, provider secrets, copyright-restricted datasets and personal information.
 - The server action requires an authenticated admin. Browser input supplies only the proposal ID, accept/reject decision and reviewer note.
 - A live expected-value equality check prevents stale overwrites, and the append-only audit prevents reusing the same ID.
-- Database migration `036_reviewed_model_evidence.sql` must be applied **on the intended development/production Neon environment by a maintainer** before using the queue. No PR or CI job applies it automatically.
+- Database migration `037_reviewed_model_evidence.sql` must be applied **on the intended development/production Neon environment by a maintainer** before using the queue. No PR or CI job applies it automatically.
 - PR validation does not validate the factual accuracy of sources, proprietary licensing conditions, or the effect of new task fitness scores on real-world tasks.
 
 To propose a broader change to the evidence model, use a [GitHub issue](https://github.com/tomcwxyz/bearing/issues/new/choose) and discuss it before introducing a database migration. The [model rating methodology](model-ratings.md) explains what each factor means.
