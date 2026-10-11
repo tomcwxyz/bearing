@@ -12,7 +12,7 @@ export async function listDraftPublishMeta(): Promise<DraftPublishMeta[]> {
       COALESCE(array_agg(DISTINCT a.source) FILTER (WHERE a.source IS NOT NULL), '{}') AS benchmark_sources
     FROM models m
     LEFT JOIN benchmark_aliases a ON a.bearing_slug = m.slug
-    WHERE m.active = false
+    WHERE m.active = false AND m.retired_at IS NULL
     GROUP BY m.slug
     ORDER BY m.name
   `
@@ -31,7 +31,7 @@ export async function activateDraftSlugs(slugs: string[]): Promise<string[]> {
   if (slugs.length === 0) return []
   const rows = await db()`
     UPDATE models SET active = true, updated_at = now()
-    WHERE slug = ANY(${slugs}::text[]) AND active = false
+    WHERE slug = ANY(${slugs}::text[]) AND active = false AND retired_at IS NULL
     RETURNING slug
   `
   return rows.map(r => String(r.slug))
