@@ -22,7 +22,7 @@ export default function ModelsTable({
   const drafts = models.filter(model => model.lifecycleStatus === 'draft')
   const live = models.filter(model => model.lifecycleStatus === 'live')
   const retired = models.filter(model => model.lifecycleStatus === 'retired')
-  const [tab, setTab] = useState<CatalogueTab>(drafts.length ? 'draft' : 'live')
+  const [tab, setTab] = useState<CatalogueTab>(drafts.length ? 'draft' : live.length ? 'live' : 'retired')
   const mappedCount = verification.filter(row => row.active && (row.providerModelId || row.openrouterId)).length
   const needsAttentionCount = live.filter(model => {
     const row = verification.find(item => item.slug === model.slug)
