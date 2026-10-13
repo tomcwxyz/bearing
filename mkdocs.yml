@@ -22,6 +22,7 @@ nav:
   - How Bearing Works: how-bearing-works.md
   - How We Rate Models: model-ratings.md
   - Public Data Model: public-data.md
+  - Contributor Workbench: local-workbench.md
   - Changelog: changelog.md
 extra_css:
   - stylesheets/bearing.css

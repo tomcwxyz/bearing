@@ -1,5 +1,6 @@
 import registryData from '@/data/bearing-registry.json'
 import type { ModelClass } from './model-class'
+import { contributorDemoEnabled } from './contributor-demo-mode'
 
 export type Factor = 'cost' | 'speed' | 'quality' | 'privacy' | 'sustainability' | 'transparency' | 'capability'
 
@@ -238,6 +239,7 @@ export function getDefaultWeights(): Record<Factor, number> {
  * fallback is for offline/local development only: a stale bundle may still
  * contain a model that has since been retired. */
 export async function getAllModelsLive(): Promise<Model[]> {
+  if (contributorDemoEnabled()) return getAllModels()
   try {
     const { getAllModelsFromDb } = await import('@/db/models')
     return await getAllModelsFromDb()
@@ -250,6 +252,7 @@ export async function getAllModelsLive(): Promise<Model[]> {
 /** Never serve a retired or draft model from the bundled registry after the
  * database has confirmed it is inactive or absent. */
 export async function getModelLive(slug: string): Promise<Model | undefined> {
+  if (contributorDemoEnabled()) return getModel(slug)
   try {
     const { getModelForAdmin } = await import('@/db/models')
     const fromDb = await getModelForAdmin(slug)
