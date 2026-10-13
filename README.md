@@ -211,6 +211,9 @@ For production, ensure `CRON_SECRET` is configured alongside the application/dat
 
 ## Testing and CI
 
+Contributors can test schema migrations without Neon credentials using a disposable, network-isolated PostgreSQL 16 container: `npm run db:test:migrations` (Docker required). See the [safe database contribution guide](docs/database-contributions.md). This verifies a fresh schema, **not** the live migration ledger or Neon HTTP statement splitting.
+
+
 The repository CI workflow runs:
 
 ```bash
