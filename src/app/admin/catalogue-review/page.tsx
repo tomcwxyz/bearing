@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
 import { isUserAdmin } from '@/db/users'
+import { getModelVerificationSummaries } from '@/db/model-verification'
 import {
   getCatalogueDriftReview,
   type CatalogueDriftChange,
@@ -43,7 +44,14 @@ export default async function CatalogueReviewPage() {
   const admin = await isUserAdmin(user.id)
   if (!admin) redirect('/')
 
-  const review = await getCatalogueDriftReview()
+  const [review, modelVerification] = await Promise.all([
+    getCatalogueDriftReview(),
+    getModelVerificationSummaries(),
+  ])
+  // No supported catalogue response is not evidence that a model disappeared.
+  const unverifiedLive = modelVerification.filter((model) =>
+    model.active && model.verification_status === 'unknown',
+  )
   const changeCount = review.items.reduce((sum, item) => sum + item.changes.length, 0)
   const availabilityCount = review.items.filter((item) => item.availabilityConcern).length
 
@@ -86,6 +94,37 @@ export default async function CatalogueReviewPage() {
               ))}
             </div>
           </details>
+        )}
+
+        {unverifiedLive.length > 0 && (
+          <section className="mt-6 rounded-xl border border-amber-300/50 bg-amber-50/60 px-5 py-4">
+            <h2 className="font-display text-xl text-navy">
+              Unverified live models ({unverifiedLive.length})
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-navy/70">
+              These models have no current catalogue confirmation. That does not mean
+              they are unavailable. Check the provider or local evidence and identifiers
+              before treating them as verified or changing their publication state.
+            </p>
+            <details className="mt-3">
+              <summary className="cursor-pointer text-sm font-medium text-navy">
+                Review models needing evidence
+              </summary>
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                {unverifiedLive.map((model) => (
+                  <li key={model.slug} className="flex items-start justify-between gap-2 rounded-md bg-white/60 p-2 text-xs">
+                    <span className="min-w-0 break-all font-mono text-navy/75">{model.slug}</span>
+                    <Link
+                      className="shrink-0 text-teal underline underline-offset-2"
+                      href={`/admin/models/${model.slug}/identifiers`}
+                    >
+                      Check IDs
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </section>
         )}
 
         {review.items.length === 0 ? (
