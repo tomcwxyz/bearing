@@ -10,7 +10,8 @@ BEGIN
     'comparisons','local_recommendations','benchmark_snapshots',
     'benchmark_aliases','routed_runs','routed_run_models',
     'model_routability','execution_observations',
-    'user_bearing_preferences','password_reset_tokens'
+    'user_bearing_preferences','password_reset_tokens',
+    'benchmark_refresh_runs','model_availability_observations','model_lifecycle_events'
   ] LOOP
     IF to_regclass('public.' || tab) IS NULL THEN
       RAISE EXCEPTION 'Missing expected table: %', tab;
@@ -29,7 +30,10 @@ BEGIN
     ('benchmark_snapshots','signal_type'),
     ('selections','model_metadata_snapshot'),
     ('selections','choice_context'),
-    ('execution_observations','execution_purpose')
+    ('execution_observations','execution_purpose'),
+    ('models','retired_at'),('models','retirement_reason'),('models','retired_by'),
+    ('benchmark_refresh_runs','duplicates_removed'),('benchmark_refresh_runs','conflicting_keys'),
+    ('model_lifecycle_events','changed_by')
   ) AS required(table_name, column_name) LOOP
     IF NOT EXISTS (
       SELECT 1 FROM information_schema.columns c
@@ -47,6 +51,14 @@ BEGIN
       AND confrelid='models'::regclass
   ) THEN
     RAISE EXCEPTION 'Missing alias-to-model foreign key';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'models'::regclass
+      AND conname = 'models_retirement_consistency'
+  ) THEN
+    RAISE EXCEPTION '036 retirement consistency constraint missing';
   END IF;
 
   IF NOT EXISTS (
