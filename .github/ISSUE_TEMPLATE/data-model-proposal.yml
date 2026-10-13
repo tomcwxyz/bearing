@@ -1,0 +1,49 @@
+name: Data-model proposal
+description: Suggest database tables, relationships, fields or changes to public data contracts.
+title: "[Data model] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        No production Neon access is needed. Describe the domain problem first, then a possible schema. See [data model](https://github.com/tomcwxyz/bearing/blob/master/docs/architecture/data-model.md) and [safe schema changes](https://github.com/tomcwxyz/bearing/blob/master/docs/architecture/schema-changes.md).
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and example
+      description: What can't Bearing express or distinguish today? Include a synthetic example.
+    validations:
+      required: true
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed entities, relationships or contract changes
+      description: A sketch or pseudocode is fine. Call out primary keys, foreign keys, versioned identifiers or provenance where relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and existing data
+      description: Effect on current records, generated registry, APIs/exports, backfills and historical interpretation.
+    validations:
+      required: true
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacy, retention and licensing
+      description: Is any new personal, raw-task or third-party evidence stored? Say 'no change' if not applicable.
+    validations:
+      required: true
+  - type: textarea
+    id: migration
+    attributes:
+      label: Migration, validation and rollback
+      description: How would this be introduced safely on a disposable database? What could break, and how could it be reversed?
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and unanswered questions
+    validations:
+      required: false

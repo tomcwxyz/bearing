@@ -84,6 +84,12 @@ Bearing is intentionally inspectable. The documentation explains:
 - how recommendation confidence differs from ranking score and answer correctness;
 - how the classifier and ranking system are evaluated before changes are promoted.
 
+## Help improve Bearing
+
+The software, model evidence and **methodology** are open to challenge. Contributors can question a scoring assumption, correct a benchmark mapping, propose a better database model, or improve the interface **without access to Neon**.
+
+Start with [contribution routes](contributing/index.md), [challenge the methodology](contributing/methodology.md), or inspect the [database and relationship map](architecture/data-model.md). Use [safe schema changes](architecture/schema-changes.md) to propose changes to private persistence and public data contracts.
+
 ## Built by
 
 [The Good Ship](https://good-ship.co.uk) — open source project and open methodology.

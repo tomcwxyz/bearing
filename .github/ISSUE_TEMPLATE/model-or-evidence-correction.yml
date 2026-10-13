@@ -1,0 +1,60 @@
+name: Model or evidence correction
+description: Correct model metadata, pricing, capability or benchmark evidence without database access.
+title: "[Evidence] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. The committed model registry is generated from the database, so please propose evidence here **before** editing the JSON snapshot. Do not include credentials, user prompts or private records.
+  - type: input
+    id: model
+    attributes:
+      label: Model and canonical slug
+      description: Give the Bearing slug if known.
+      placeholder: "Example: model-name / provider-variant"
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Evidence category
+      options:
+        - Model identity / provider route
+        - Pricing / context window
+        - Capabilities / availability
+        - Benchmark mapping / evaluation variant
+        - Task fitness / model quality
+        - Open weights / licensing
+        - Transparency / sustainability
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: What is incorrect or missing?
+      description: Include current behaviour/value and the proposed correction.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Source and observation date
+      description: Links, source-specific model name, evaluated variant, metric, date and source reuse restrictions if relevant.
+      placeholder: "Source URL; observed YYYY-MM-DD; exact model variant; relevant evidence…"
+    validations:
+      required: true
+  - type: textarea
+    id: uncertainty
+    attributes:
+      label: Uncertainty or conflicting evidence
+      description: What might make this ambiguous? Are variants, sampling or methodology comparable?
+    validations:
+      required: false
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Checks
+      options:
+        - label: I have not included private task content, credentials or another person's personal data.
+          required: true
