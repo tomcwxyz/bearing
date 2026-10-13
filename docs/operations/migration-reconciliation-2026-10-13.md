@@ -90,7 +90,7 @@ Reconcile **each missing number**, including 025–033, against the actual file 
 5. Only after approval, reconcile the production ledger, then use `--dry-run` to verify **zero unexpectedly pending migrations**. Run actual new migrations through a controlled deployment, never through an unexamined catch-up.
 6. Do not revise previously deployed numbered SQL files to make the ledger pass. Changes require new migration files and an explicit rollout.
 
-See `docs/database-contributions.md` (PR #124) and `docs/architecture/schema-changes.md` (PR #121) for the contributor-facing approach.
+See [safe database contributions](../database-contributions.md) (merged via PR #136) and [schema-change guidance](../architecture/schema-changes.md) (merged via PR #137) for the contributor-facing approach.
 
 ## Catalogue checks made alongside this review
 
