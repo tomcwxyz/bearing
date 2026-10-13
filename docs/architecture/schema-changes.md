@@ -28,17 +28,15 @@ The current migration-testing workflow is documented in [safe database contribut
 
 ## Testing SQL in isolation
 
-The migrations are plain PostgreSQL SQL files. A contributor with Docker and `psql` can **optionally** apply the migration sequence to an empty, disposable PostgreSQL instance they own. This tests schema DDL, not the full Neon HTTP adapter or application workflows.
-
-For example, from Git Bash / a POSIX shell:
+Use the credentials-free, disposable database harness. It launches an isolated PostgreSQL 16 Docker container with no published ports or external network, applies active `src/db/migrations/*.sql` in order and checks synthetic schema and historical-data invariants.
 
 ```bash
-docker run --rm -d --name bearing-contrib-pg \
-  -e POSTGRES_PASSWORD=localonly \
-  -e POSTGRES_DB=bearing \
-  -p 54329:5432 postgres:16
+npm ci
+npm run db:test:migrations
+```
 
-export LOCAL_DATABASE_URL='postgresql://postgres:localonly@localhost:54329/bearing'
+Node.js 22+ and Docker Desktop (or another working Docker engine) are required. Files ending `.sql.pending` remain excluded, including the reserved 025 migration. The harness **never** accepts a Neon connection URL and can be run by contributors on Windows, macOS or Linux.
 
-# Wait for the disposable container to accept connections, then:
-for migration in src/db/migrations
+A passing result proves only that the versioned SQL builds a fresh **PostgreSQL** schema and that selected constraints/backfills work with synthetic data. It does **not** prove that the live production schema matches the migration ledger or that the Neon HTTP migration runner can apply every statement. Refer to [safe database contributions](../database-contributions.md) for coverage and limits.
+
+Never run `scripts/run-migrations.ts`, a seed script, or manual SQL against production to test a contribution. Maintainers must independently review and explicitly approve any deployment of schema changes.
