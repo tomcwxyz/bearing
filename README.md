@@ -205,6 +205,17 @@ npm run dev
 
 For production, ensure `CRON_SECRET` is configured alongside the application/database/provider credentials so scheduled maintenance fails closed rather than running unauthenticated.
 
+## Contribute model evidence without Neon
+
+Submit sourced model corrections as small, reviewable JSON proposals instead of
+editing the generated registry. GitHub CI validates the proposal; after merge,
+an administrator accepts or rejects it in the [evidence review queue](/admin/evidence-proposals).
+Accepted values update Neon with a conflict check and an audit record; the next
+registry generation reads them from the canonical database.
+
+See [model evidence contribution guidance](docs/model-evidence-contributions.md).
+Existing models are now **never overwritten by ordinary db:seed**.
+
 ## Testing and CI
 
 The repository CI workflow runs:
