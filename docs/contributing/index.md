@@ -22,7 +22,8 @@ The repository includes scoring functions, tests, evaluation tasks, migration SQ
 
 - **No environment setup:** participate in issues and proposals, or edit Markdown.
 - **Local code checks:** `npm ci`, `npm test`, `npm run eval:ranking`, `npm run lint`, `npx tsc --noEmit`, `npm run build`.
-- **Full app or persistence work:** currently requires independently supplied database/provider configuration. A built-in fixture-backed app and automatic disposable-Postgres migration tests are *proposed future improvements*, not existing functionality.
+- **Migration checks:** `npm run db:test:migrations` runs the real migration files on an isolated, disposable PostgreSQL container using Docker, with no Neon credentials. This is not a production ledger check.
+- **Full app or persistence work:** requires independently supplied database/provider configuration. A fixture-backed offline workbench remains under development in PR #122, rather than being part of the production app.
 
 The committed registry is a generated snapshot, and production maintains canonical model records in Neon. **Do not assume a pull request directly editing registry JSON will survive regeneration.** Use an evidence proposal with source, variant and date.
 
