@@ -238,6 +238,8 @@ See [`docs/plans/2026-09-13-bearing-1-reorientation.md`](docs/plans/2026-09-13-b
 
 The scoring engine, model evidence and policies are intentionally inspectable. Contributions are welcome, especially where they improve model freshness, evidence provenance, evaluation coverage or transparent decision logic.
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) and the [contribution routes](docs/contributing/index.md) to propose model/evidence corrections, challenge methodology, or improve the schema and application **without Neon access**. Use `npm run db:test:migrations` for safe, disposable PostgreSQL migration tests; production migration history requires the separate [reconciliation procedure](docs/operations/migration-reconciliation-2026-10-13.md).
+
 ## Licence
 
 [MIT](LICENSE)
