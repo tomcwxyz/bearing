@@ -4,6 +4,8 @@ Bearing is a recommendation system, not a universal leaderboard. A model can be 
 
 This page explains the evidence used to rank models, how that evidence is kept fresh, and the limits of what the scores mean.
 
+**Methodology is open for challenge:** See [how to question our assumptions and test an alternative](contributing/methodology.md).
+
 **Last updated: 16 September 2026**
 
 ## The short version
