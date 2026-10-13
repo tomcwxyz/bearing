@@ -19,6 +19,7 @@ config({ path: '.env.local' })
 import { neon } from '@neondatabase/serverless'
 import { readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
+import { findUntrackedSchemaMigrations, type MigrationSchemaPresence } from '../src/lib/migration-ledger-safety'
 
 const MIGRATIONS_DIR = join(process.cwd(), 'src', 'db', 'migrations')
 const dryRun = process.argv.includes('--dry-run')
@@ -146,13 +147,7 @@ async function main() {
       ) AS has_036,
       to_regclass('public.model_evidence_reviews') IS NOT NULL AS has_037
   `
-  const untrackedPresent = [
-    ['034_benchmark_refresh_runs.sql', schema.has_034],
-    ['035_model_availability_history.sql', schema.has_035],
-    ['036_model_retirement.sql', schema.has_036],
-    ['037_reviewed_model_evidence.sql', schema.has_037],
-  ].filter(([filename, present]) => present === true && !applied.has(filename))
-    .map(([filename]) => filename as string)
+  const untrackedPresent = findUntrackedSchemaMigrations(applied, schema as MigrationSchemaPresence)
 
   if (untrackedPresent.length > 0) {
     const message = [
@@ -160,9 +155,9 @@ async function main() {
       ...untrackedPresent.map(filename => `  - ${filename}`),
       'No migrations have been executed. Audit the complete schema and migration history first.',
       'See docs/operations/migration-reconciliation-2026-10-13.md; do not blindly mark migrations applied.',
-    ].join('\\n')
+    ].join('\n')
     if (!dryRun) throw new Error(message)
-    console.warn(`\\nWARNING: ${message}\\n`)
+    console.warn(`\nWARNING: ${message}\n`)
   }
 
   console.log(`${pending.length} pending migration(s):`)
