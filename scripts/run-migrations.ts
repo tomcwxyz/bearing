@@ -2,8 +2,9 @@
  * Apply SQL migrations from src/db/migrations/ to the Neon database.
  *
  * Tracks applied migrations in a `schema_migrations` table so re-running is
- * idempotent. Migrations are applied in lexical filename order (so the
- * NNN- prefix matters). Each migration runs in its own transaction.
+ * idempotent only when the ledger and schema agree. Migrations are applied
+ * in lexical filename order (so the NNN- prefix matters). Neon HTTP runs
+ * individual statements, NOT a file-level transaction.
  *
  * Usage:
  *   npx tsx scripts/run-migrations.ts            # apply all pending
@@ -18,6 +19,7 @@ config({ path: '.env.local' })
 import { neon } from '@neondatabase/serverless'
 import { readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
+import { findUntrackedSchemaMigrations, type MigrationSchemaPresence } from '../src/lib/migration-ledger-safety'
 
 const MIGRATIONS_DIR = join(process.cwd(), 'src', 'db', 'migrations')
 const dryRun = process.argv.includes('--dry-run')
@@ -125,6 +127,37 @@ async function main() {
   if (pending.length === 0) {
     console.log(`No pending migrations. ${all.length} already applied.`)
     return
+  }
+
+  // A number of early Neon migrations were applied through the SQL editor rather
+  // than this ledger. In particular, production can have 034-036 objects while
+  // schema_migrations ends at 024. Do not replay their backfills or DDL just
+  // because the ledger is incomplete: a partial replay can corrupt provenance.
+  const [schema] = await sql`
+    SELECT
+      to_regclass('public.benchmark_refresh_runs') IS NOT NULL AS has_034,
+      to_regclass('public.model_availability_observations') IS NOT NULL AS has_035,
+      (
+        to_regclass('public.model_lifecycle_events') IS NOT NULL
+        OR EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'models'
+            AND column_name = 'retired_at'
+        )
+      ) AS has_036,
+      to_regclass('public.model_evidence_reviews') IS NOT NULL AS has_037
+  `
+  const untrackedPresent = findUntrackedSchemaMigrations(applied, schema as MigrationSchemaPresence)
+
+  if (untrackedPresent.length > 0) {
+    const message = [
+      'Migration ledger/schema mismatch: objects already exist for migrations absent from schema_migrations:',
+      ...untrackedPresent.map(filename => `  - ${filename}`),
+      'No migrations have been executed. Audit the complete schema and migration history first.',
+      'See docs/operations/migration-reconciliation-2026-10-13.md; do not blindly mark migrations applied.',
+    ].join('\n')
+    if (!dryRun) throw new Error(message)
+    console.warn(`\nWARNING: ${message}\n`)
   }
 
   console.log(`${pending.length} pending migration(s):`)

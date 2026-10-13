@@ -120,8 +120,12 @@ These signals are not interchangeable. In particular, a provider outage does not
 Production maintenance currently runs through authenticated Vercel cron jobs:
 
 - **03:00 UTC Monday** — EcoLogits refresh;
-- **04:00 UTC Monday** — catalogue verification;
-- **05:00 UTC daily** — runtime routability canary.
+- **04:00 UTC Monday** — live catalogue verification;
+- **05:00 UTC daily** — runtime routability canary;
+- **06:00, 06:20 and 06:40 UTC Monday** — LMArena Text, WebDev and Vision independently;
+- **07:00 UTC Monday** — Artificial Analysis refresh.
+
+The checked/targeted count, unverified models, metadata drift and failed source requests are all material: a partially successful check is not equivalent to a healthy catalogue. See the [catalogue confidence review](docs/operations/catalogue-confidence-2026-10-13.md).
 
 `CRON_SECRET` is required in production so Vercel can authenticate these endpoints.
 
@@ -197,7 +201,7 @@ npm install
 cp .env.local.example .env.local
 ```
 
-Configure the required environment variables described in `.env.local.example`, then run migrations and seed/model sync appropriate to your environment.
+Configure the required environment variables described in `.env.local.example`. **Before applying database migrations to an existing Neon environment, check the [migration reconciliation guide](docs/operations/migration-reconciliation-2026-10-13.md).** Production has a known ledger/schema discrepancy: migration 034–036 objects exist while the ledger currently ends at 024. Never blindly replay them. Run `npx tsx scripts/run-migrations.ts --dry-run` after choosing the correct environment, and do not run without a clean, reviewed migration plan. Then seed/model-sync as appropriate.
 
 ```bash
 npm run dev

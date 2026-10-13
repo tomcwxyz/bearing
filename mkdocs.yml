@@ -23,5 +23,8 @@ nav:
   - How We Rate Models: model-ratings.md
   - Public Data Model: public-data.md
   - Changelog: changelog.md
+  - Operations:
+      - Catalogue confidence (13 Oct 2026): operations/catalogue-confidence-2026-10-13.md
+      - Migration reconciliation (13 Oct 2026): operations/migration-reconciliation-2026-10-13.md
 extra_css:
   - stylesheets/bearing.css
