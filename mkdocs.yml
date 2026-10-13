@@ -23,8 +23,13 @@ nav:
   - How We Rate Models: model-ratings.md
   - Public Data Model: public-data.md
   - Changelog: changelog.md
-  - Operations:
+  - Contribute:
+      - How to contribute: contributing/index.md
+      - Challenge the methodology: contributing/methodology.md
       - Safe database contributions: database-contributions.md
+      - Data model: architecture/data-model.md
+      - Schema changes: architecture/schema-changes.md
+  - Operations:
       - Catalogue confidence (13 Oct 2026): operations/catalogue-confidence-2026-10-13.md
       - Migration reconciliation (13 Oct 2026): operations/migration-reconciliation-2026-10-13.md
 extra_css:
