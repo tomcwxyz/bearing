@@ -362,118 +362,6 @@ export function ResultsClient({
         <p role="alert" className="text-sm text-coral">{error}</p>
       )}
 
-      {!hardwareFitOnly && <details className="rounded-lg border border-cream-dark px-4 py-3"><summary className="cursor-pointer text-sm font-medium text-navy">How confident is this recommendation?</summary><div className="mt-3"><DecisionConfidence confidence={decisionConfidence} /></div></details>}
-
-      <HardwareProfilePanel
-        profile={hardwareProfile}
-        onProfileChange={handleHardwareProfileChange}
-      />
-
-      {hardwareProfile && (
-        <div className={`rounded-xl border px-4 py-3 ${
-          hardwareFitOnly
-            ? 'border-teal/30 bg-teal/5'
-            : 'border-cream-dark bg-white'
-        }`}>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="max-w-2xl">
-              <p className="font-display text-sm font-semibold text-navy">
-                {hardwareFitOnly ? 'Recommendations for this device' : 'Device fit is available'}
-              </p>
-              <p className="mt-1 text-sm leading-relaxed text-navy/65">
-                {hardwareFitOnly
-                  ? overallTop && overallTop.localCapable && overallTopHardwareFit && !overallTopHardwareFit.fits
-                    ? `${overallTop.name} remains Bearing's best overall task match, but its smallest reviewed local configuration needs ~${overallTopHardwareFit.minimumRuntimeGb ?? 'more'} GB against this device's ~${overallTopHardwareFit.memoryBudgetGb} GB model budget. Showing the highest-ranked models likely to run here instead.`
-                    : `Showing the highest-ranked models likely to run on this device. ${deviceFitCount} ranked model${deviceFitCount === 1 ? '' : 's'} currently fit the conservative estimate.`
-                  : `${deviceFitCount} ranked model${deviceFitCount === 1 ? '' : 's'} are likely to run on this device. The overall bearing is still shown until you switch to the device view.`}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setHardwareFitOnly((value) => !value)
-                setShowAllModels(false)
-              }}
-              className={hardwareFitOnly ? 'btn-secondary text-xs' : 'btn-primary text-xs'}
-            >
-              {hardwareFitOnly ? 'Show best overall' : 'Show best for this device'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="rounded-xl border border-cream-dark bg-white px-4 py-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-navy/45">Show</span>
-          <button
-            type="button"
-            aria-pressed={openOnly}
-            onClick={() => {
-              setOpenOnly((value) => !value)
-              setShowAllModels(false)
-            }}
-            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-              openOnly
-                ? 'border-teal bg-teal text-cream'
-                : 'border-cream-dark text-navy/70 hover:border-teal hover:text-teal'
-            }`}
-          >
-            Open models only
-          </button>
-          <button
-            type="button"
-            aria-pressed={localOnly}
-            onClick={() => {
-              setLocalOnly((value) => !value)
-              setShowAllModels(false)
-            }}
-            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-              localOnly
-                ? 'border-amber bg-amber text-white'
-                : 'border-cream-dark text-navy/70 hover:border-amber hover:text-navy'
-            }`}
-          >
-            Runs locally
-          </button>
-          <button
-            type="button"
-            aria-pressed={hardwareFitOnly}
-            disabled={!hardwareProfile}
-            onClick={() => {
-              setHardwareFitOnly((value) => !value)
-              setShowAllModels(false)
-            }}
-            title={hardwareProfile
-              ? 'Show local models whose reviewed memory footprint fits this device estimate'
-              : 'Check or choose this device memory first'}
-            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-              hardwareFitOnly
-                ? 'border-teal bg-teal text-cream'
-                : 'border-cream-dark text-navy/70 hover:border-teal hover:text-teal'
-            }`}
-          >
-            Fits this device
-          </button>
-          {(openOnly || localOnly || hardwareFitOnly) && (
-            <button
-              type="button"
-              onClick={() => {
-                setOpenOnly(false)
-                setLocalOnly(false)
-                setHardwareFitOnly(false)
-                setShowAllModels(false)
-              }}
-              className="ml-auto text-xs text-navy/50 underline underline-offset-2 hover:text-navy"
-            >
-              Clear filters
-            </button>
-          )}
-        </div>
-        <p className="mt-2 text-xs leading-relaxed text-navy/45">
-          Open means strong open-weight evidence. Local requires concrete execution/quantisation evidence. “Fits this device” uses the checked hardware profile plus a conservative runtime-memory allowance. The device view preserves Bearing&apos;s original task ranking among models that fit; it does not pretend the hardware estimate changes model quality.
-        </p>
-      </div>
-
       {visibleModels.length === 0 && (
         <div className="rounded-xl border border-cream-dark bg-cream/40 p-5 text-sm text-navy/65">
           No models in this bearing meet the selected filters. Try clearing one filter or adjust the bearing.
@@ -645,6 +533,121 @@ export function ResultsClient({
           </button>
         </div>
       )}
+
+      <details className="rounded-xl border border-cream-dark bg-white px-4 py-3"><summary className="cursor-pointer font-display font-semibold text-navy">Explore other ways to choose <span className="ml-2 font-body text-sm font-normal text-grey-blue">Device fit, open models and confidence</span></summary><div className="mt-4 space-y-4">
+      {!hardwareFitOnly && <details className="rounded-lg border border-cream-dark px-4 py-3"><summary className="cursor-pointer text-sm font-medium text-navy">How confident is this recommendation?</summary><div className="mt-3"><DecisionConfidence confidence={decisionConfidence} /></div></details>}
+
+      <HardwareProfilePanel
+        profile={hardwareProfile}
+        onProfileChange={handleHardwareProfileChange}
+      />
+
+      {hardwareProfile && (
+        <div className={`rounded-xl border px-4 py-3 ${
+          hardwareFitOnly
+            ? 'border-teal/30 bg-teal/5'
+            : 'border-cream-dark bg-white'
+        }`}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="max-w-2xl">
+              <p className="font-display text-sm font-semibold text-navy">
+                {hardwareFitOnly ? 'Recommendations for this device' : 'Device fit is available'}
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-navy/65">
+                {hardwareFitOnly
+                  ? overallTop && overallTop.localCapable && overallTopHardwareFit && !overallTopHardwareFit.fits
+                    ? `${overallTop.name} remains Bearing's best overall task match, but its smallest reviewed local configuration needs ~${overallTopHardwareFit.minimumRuntimeGb ?? 'more'} GB against this device's ~${overallTopHardwareFit.memoryBudgetGb} GB model budget. Showing the highest-ranked models likely to run here instead.`
+                    : `Showing the highest-ranked models likely to run on this device. ${deviceFitCount} ranked model${deviceFitCount === 1 ? '' : 's'} currently fit the conservative estimate.`
+                  : `${deviceFitCount} ranked model${deviceFitCount === 1 ? '' : 's'} are likely to run on this device. The overall bearing is still shown until you switch to the device view.`}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setHardwareFitOnly((value) => !value)
+                setShowAllModels(false)
+              }}
+              className={hardwareFitOnly ? 'btn-secondary text-xs' : 'btn-primary text-xs'}
+            >
+              {hardwareFitOnly ? 'Show best overall' : 'Show best for this device'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-xl border border-cream-dark bg-white px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-navy/45">Show</span>
+          <button
+            type="button"
+            aria-pressed={openOnly}
+            onClick={() => {
+              setOpenOnly((value) => !value)
+              setShowAllModels(false)
+            }}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              openOnly
+                ? 'border-teal bg-teal text-cream'
+                : 'border-cream-dark text-navy/70 hover:border-teal hover:text-teal'
+            }`}
+          >
+            Open models only
+          </button>
+          <button
+            type="button"
+            aria-pressed={localOnly}
+            onClick={() => {
+              setLocalOnly((value) => !value)
+              setShowAllModels(false)
+            }}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              localOnly
+                ? 'border-amber bg-amber text-white'
+                : 'border-cream-dark text-navy/70 hover:border-amber hover:text-navy'
+            }`}
+          >
+            Runs locally
+          </button>
+          <button
+            type="button"
+            aria-pressed={hardwareFitOnly}
+            disabled={!hardwareProfile}
+            onClick={() => {
+              setHardwareFitOnly((value) => !value)
+              setShowAllModels(false)
+            }}
+            title={hardwareProfile
+              ? 'Show local models whose reviewed memory footprint fits this device estimate'
+              : 'Check or choose this device memory first'}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+              hardwareFitOnly
+                ? 'border-teal bg-teal text-cream'
+                : 'border-cream-dark text-navy/70 hover:border-teal hover:text-teal'
+            }`}
+          >
+            Fits this device
+          </button>
+          {(openOnly || localOnly || hardwareFitOnly) && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpenOnly(false)
+                setLocalOnly(false)
+                setHardwareFitOnly(false)
+                setShowAllModels(false)
+              }}
+              className="ml-auto text-xs text-navy/50 underline underline-offset-2 hover:text-navy"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-navy/45">
+          Open means strong open-weight evidence. Local requires concrete execution/quantisation evidence. “Fits this device” uses the checked hardware profile plus a conservative runtime-memory allowance. The device view preserves Bearing&apos;s original task ranking among models that fit; it does not pretend the hardware estimate changes model quality.
+        </p>
+      </div>
+
+      </div></details>
 
       {pipeline && (
         <PipelineSection
