@@ -33,8 +33,5 @@ nav:
       - Data model: architecture/data-model.md
       - Propose schema changes: architecture/schema-changes.md
   - Project updates: changelog.md
-  - Maintainer operations:
-      - Catalogue confidence: operations/catalogue-confidence-2026-10-13.md
-      - Migration reconciliation: operations/migration-reconciliation-2026-10-13.md
 extra_css:
   - stylesheets/bearing.css
