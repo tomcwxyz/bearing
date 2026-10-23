@@ -8,7 +8,7 @@ export default async function SubmittedPage({searchParams}:{searchParams:Promise
   {valid && <section className="mt-6 rounded-xl border border-cream-dark bg-white p-5">
     <p className="text-sm font-semibold">Your private reference</p>
     <p className="mt-1 break-all font-mono text-sm">{id}</p>
-    <p className="mt-2 text-sm text-grey-blue">Save this link to check your report's review status. Anyone with this link can see the status, but not your submission text.</p>
+    <p className="mt-2 text-sm text-grey-blue">Save this link to check your report&apos;s review status. Anyone with this link can see the status, but not your submission text.</p>
     <Link href={'/contribute/status/'+id} className="mt-3 inline-block text-teal underline">Check review status →</Link>
   </section>}
   <Link href="/models" className="mt-6 inline-block underline text-teal">Explore models</Link>
