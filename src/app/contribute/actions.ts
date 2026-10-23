@@ -18,7 +18,7 @@ export async function submitCommunityFeedback(form: FormData) {
   const ip = (h.get('x-real-ip') || h.get('x-forwarded-for')?.split(',')[0] || 'unknown').trim().slice(0,128)
   const fingerprint = feedbackFingerprint(ip)
   const user = await getCurrentUser()
-  const saved = await submitFeedback(data, fingerprint, user?.id ?? null)
-  if (!saved) redirect('/contribute?limited=1')
-  redirect('/contribute/submitted')
+  const receipt = await submitFeedback(data, fingerprint, user?.id ?? null)
+  if (!receipt) redirect('/contribute?limited=1')
+  redirect('/contribute/submitted?id=' + receipt)
 }

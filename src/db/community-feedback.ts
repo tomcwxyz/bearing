@@ -39,7 +39,13 @@ export async function submitFeedback(input: ReturnType<typeof validateFeedback>,
     AND (${input.modelSlug}::text IS NULL OR EXISTS(SELECT 1 FROM models WHERE slug=${input.modelSlug} AND active=true))
     RETURNING id
   `
-  return rows.length === 1
+  return rows.length === 1 ? id : null
+}
+export async function getFeedbackStatus(id: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null
+  const rows = await sql()`SELECT status,created_at::text AS created_at,reviewed_at::text AS reviewed_at FROM community_feedback WHERE id=${id}::uuid LIMIT 1`
+  if (!rows.length) return null
+  return { status:String(rows[0].status), createdAt:String(rows[0].created_at), reviewedAt:rows[0].reviewed_at == null ? null : String(rows[0].reviewed_at) }
 }
 export async function listFeedback() {
   return sql()`SELECT id::text,kind,model_slug,description,evidence_url,status,review_note,created_at::text,reviewed_at::text FROM community_feedback ORDER BY (status='pending') DESC,created_at DESC LIMIT 200`
