@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Nav } from "@/components/nav";
 import { Analytics } from "@/components/analytics";
 import "./globals.css";
+import { contributorDemoEnabled } from "@/lib/contributor-demo-mode";
 
 const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://findbearing.org";
 
@@ -49,6 +50,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-body">
         <Analytics />
         <Nav />
+        {contributorDemoEnabled() && <div role="status" className="px-4 py-2 text-center text-sm bg-teal/10">Local contribution mode · <a href="/demo" className="underline">Open workbench</a></div>}
 
         <main className="flex-1">{children}</main>
 
