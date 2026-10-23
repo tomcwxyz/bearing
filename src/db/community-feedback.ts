@@ -13,7 +13,7 @@ export function validateFeedback(input: { kind: string; modelSlug: string; descr
   const description = input.description.trim()
   if (description.length < 20 || description.length > 2500) throw new Error('Please explain your observation in 20–2,500 characters.')
   const modelSlug = input.modelSlug.trim() || null
-  if (modelSlug && (modelSlug.length > 150 || !/^[a-zA-Z0-9._/-]+$/.test(modelSlug))) throw new Error('Invalid model.')
+  if (modelSlug && (modelSlug.length > 150 || modelSlug.includes('..') || modelSlug.startsWith('/') || !/^[a-zA-Z0-9._/-]+$/.test(modelSlug))) throw new Error('Invalid model.')
   const evidenceUrl = input.evidenceUrl.trim() || null
   if (evidenceUrl) {
     try {
