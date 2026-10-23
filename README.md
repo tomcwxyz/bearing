@@ -29,9 +29,9 @@ You don't need to be a developer. Contributions to **model facts, evidence, scor
 | Improve code or documentation | [Contributor guide](CONTRIBUTING.md) |
 | Understand the public evidence and data | [Public data model](docs/public-data.md) |
 
-If you aren't technical, **opening an issue with a description and source is enough**. There is no need to edit JSON, run the application or access the database. A simpler on-site contribution form is planned but **not yet available**.
+If you aren't technical, **opening an issue with a description and source is enough**. There is no need to edit JSON, run the application or access the database. A simple [website contribution form](https://findbearing.org/contribute) is available for people who prefer not to use GitHub. All reports are moderated.
 
-For developers, see [CONTRIBUTING.md](CONTRIBUTING.md) and the [contribution routes](docs/contributing/index.md). Developers can run the [offline contributor workbench](docs/local-workbench.md) using `npm run dev:demo`. [Reviewed evidence proposals](docs/model-evidence-contributions.md) are available through GitHub pull requests and maintainer review; the website-native correction form remains planned.
+For developers, see [CONTRIBUTING.md](CONTRIBUTING.md) and the [contribution routes](docs/contributing/index.md). Developers can run the [offline contributor workbench](docs/local-workbench.md) using `npm run dev:demo`. [Reviewed evidence proposals](docs/model-evidence-contributions.md) are available through GitHub pull requests and maintainer review; the website-native feedback form is available at [Contribute](https://findbearing.org/contribute).
 
 ## Developer quick start
 
