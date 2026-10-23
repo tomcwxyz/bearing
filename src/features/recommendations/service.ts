@@ -60,7 +60,18 @@ export async function getRecommendationResults(taskId: string) {
 
     const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
     const scoringInput = scoringInputFromTask(task, benchmarkScores)
-    // A mixed generative + embedding workflow must not be reduced to an empty\n    // embedding shortlist because the classifier attached chat-stage capabilities.\n    // Preserve the specialist embedding pipeline while ranking chat models for\n    // the overarching analysis task.\n    const isMixedEmbeddingWorkflow = scoringInput.taskType === 'embedding' &&\n      (scoringInput.needsTools || scoringInput.needsCode || task.is_agentic) &&\n      Array.isArray(task.pipeline_stages) &&\n      task.pipeline_stages.some((stage: {task_type?: string}) => stage.task_type !== 'embedding')\n    const effectiveInput = isMixedEmbeddingWorkflow\n      ? {...scoringInput, taskType: 'analyse'} : scoringInput\n    const { models, excluded } = scoreModelsDetailed(effectiveInput)
+    // A mixed generative + embedding workflow must not be reduced to an empty
+    // embedding shortlist because the classifier attached chat-stage capabilities.
+    // Preserve the specialist embedding pipeline while ranking chat models for
+    // the overarching analysis task.
+    const isMixedEmbeddingWorkflow = scoringInput.taskType === 'embedding' &&
+      (scoringInput.needsTools || scoringInput.needsCode || task.is_agentic) &&
+      Boolean(task.pipeline_stages) &&
+      (typeof task.pipeline_stages === 'string' ? JSON.parse(task.pipeline_stages) : task.pipeline_stages)
+        .some((stage: {task_type?: string}) => stage.task_type !== 'embedding')
+    const effectiveInput = isMixedEmbeddingWorkflow
+      ? {...scoringInput, taskType: 'analyse'} : scoringInput
+    const { models, excluded } = scoreModelsDetailed(effectiveInput)
 
     await saveRecommendations(
       taskId,
@@ -74,7 +85,7 @@ export async function getRecommendationResults(taskId: string) {
 
     const reasoning = await generateReasoning(
       task.description_hash ?? '',
-      task.task_type,
+      effectiveInput.taskType,
       models,
     )
 
