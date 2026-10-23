@@ -60,7 +60,18 @@ export async function getRecommendationResults(taskId: string) {
 
     const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
     const scoringInput = scoringInputFromTask(task, benchmarkScores)
-    const { models, excluded } = scoreModelsDetailed(scoringInput)
+    // A mixed generative + embedding workflow must not be reduced to an empty
+    // embedding shortlist because the classifier attached chat-stage capabilities.
+    // Preserve the specialist embedding pipeline while ranking chat models for
+    // the overarching analysis task.
+    const isMixedEmbeddingWorkflow = scoringInput.taskType === 'embedding' &&
+      (scoringInput.needsTools || scoringInput.needsCode || task.is_agentic) &&
+      Boolean(task.pipeline_stages) &&
+      (typeof task.pipeline_stages === 'string' ? JSON.parse(task.pipeline_stages) : task.pipeline_stages)
+        .some((stage: {task_type?: string}) => stage.task_type !== 'embedding')
+    const effectiveInput = isMixedEmbeddingWorkflow
+      ? {...scoringInput, taskType: 'analyse'} : scoringInput
+    const { models, excluded } = scoreModelsDetailed(effectiveInput)
 
     await saveRecommendations(
       taskId,
@@ -74,7 +85,7 @@ export async function getRecommendationResults(taskId: string) {
 
     const reasoning = await generateReasoning(
       task.description_hash ?? '',
-      task.task_type,
+      effectiveInput.taskType,
       models,
     )
 
@@ -122,7 +133,7 @@ export async function getRecommendationResults(taskId: string) {
       )
     }
 
-    return { task, models, reasoning, pipeline, local, excluded }
+    return { task, models, reasoning, pipeline, local, excluded, effectiveTaskType: effectiveInput.taskType }
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : 'Failed to get results.',

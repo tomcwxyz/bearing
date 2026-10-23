@@ -328,13 +328,13 @@ export function hardFilter(model: Model, input: ScoringInput): HardFilterResult 
   if (input.latencyTarget === 'realtime' && model.speed_score < REALTIME_SPEED_THRESHOLD) {
     return { ok: false, reason: 'realtime' }
   }
-  if (input.needsVision && !model.capabilities.includes('vision')) {
+  if (!wantsEmbedding && input.needsVision && !model.capabilities.includes('vision')) {
     return { ok: false, reason: 'missing_vision' }
   }
-  if (input.needsTools && !model.capabilities.includes('tools')) {
+  if (!wantsEmbedding && input.needsTools && !model.capabilities.includes('tools')) {
     return { ok: false, reason: 'missing_tools' }
   }
-  if (input.needsCode && !model.capabilities.includes('code')) {
+  if (!wantsEmbedding && input.needsCode && !model.capabilities.includes('code')) {
     return { ok: false, reason: 'missing_code' }
   }
   return { ok: true }

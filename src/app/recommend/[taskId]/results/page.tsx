@@ -45,7 +45,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
     )
   }
 
-  const { task, models, reasoning, pipeline, local, excluded } = result as unknown as {
+  const { task, models, reasoning, pipeline, local, excluded, effectiveTaskType } = result as unknown as {
     task: {
       task_type: string
       priority_order?: unknown
@@ -62,6 +62,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
       needs_multilingual?: boolean | null
       is_agentic?: boolean | null
     }
+    effectiveTaskType: string
     models: ScoredModel[]
     reasoning: Record<string, string>
     pipeline: (PipelineResult & { reasoning: string }) | null
@@ -94,7 +95,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
   let outcomeBySlug: Record<string, ModelOutcomeEvidence> = {}
   try {
     outcomeBySlug = await getOutcomeEvidenceForModels({
-      taskType: task.task_type,
+      taskType: effectiveTaskType,
       complexity: task.complexity,
       modelSlugs: models.map((model) => model.slug),
     })
@@ -111,8 +112,8 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
       models.map((model) => [
         model.slug,
         benchmarkEvidence({
-          curatedScore: getModel(model.slug)?.task_fitness[task.task_type],
-          aggregate: aggregates.get(`${model.slug}::${task.task_type}`),
+          curatedScore: getModel(model.slug)?.task_fitness[effectiveTaskType],
+          aggregate: aggregates.get(`${model.slug}::${effectiveTaskType}`),
         }),
       ]),
     )
@@ -155,7 +156,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
 
         <h2 className="text-2xl font-bold mb-2 font-display text-navy">Your bearing</h2>
         <p className="text-grey-blue">
-          Ranked for <strong>{(TASK_TYPE_LABELS as Record<string, string>)[task.task_type] ?? task.task_type}</strong> tasks.
+          Ranked for <strong>{(TASK_TYPE_LABELS as Record<string, string>)[effectiveTaskType] ?? effectiveTaskType}</strong> tasks.
         </p>
         <div className="mb-8 mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-teal/20 bg-teal/5 px-4 py-3">
           <p className="flex-1 text-sm text-navy/75">{describeBearing(priorityOrder)}</p>
@@ -166,7 +167,8 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
             Adjust bearing
           </Link>
         </div>
-        {excluded && excluded.length > 0 && <ExclusionSummary excluded={excluded} />}
+        {excluded && excluded.length > 0 && <details className="mb-5 text-sm text-grey-blue"><summary className="cursor-pointer">Why were some models excluded?</summary><div className="mt-2"><ExclusionSummary excluded={excluded} /></div></details>}
+        {effectiveTaskType !== task.task_type && <p className="mb-5 rounded-lg border border-teal/30 bg-teal/5 p-3 text-sm text-navy">This involves several kinds of AI work. We recommend analysis models for the main task and keep embedding models in the specialist pipeline.</p>}
         <ResultsClient
           taskId={taskId}
           models={models}
