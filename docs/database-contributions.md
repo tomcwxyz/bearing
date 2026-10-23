@@ -44,7 +44,7 @@ The GitHub workflow `.github/workflows/database-migrations.yml` executes this id
 
 ## Production migration reconciliation
 
-The production database was found on 13 October 2026 to contain migration 034–036 schema objects even though the `schema_migrations` ledger ends at 024. This makes blindly re-running the normal Neon HTTP migration runner unsafe. Read the [production migration reconciliation guide](operations/migration-reconciliation-2026-10-13.md) and complete its **read-only, per-migration audit** before approving a ledger-only repair. The local Docker harness **does not** resolve this production mismatch.
+The production ledger/schema mismatch found on 13 October 2026 was reconciled on 23 October 2026, with the migration history recorded through 037. Continue to check the actual database and ledger before any future schema change. Read the [production migration reconciliation guide](operations/migration-reconciliation-2026-10-13.md) and complete its **read-only, per-migration audit** before approving a ledger-only repair. The local Docker harness **does not** resolve this production mismatch.
 
 ## Maintainer review and deployment
 
