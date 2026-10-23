@@ -17,20 +17,22 @@ theme:
   icon:
     logo: material/compass-outline
 nav:
-  - Home: index.md
-  - User Guide: user-guide.md
-  - How Bearing Works: how-bearing-works.md
-  - How We Rate Models: model-ratings.md
-  - Public Data Model: public-data.md
-  - Changelog: changelog.md
+  - Start here:
+      - Overview: index.md
+      - User guide: user-guide.md
+      - How Bearing works: how-bearing-works.md
+  - Evidence and methods:
+      - How we rate models: model-ratings.md
+      - Public data: public-data.md
   - Contribute:
-      - How to contribute: contributing/index.md
+      - Choose a contribution route: contributing/index.md
       - Challenge the methodology: contributing/methodology.md
-      - Safe database contributions: database-contributions.md
+      - Database contribution testing: database-contributions.md
       - Data model: architecture/data-model.md
-      - Schema changes: architecture/schema-changes.md
-  - Operations:
-      - Catalogue confidence (13 Oct 2026): operations/catalogue-confidence-2026-10-13.md
-      - Migration reconciliation (13 Oct 2026): operations/migration-reconciliation-2026-10-13.md
+      - Propose schema changes: architecture/schema-changes.md
+  - Project updates: changelog.md
+  - Maintainer operations:
+      - Catalogue confidence: operations/catalogue-confidence-2026-10-13.md
+      - Migration reconciliation: operations/migration-reconciliation-2026-10-13.md
 extra_css:
   - stylesheets/bearing.css
