@@ -1,6 +1,6 @@
 # Production migration reconciliation — 13 October 2026
 
-**Status: investigation and read-only checks completed; ledger NOT reconciled.** Do not run the migration runner against production until the discrepancy is resolved. This is an operational record, not proof that a numbered migration has been applied in full.
+**Status: production ledger reconciled on 23 October 2026.** Earlier investigation notes below are retained for historical context. See the resolution section at the end of this document.
 
 ## What we observed
 
@@ -105,3 +105,13 @@ A fresh read-only production check again found **24** ledger entries ending at `
 Created a disposable Neon child branch of production, `br-jolly-sky-abh946pv` (`bearing-contributions-reconciliation-20261023`), and applied migration 037's table and index SQL in a transaction **only on that child branch**. Follow-up read confirmed `model_evidence_reviews` exists with zero rows; its copied ledger still stops at 024. This establishes that the isolated DDL executes, **not** that the production migration chain is reconciled or safe to advance.
 
 The current contributor workbench is merged through PR #144. The reviewed evidence system is staged in PR #145. Do not merge/deploy its review interface as production-ready until the per-migration audit of 025–036, ledger reconciliation, production dry-run, and controlled application of 037 are complete. Track this work in issue #143.
+
+## Resolution — 23 October 2026
+
+**Production ledger reconciled.** A read-only per-migration audit compared the current 026–036 SQL with production columns, relevant constraints and indexes, provider-model ID seed values, selection snapshot backfill coverage, and retirement provenance. The pending 025 migration remains excluded. A disposable Neon child branch tested the 037 schema and an isolated ledger repair before production changes.
+
+The production repair was guarded by the previous 24-row ledger baseline, required schema objects, complete selection snapshot coverage and consistent retirement lifecycle events. It inserted only missing 026–036 ledger records, without replaying historical DDL, UPDATE backfills or lifecycle INSERTs. Migration 037 was subsequently applied transactionally (new evidence-review table, index, ledger entry), following CI and PR #145 merge.
+
+Post-change read-only verification: **36 recorded active migrations through 037**, `model_evidence_reviews` exists and currently has 0 records. The `applied_at` timestamps of 026–036 represent **the date of reconciliation**, not original execution. The exact prior SQL execution dates are not asserted by this repair.
+
+PR #145 contains the reviewed public evidence workflow; PR #144 contains the offline contributor workbench. The website-native non-technical contribution intake remains a separate feature tracked by issue #142, not part of the reviewed JSON proposal workflow.
