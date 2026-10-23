@@ -40,6 +40,7 @@ export default async function EvidenceProposalsPage() {
     <main className="mx-auto w-full max-w-4xl px-4 py-12">
       <Link href="/admin" className="text-sm text-teal hover:underline">← Back to admin</Link>
       <h1 className="mt-3 font-display text-4xl text-navy">Community model evidence</h1>
+      <Link href="/admin/community-feedback" className="mt-3 inline-block text-sm text-teal underline">Review plain-language contributions →</Link>
       <p className="mt-3 max-w-3xl text-sm leading-6 text-grey-blue">
         Public correction proposals merged into the repository are shown here for
         deliberate maintainer review. Nothing is applied automatically.
