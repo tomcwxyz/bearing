@@ -2,7 +2,7 @@
 
 Bearing is an open-source decision and evaluation layer for AI work. Contributions to the code **and to the reasoning behind it** are welcome. You do **not** need access to our Neon database, production services, API keys, or private user data.
 
-Start with the [contribution routes](docs/contributing/index.md) and [GitHub issue forms](https://github.com/tomcwxyz/bearing/issues/new/choose). The [methodology challenge guide](docs/contributing/methodology.md) explains how to question existing assumptions constructively; the [data-model guide](docs/architecture/data-model.md) describes the database without requiring a connection.
+For a plain-language correction without GitHub, use the [contribution form](https://findbearing.org/contribute). Start with the [contribution routes](docs/contributing/index.md) and [GitHub issue forms](https://github.com/tomcwxyz/bearing/issues/new/choose). The [methodology challenge guide](docs/contributing/methodology.md) explains how to question existing assumptions constructively; the [data-model guide](docs/architecture/data-model.md) describes the database without requiring a connection.
 
 ## Choose a route
 
