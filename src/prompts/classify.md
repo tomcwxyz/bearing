@@ -61,6 +61,8 @@ Thirteen canonical types, organised by what the user *wants out*.
 - **conversation**: Ongoing multi-turn dialogue — chatbots, tutoring, brainstorming.
 - **embedding**: Convert text into numerical vectors for semantic search, retrieval-augmented generation (RAG), clustering, deduplication, or similarity ranking. The model's output is a fixed-dimensional vector, not generated text. Pick this when the user describes building an index, a retrieval system, a vector database, or any "find similar items" / RAG workflow.
 
+**Multi-step data and knowledge-graph tasks:** Creating a knowledge graph from large datasets requires extracting entities, analysing relationships, and often embedding at a *later* indexing stage. The top-level task type must be `analyse` (or `extract` where extraction is explicitly the end goal), NOT `embedding`. Keep the embedding work as a separate pipeline stage. Reserve top-level `embedding` for requests whose principal output is *vectors, embeddings, a vector index or nearest-neighbour lookup*, rather than knowledge-graph construction. Flags like needs_tools/needs_code apply to the relevant generative stage, not every specialist pipeline stage. Example: "I want to analyse large amounts of data and create a knowledge graph" -> task_type=analyse, pipeline stages extract/analyse/embedding.
+
 Note: `vision` and `other` are NOT task types. Vision is a capability
 (`needs_vision: true`); see "Classify by intent" below. When no type fits,
 set `clarification_needed: true` and `confidence < 0.5` instead of
