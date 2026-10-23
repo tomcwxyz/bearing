@@ -167,8 +167,6 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
             Adjust bearing
           </Link>
         </div>
-        {excluded && excluded.length > 0 && <details className="mb-5 text-sm text-grey-blue"><summary className="cursor-pointer">Why were some models excluded?</summary><div className="mt-2"><ExclusionSummary excluded={excluded} /></div></details>}
-        {effectiveTaskType !== task.task_type && <p className="mb-5 rounded-lg border border-teal/30 bg-teal/5 p-3 text-sm text-navy">This involves several kinds of AI work. We recommend analysis models for the main task and keep embedding models in the specialist pipeline.</p>}
         <ResultsClient
           taskId={taskId}
           models={models}
@@ -182,6 +180,9 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
           decisionConfidence={decisionConfidence}
           ollamaCloudRoutes={ollamaCloudRoutes}
         />
+        <details className="mt-5 text-sm text-grey-blue"><summary className="cursor-pointer">About this recommendation</summary><div className="mt-3 space-y-3">        {excluded && excluded.length > 0 && <details className="mb-5 text-sm text-grey-blue"><summary className="cursor-pointer">Why were some models excluded?</summary><div className="mt-2"><ExclusionSummary excluded={excluded} /></div></details>}
+        {effectiveTaskType !== task.task_type && <p className="mb-5 rounded-lg border border-teal/30 bg-teal/5 p-3 text-sm text-navy">This involves several kinds of AI work. We recommend analysis models for the main task and keep embedding models in the specialist pipeline.</p>}
+</div></details>
       </div>
     </main>
   )
