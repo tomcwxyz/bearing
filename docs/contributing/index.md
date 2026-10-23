@@ -1,17 +1,17 @@
 # Help improve Bearing
 
-**You don't need to write code.** Bearing depends on people spotting incorrect information, testing recommendations, challenging assumptions and contributing better evidence.
+**You don't need to write code or use GitHub.** Bearing depends on people spotting incorrect information, testing recommendations, challenging assumptions and contributing better evidence.
 
 ## Choose your route
 
 ### I don't want to code
 
-1. **Correct a model fact.** Found an outdated price, missing capability, wrong context length or retired model? [Open a model/evidence issue](https://github.com/tomcwxyz/bearing/issues/new/choose).
+1. **Correct a model fact.** Found an outdated price, missing capability, wrong context length or retired model? [Use the website form](https://findbearing.org/contribute).
 2. **Question a recommendation.** Explain the job, what Bearing suggested and why it seemed wrong. Use a *synthetic or redacted* example, not a private prompt.
 3. **Challenge the methodology.** Think a scoring factor, weighting or evidence source is misleading? [Read the challenge guide](methodology.md) and share your reasoning.
-4. **Improve accessibility or clarity.** Report what was confusing through [GitHub Issues](https://github.com/tomcwxyz/bearing/issues).
+4. **Improve accessibility or clarity.** Report what was confusing through the [website form](https://findbearing.org/contribute).
 
-**A short explanation is sufficient.** Links to dated provider information or reproducible examples are helpful, but you don't need to know the data schema. GitHub currently handles public reports; an on-site submission form is planned, not yet shipped.
+**A short explanation is sufficient.** Links to dated provider information or reproducible examples are helpful, but you don't need to know the data schema. You can submit the [website form](https://findbearing.org/contribute) without a GitHub account. Reports are moderated and cannot directly change model facts. Technical contributors can still use GitHub.
 
 ### I want to contribute technically
 
