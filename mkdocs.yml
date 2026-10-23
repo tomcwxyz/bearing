@@ -27,6 +27,7 @@ nav:
   - Contribute:
       - Choose a contribution route: contributing/index.md
       - Local offline workbench: local-workbench.md
+      - Submit reviewed model evidence: model-evidence-contributions.md
       - Challenge the methodology: contributing/methodology.md
       - Database contribution testing: database-contributions.md
       - Data model: architecture/data-model.md
