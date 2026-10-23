@@ -362,7 +362,7 @@ export function ResultsClient({
         <p role="alert" className="text-sm text-coral">{error}</p>
       )}
 
-      {!hardwareFitOnly && <DecisionConfidence confidence={decisionConfidence} />}
+      {!hardwareFitOnly && <details className="rounded-lg border border-cream-dark px-4 py-3"><summary className="cursor-pointer text-sm font-medium text-navy">How confident is this recommendation?</summary><div className="mt-3"><DecisionConfidence confidence={decisionConfidence} /></div></details>}
 
       <HardwareProfilePanel
         profile={hardwareProfile}
