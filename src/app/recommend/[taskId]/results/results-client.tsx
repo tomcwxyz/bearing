@@ -284,10 +284,10 @@ export function ResultsClient({
     // A fresh device check is a strong signal that the person wants the result
     // interpreted for this machine. Restoring an old browser profile only adds
     // annotations until they explicitly opt back into the device view.
+    // A device check annotates the existing ranking, rather than unexpectedly
+    // switching to an empty hardware-only shortlist. Users can opt in below.
     if (source === 'checked' || source === 'memory') {
-      setHardwareFitOnly(true)
-      setLocalOnly(false)
-      setShowAllModels(false)
+      setHardwareFitOnly(false)
     }
   }, [])
 
