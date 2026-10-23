@@ -97,3 +97,11 @@ See [safe database contributions](../database-contributions.md) (merged via PR #
 On 12 October the catalogue job checked 66/80 live models; 55 were current, 10 attention, 1 unavailable, 14 unknown. The unavailable route was `qwen/qwen3-235b-a22b`: **do not substitute the 2507 variant as an equivalent model** without a separate model identity and editorial review. A missing route is not grounds for a blind slug rewrite. See the companion catalogue confidence runbook for the review queue.
 
 No production SQL mutation or migration replay was performed as part of this investigation.
+
+## Follow-up — 23 October 2026
+
+A fresh read-only production check again found **24** ledger entries ending at `024_password_auth.sql`, with `benchmark_refresh_runs`, `model_availability_observations` and `model_lifecycle_events` present, but `model_evidence_reviews` absent. These checks do **not** certify migrations 025–036 as complete. We have not inserted any missing ledger entries and have not run the migration runner on production.
+
+Created a disposable Neon child branch of production, `br-jolly-sky-abh946pv` (`bearing-contributions-reconciliation-20261023`), and applied migration 037's table and index SQL in a transaction **only on that child branch**. Follow-up read confirmed `model_evidence_reviews` exists with zero rows; its copied ledger still stops at 024. This establishes that the isolated DDL executes, **not** that the production migration chain is reconciled or safe to advance.
+
+The current contributor workbench is merged through PR #144. The reviewed evidence system is staged in PR #145. Do not merge/deploy its review interface as production-ready until the per-migration audit of 025–036, ledger reconciliation, production dry-run, and controlled application of 037 are complete. Track this work in issue #143.
