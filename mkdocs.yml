@@ -26,6 +26,7 @@ nav:
       - Public data: public-data.md
   - Contribute:
       - Choose a contribution route: contributing/index.md
+      - Local offline workbench: local-workbench.md
       - Challenge the methodology: contributing/methodology.md
       - Database contribution testing: database-contributions.md
       - Data model: architecture/data-model.md
