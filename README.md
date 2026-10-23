@@ -31,7 +31,7 @@ You don't need to be a developer. Contributions to **model facts, evidence, scor
 
 If you aren't technical, **opening an issue with a description and source is enough**. There is no need to edit JSON, run the application or access the database. A simpler on-site contribution form is planned but **not yet available**.
 
-For developers, see [CONTRIBUTING.md](CONTRIBUTING.md) and the [contribution routes](docs/contributing/index.md). The local offline workbench and reviewed data-proposal workflow are still being developed ([#122](https://github.com/tomcwxyz/bearing/pull/122), [#132](https://github.com/tomcwxyz/bearing/pull/132)).
+For developers, see [CONTRIBUTING.md](CONTRIBUTING.md) and the [contribution routes](docs/contributing/index.md). Developers can run the [offline contributor workbench](docs/local-workbench.md) using `npm run dev:demo`. [Reviewed evidence proposals](docs/model-evidence-contributions.md) are available through GitHub pull requests and maintainer review; the website-native correction form remains planned.
 
 ## Developer quick start
 
