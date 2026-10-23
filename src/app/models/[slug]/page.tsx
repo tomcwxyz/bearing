@@ -77,6 +77,8 @@ export default async function ModelDetailPage({
           </span>
         </div>
 
+        <Link href={'/contribute?model='+encodeURIComponent(model.slug)} className="mt-5 inline-block text-sm text-teal underline">Suggest a correction to this model →</Link>
+
         {/* Capabilities */}
         <Section title="Capabilities">
           <div className="flex flex-wrap gap-2">
