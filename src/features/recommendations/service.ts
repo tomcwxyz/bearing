@@ -122,7 +122,7 @@ export async function getRecommendationResults(taskId: string) {
       )
     }
 
-    return { task, models, reasoning, pipeline, local, excluded }
+    return { task, models, reasoning, pipeline, local, excluded, effectiveTaskType: effectiveInput.taskType }
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : 'Failed to get results.',
