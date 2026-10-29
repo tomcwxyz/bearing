@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getRecommendationResults } from '@/features/recommendations/service'
 import { ResultsClient } from './results-client'
 import { StepProgress } from '@/components/step-progress'
-import { TASK_TYPE_LABELS, getModel, type Factor } from '@/lib/registry'
+import { TASK_TYPE_LABELS, type Factor } from '@/lib/registry'
 import { describeBearing, deriveBearingPriorities } from '@/lib/bearing-policy'
 import type { ScoredModel, Exclusion, HardFilterReason } from '@/lib/scoring'
 import type { PipelineResult } from '@/lib/pipeline'
@@ -112,7 +112,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
       models.map((model) => [
         model.slug,
         benchmarkEvidence({
-          curatedScore: getModel(model.slug)?.task_fitness[effectiveTaskType],
+          curatedScore: model.curatedTaskFitness,
           aggregate: aggregates.get(`${model.slug}::${effectiveTaskType}`),
         }),
       ]),
@@ -134,7 +134,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ taskId
 
   const featuredAlternatives = selectTradeoffAlternatives(models, {
     limit: 2,
-    isLocal: (slug) => Boolean(getModel(slug)?.local_info),
+    isLocal: (slug) => Boolean(models.find(model => model.slug === slug)?.localInfo),
   })
 
   const ollamaCloudRoutes = isOllamaCloudConfigured()
