@@ -4,6 +4,7 @@ import { createHmac, randomBytes, timingSafeEqual } from 'crypto'
 
 import { saveExecutionObservation } from '@/db/execution-observations'
 import { hasLocalRecommendation } from '@/db/recommendations'
+import { getModelForAdmin } from '@/db/models'
 import { getReviewedOpenLocalEvidence } from '@/lib/open-local-evidence'
 import { ollamaModelNamesCompatible } from '@/lib/ollama-catalogue'
 import { sanitiseCoarseHardwareProfile } from '@/lib/selection-context'
@@ -61,6 +62,8 @@ function parseTicket(ticket: string): LocalObservationTicketPayload | null {
 }
 
 async function validateLocalTarget(taskId: string, modelSlug: string) {
+  const model = await getModelForAdmin(modelSlug)
+  if (!model?.active) return { error: 'This model is no longer live in Bearing.' as const }
   const reviewed = getReviewedOpenLocalEvidence(modelSlug)
   if (!reviewed?.ollamaModelId || reviewed.status !== 'confirmed_local') {
     return { error: 'This model does not have reviewed local Ollama evidence.' as const }
