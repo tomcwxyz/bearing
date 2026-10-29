@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation'
 
 import { getCurrentUser } from '@/lib/auth'
 import { listCompletedTasksForUser } from '@/db/tasks'
-import { getModel, TASK_TYPE_LABELS } from '@/lib/registry'
+import { TASK_TYPE_LABELS } from '@/lib/registry'
+import { getModelNamesBySlugs } from '@/db/models'
 import { resumePathForTask } from '@/lib/task-continuity'
 
 function formatDate(value: string): string {
@@ -17,6 +18,9 @@ export default async function BearingsPage() {
   if (!user) redirect('/auth/signin')
 
   const tasks = await listCompletedTasksForUser(user.id)
+  const namesBySlug = await getModelNamesBySlugs(
+    [...new Set(tasks.map(task => task.bestModelSlug).filter((slug): slug is string => Boolean(slug)))],
+  )
 
   return (
     <main className="min-h-screen px-6 py-12">
@@ -55,7 +59,7 @@ export default async function BearingsPage() {
         ) : (
           <div className="space-y-3">
             {tasks.map((task) => {
-              const model = task.bestModelSlug ? getModel(task.bestModelSlug) : undefined
+              const model = task.bestModelSlug ? namesBySlug.get(task.bestModelSlug) : undefined
               const taskLabel = (TASK_TYPE_LABELS as Record<string, string>)[task.taskType] ?? task.taskType
               const resumePath = resumePathForTask({
                 id: task.id,
@@ -83,6 +87,9 @@ export default async function BearingsPage() {
                       </div>
                       <h2 className="mt-3 font-display text-lg font-semibold text-navy">
                         {model?.name ?? task.bestModelSlug ?? 'Completed bearing'}
+                        {model && !model.active && (
+                          <span className="ml-2 text-xs font-normal text-navy/45">Retired</span>
+                        )
                       </h2>
                       <p className="mt-1 text-sm text-grey-blue">
                         Best fit at the time
