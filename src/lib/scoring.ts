@@ -351,12 +351,14 @@ export interface ScoringResult {
   excluded: Exclusion[]
 }
 
-export function scoreModels(input: ScoringInput): ScoredModel[] {
-  return scoreModelsDetailed(input).models
+export function scoreModels(input: ScoringInput, catalogue?: Model[]): ScoredModel[] {
+  return scoreModelsDetailed(input, catalogue).models
 }
 
-export function scoreModelsDetailed(input: ScoringInput): ScoringResult {
-  const models = getAllModels()
+/** Production callers inject the live database catalogue. The bundled registry
+ * remains a default only for standalone, offline and pure-scoring consumers. */
+export function scoreModelsDetailed(input: ScoringInput, catalogue?: Model[]): ScoringResult {
+  const models = catalogue ?? getAllModels()
   const weights = priorityToWeights(input.priorityOrder, {
     complexity: input.complexity,
     excludedFactors: input.excludedFactors,
