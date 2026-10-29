@@ -27,6 +27,30 @@ describe('scoring respects the live catalogue', () => {
     expect(scoreModelsDetailed(input, [])).toEqual({ models: [], excluded: [] })
   })
 
+  it('requires an explicitly supplied catalogue in production', () => {
+    const previous = process.env.NODE_ENV
+    try {
+      process.env.NODE_ENV = 'production'
+      expect(() => scoreModelsDetailed(input)).toThrow('Live model catalogue is required')
+      expect(scoreModelsDetailed(input, [live]).models.map(model => model.slug)).toEqual([live.slug])
+    } finally {
+      process.env.NODE_ENV = previous
+    }
+  })
+
+  it('carries model details from the supplied catalogue rather than from the static snapshot', () => {
+    const edited = {
+      ...live,
+      name: 'Renamed in Neon',
+      pricing: { input_per_1m: 4.75, output_per_1m: 15 },
+      task_fitness: { ...live.task_fitness, other: 0.92 },
+    }
+    const scored = scoreModelsDetailed(input, [edited]).models[0]
+    expect(scored.name).toBe('Renamed in Neon')
+    expect(scored.inputPricePer1M).toBe(4.75)
+    expect(scored.curatedTaskFitness).toBe(0.92)
+  })
+
   it('uses the same live list for every pipeline stage', () => {
     const result = scorePipeline({
       models: [live],
