@@ -8,7 +8,7 @@ import { getLatestBenchmarkScores } from '@/lib/benchmarks'
 import { scoreLocalModels } from '@/lib/local-inference'
 import { scorePipeline, type PipelineResult } from '@/lib/pipeline'
 import { generateReasoning } from '@/lib/reasoning'
-import { getAllModels } from '@/lib/registry'
+import { getAllModelsLive } from '@/lib/registry'
 import { scoreModelsDetailed, type ScoredModel } from '@/lib/scoring'
 import { scoringInputFromTask } from './scoring-input'
 
@@ -58,6 +58,8 @@ export async function getRecommendationResults(taskId: string) {
     const task = await getTask(taskId)
     if (!task) return { error: 'Task not found.' as const }
 
+    // Publication status is authoritative at request time, not at build time.
+    const liveModels = await getAllModelsLive()
     const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
     const scoringInput = scoringInputFromTask(task, benchmarkScores)
     // A mixed generative + embedding workflow must not be reduced to an empty
@@ -71,7 +73,8 @@ export async function getRecommendationResults(taskId: string) {
         .some((stage: {task_type?: string}) => stage.task_type !== 'embedding')
     const effectiveInput = isMixedEmbeddingWorkflow
       ? {...scoringInput, taskType: 'analyse'} : scoringInput
-    const { models, excluded } = scoreModelsDetailed(effectiveInput)
+    const { models, excluded } = scoreModelsDetailed(effectiveInput, liveModels)
+    if (models.length === 0) return { error: 'No live models currently meet this task’s requirements.' as const }
 
     await saveRecommendations(
       taskId,
@@ -95,6 +98,7 @@ export async function getRecommendationResults(taskId: string) {
         ? JSON.parse(task.pipeline_stages)
         : task.pipeline_stages
       const pipelineResult = scorePipeline({
+        models: liveModels,
         stages,
         inputLength: task.input_length,
         priorityOrder: scoringInput.priorityOrder,
@@ -115,7 +119,7 @@ export async function getRecommendationResults(taskId: string) {
       pipeline = { ...pipelineResult, reasoning: pipelineReasoning }
     }
 
-    const localResult = scoreLocalModels(models, getAllModels(), task.task_type)
+    const localResult = scoreLocalModels(models, liveModels, task.task_type)
     const local = localResult.recommendations.length > 0 ? localResult : null
 
     if (local) {
