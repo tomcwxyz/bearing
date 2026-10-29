@@ -52,9 +52,11 @@ describe('public catalogue respects retired models', () => {
     await expect(getAllModelsLive()).rejects.toThrow('Neon unavailable')
   })
 
-  it('still supports local development from static catalogue data', async () => {
+  it('fails closed in ordinary development instead of using a stale static catalogue', async () => {
     vi.stubEnv('NODE_ENV', 'development')
     vi.mocked(getModelForAdmin).mockRejectedValue(new Error('Local DB not configured'))
-    expect((await getModelLive(publicModel.slug))?.slug).toBe(publicModel.slug)
+    vi.mocked(getAllModelsFromDb).mockRejectedValue(new Error('Local DB not configured'))
+    await expect(getModelLive(publicModel.slug)).rejects.toThrow('Local DB not configured')
+    await expect(getAllModelsLive()).rejects.toThrow('Local DB not configured')
   })
 })

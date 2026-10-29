@@ -63,6 +63,16 @@ export async function getAllModelsForAdmin(): Promise<AdminModel[]> {
   return rows.map(adminModelFromRow)
 }
 
+/** Historical bearings may refer to retired models. Preserve their names,
+ * without using the stale bundled registry or treating them as live. */
+export async function getModelNamesBySlugs(slugs: string[]): Promise<Map<string, { name: string; active: boolean }>> {
+  if (slugs.length === 0) return new Map()
+  const rows = await getDb()`SELECT slug, name, active FROM models WHERE slug = ANY(${slugs}::text[])`
+  return new Map(rows.map(row => [String(row.slug), {
+    name: String(row.name), active: row.active === true,
+  }]))
+}
+
 export async function getModelFromDb(slug: string): Promise<Model | null> {
   const rows = await getDb()`SELECT * FROM models WHERE slug = ${slug}`
   return rows.length > 0 ? modelRowToModel(rows[0]) : null

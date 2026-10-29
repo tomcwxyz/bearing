@@ -2,7 +2,7 @@
 
 This is a **readable map of the versioned SQL migrations**, not a snapshot of the live Neon database. It lets contributors understand and propose changes **without database credentials**.
 
-**Where to look:** `src/db/migrations/` contains the SQL history; `src/db/` holds domain-specific data access; `src/data/bearing-registry.json` is a generated catalogue snapshot; and [the public data model](../public-data.md) describes the **export contract**, which is not the same as the internal schema.
+**Where to look:** `src/db/migrations/` contains the SQL history; `src/db/` holds domain-specific data access; `src/data/bearing-registry.json` is a manually exported offline/demo snapshot (not a runtime source or build artefact); and [the public data model](../public-data.md) describes the **export contract**, which is not the same as the internal schema.
 
 The diagrams distinguish **enforced foreign keys** from **logical model-slug references**. Do not infer a database constraint merely because the application joins two fields.
 
@@ -57,7 +57,7 @@ erDiagram
 
 | Table | Why it exists | Notes |
 | --- | --- | --- |
-| `models` | Canonical model metadata, pricing, ratings, provider IDs, freshness and active state | `slug` is the primary identifier; current canonical records live in the DB. |
+| `models` | Canonical model metadata, pricing, ratings, provider IDs, freshness and active state | `slug` is the primary identifier; current canonical records live in the DB. Every online recommendation, picker, result and execution route reads current `active = true` records; failures do not fall back to bundled JSON. |
 | `benchmark_aliases` | Reviewed source-specific name → canonical model slug | FK to `models.slug`. Mapping must distinguish evaluation variants. |
 | `benchmark_snapshots` | Dated source measurements, categories and normalised scores | Nullable `bearing_slug` is **not** an FK; unmatched rows can be retained pending review. |
 | `model_routability` | Observed runtime state, independent of model capability | Model slug has a FK to `models.slug`. |

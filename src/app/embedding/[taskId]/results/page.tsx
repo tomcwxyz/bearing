@@ -1,36 +1,16 @@
 import Link from 'next/link'
 import { getEmbeddingResults } from '@/features/bearing/embedding-results'
-import { getAllModels } from '@/lib/registry'
 import { embeddingPriceLabel } from '@/lib/pricing'
 import type { ScoredModel } from '@/lib/scoring'
 
-// Embedding pricing is input-only — providers bill per 1M input tokens with
-// no output cost. We surface that headline number directly rather than
-// "cost per task" (which depends on chat-style assumptions about output
-// length that don't apply here).
-function pricingPer1M(slug: string): number | null {
-  const m = getAllModels().find(x => x.slug === slug)
-  return m ? m.pricing.input_per_1m : null
-}
-
-function modelMeta(slug: string): {
-  embeddingDim: number | null
-  maxInputTokens: number | null
-  supportsMatryoshka: boolean
-  capabilities: string[]
-} {
-  const m = getAllModels().find(x => x.slug === slug)
-  return {
-    embeddingDim: m?.embedding_dim ?? null,
-    maxInputTokens: m?.max_input_tokens ?? null,
-    supportsMatryoshka: m?.supports_matryoshka ?? false,
-    capabilities: m?.capabilities ?? [],
-  }
-}
-
 function ModelCard({ model, rank }: { model: ScoredModel; rank: number }) {
-  const pricing = pricingPer1M(model.slug)
-  const meta = modelMeta(model.slug)
+  const pricing = model.inputPricePer1M ?? null
+  const meta = {
+    embeddingDim: model.embeddingDim ?? null,
+    maxInputTokens: model.maxInputTokens ?? null,
+    supportsMatryoshka: model.supportsMatryoshka ?? false,
+    capabilities: model.capabilities,
+  }
   const isBestFit = rank === 1
 
   return (
