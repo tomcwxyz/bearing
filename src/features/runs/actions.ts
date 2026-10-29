@@ -20,7 +20,7 @@ import { pickInformationRoute } from '@/lib/information-routing'
 import { outcomeInformationScarcity, type ModelOutcomeEvidence } from '@/lib/outcome-evidence'
 import { judgeResponses, type JudgeCandidate } from '@/lib/judge'
 import { canExecuteHostedModel, runHostedExecution, type HostedExecutionResult } from '@/lib/hosted-execution'
-import { getAllModels } from '@/lib/registry'
+import { getAllModelsLive } from '@/lib/registry'
 import { costFromTokenUsage, estimateCostFromPricing, scoreModels } from '@/lib/scoring'
 import { getBenchmarkAggregatesForModels } from '@/db/benchmark-evidence'
 import { getOutcomeEvidenceForModels } from '@/db/outcome-evidence'
@@ -58,13 +58,13 @@ async function buildInformationRoute(taskId: string, formData: FormData, k: numb
   const task = await getTask(taskId)
   if (!task) return { error: 'Task not found.' as const }
 
+  const liveModels = await getAllModelsLive()
   const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
-  const ranked = scoreModels(scoringInputFromTask(task, benchmarkScores))
+  const ranked = scoreModels(scoringInputFromTask(task, benchmarkScores), liveModels)
   const orIds = await getOpenRouterIdsBySlug()
   const runnable = (slug: string) => canExecuteHostedModel(slug, orIds.get(slug))
-  const registryModels = getAllModels()
-  const registryBySlug = new Map(registryModels.map((model) => [model.slug, model]))
-  const localSlugs = new Set(registryModels.filter((model) => Boolean(model.local_info)).map((model) => model.slug))
+  const registryBySlug = new Map(liveModels.map((model) => [model.slug, model]))
+  const localSlugs = new Set(liveModels.filter((model) => Boolean(model.local_info)).map((model) => model.slug))
   const anchorSlug = formData.get('modelSlug') as string | null
 
   let outcomeBySlug: Record<string, ModelOutcomeEvidence> | null = null
