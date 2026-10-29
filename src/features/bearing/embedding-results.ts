@@ -1,7 +1,7 @@
 import { getTask } from '@/db/tasks'
 import { getLatestBenchmarkScores } from '@/lib/benchmarks'
 import { scoreModelsDetailed } from '@/lib/scoring'
-import type { Factor } from '@/lib/registry'
+import { getAllModelsLive, type Factor } from '@/lib/registry'
 
 const DEFAULT_EMBEDDING_PRIORITIES: Factor[] = [
   'quality',
@@ -35,6 +35,7 @@ export async function getEmbeddingResults(taskId: string) {
       return { error: 'This task is not an embedding task.' }
     }
 
+    const liveModels = await getAllModelsLive()
     const priorityOrder = parsePriorityOrder(task.priority_order)
     const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
     const { models } = scoreModelsDetailed({
@@ -54,7 +55,7 @@ export async function getEmbeddingResults(taskId: string) {
       outputLength: 'short',
       priorityOrder,
       benchmarkScores,
-    })
+    }, liveModels)
 
     return {
       task: {
