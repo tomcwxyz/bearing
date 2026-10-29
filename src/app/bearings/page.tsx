@@ -89,7 +89,7 @@ export default async function BearingsPage() {
                         {model?.name ?? task.bestModelSlug ?? 'Completed bearing'}
                         {model && !model.active && (
                           <span className="ml-2 text-xs font-normal text-navy/45">Retired</span>
-                        )
+                        )}
                       </h2>
                       <p className="mt-1 text-sm text-grey-blue">
                         Best fit at the time
