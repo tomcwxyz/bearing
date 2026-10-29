@@ -1,25 +1,6 @@
 'use client'
 
-import { getAllModels } from '@/lib/registry'
 import type { ScoredModel } from '@/lib/scoring'
-
-// Lookup table built once at module load: slug → embedding-specific metadata.
-// pipeline-section is a client component and getAllModels reads the bundled
-// JSON, so this is a static read with no network cost.
-const EMBEDDING_META: Record<string, { dim: number | null; maxIn: number | null; matryoshka: boolean; openWeights: boolean; pricePer1M: number }> = (() => {
-  const out: Record<string, { dim: number | null; maxIn: number | null; matryoshka: boolean; openWeights: boolean; pricePer1M: number }> = {}
-  for (const m of getAllModels()) {
-    if (m.model_class !== 'embedding') continue
-    out[m.slug] = {
-      dim: m.embedding_dim ?? null,
-      maxIn: m.max_input_tokens ?? null,
-      matryoshka: m.supports_matryoshka ?? false,
-      openWeights: m.pricing.input_per_1m === 0,
-      pricePer1M: m.pricing.input_per_1m,
-    }
-  }
-  return out
-})()
 
 interface PipelineStage {
   stage: number
@@ -61,7 +42,13 @@ export function PipelineSection({ pipeline, singleModelCost }: PipelineSectionPr
           // for a vector job. Surface input-only $/1M tokens, dim, and max
           // input instead — the axes that actually drive an embedding choice.
           const embedMeta = stage.taskType === 'embedding'
-            ? EMBEDDING_META[stage.recommended.slug]
+            ? {
+                dim: stage.recommended.embeddingDim ?? null,
+                maxIn: stage.recommended.maxInputTokens ?? null,
+                matryoshka: stage.recommended.supportsMatryoshka ?? false,
+                openWeights: (stage.recommended.inputPricePer1M ?? 0) === 0,
+                pricePer1M: stage.recommended.inputPricePer1M ?? 0,
+              }
             : undefined
 
           return (
