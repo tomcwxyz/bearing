@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { getModel, type Factor, type Model } from '@/lib/registry'
 import { scoreModelsDetailed } from '@/lib/scoring'
 import { scorePipeline } from '@/lib/pipeline'
@@ -28,13 +28,12 @@ describe('scoring respects the live catalogue', () => {
   })
 
   it('requires an explicitly supplied catalogue in production', () => {
-    const previous = process.env.NODE_ENV
+    vi.stubEnv('NODE_ENV', 'production')
     try {
-      process.env.NODE_ENV = 'production'
       expect(() => scoreModelsDetailed(input)).toThrow('Live model catalogue is required')
       expect(scoreModelsDetailed(input, [live]).models.map(model => model.slug)).toEqual([live.slug])
     } finally {
-      process.env.NODE_ENV = previous
+      vi.unstubAllEnvs()
     }
   })
 
