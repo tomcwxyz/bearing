@@ -4,7 +4,7 @@ import { scoreModelsDetailed } from '@/lib/scoring'
 import { saveRecommendations } from '@/db/recommendations'
 import { updateTaskPriorities } from '@/db/tasks'
 import type { Classification } from '@/lib/classification'
-import type { Factor } from '@/lib/registry'
+import { getAllModelsLive, type Factor } from '@/lib/registry'
 
 export interface EmbeddingFormInput {
   useCase: 'retrieval' | 'similarity' | 'classification' | 'clustering' | 'dedup' | 'other'
@@ -47,6 +47,7 @@ export async function scoreAndSaveEmbedding(
     priorityOrder: Factor[]
   },
 ): Promise<void> {
+  const liveModels = await getAllModelsLive()
   const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
   const { models } = scoreModelsDetailed({
     taskType: 'embedding',
@@ -65,7 +66,7 @@ export async function scoreAndSaveEmbedding(
     outputLength: 'short',
     priorityOrder: scoring.priorityOrder,
     benchmarkScores,
-  })
+  }, liveModels)
 
   await saveRecommendations(
     taskId,

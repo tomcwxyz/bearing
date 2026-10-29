@@ -1,4 +1,4 @@
-import { type Factor } from './registry'
+import { type Factor, type Model } from './registry'
 import { scoreModels, type ScoredModel } from './scoring'
 
 // Canonical capability tokens. Anything outside this set is dropped before
@@ -43,7 +43,7 @@ export interface PipelineResult {
   totalEstimatedCost: number
 }
 
-export function scorePipelineStage(input: PipelineStageInput): PipelineStageResult {
+export function scorePipelineStage(input: PipelineStageInput, catalogue?: Model[]): PipelineStageResult {
   const scored = scoreModels({
     taskType: input.taskType,
     complexity: 'moderate',
@@ -60,7 +60,7 @@ export function scorePipelineStage(input: PipelineStageInput): PipelineStageResu
     needsMultilingual: input.needsMultilingual,
     isAgentic: input.isAgentic,
     outputLength: input.outputLength,
-  })
+  }, catalogue)
 
   // Further filter by additional required capabilities. Drop unknown tokens
   // (see KNOWN_CAPABILITIES note above) so the classifier emitting "ocr" or
@@ -72,6 +72,7 @@ export function scorePipelineStage(input: PipelineStageInput): PipelineStageResu
 
   const capabilityMissing = knownCaps.length > 0 && filtered.length === 0
   const models = filtered.length > 0 ? filtered : scored
+  if (models.length === 0) throw new Error('No live models match this pipeline stage.')
 
   return {
     recommended: models[0],
@@ -104,6 +105,8 @@ export interface ScorePipelineOptions {
   needsMultilingual?: boolean
   isAgentic?: boolean
   outputLength?: string
+  /** Live models injected by the calling service; avoids stale bundled models. */
+  models?: Model[]
 }
 
 export function scorePipeline(options: ScorePipelineOptions): PipelineResult {
@@ -122,7 +125,7 @@ export function scorePipeline(options: ScorePipelineOptions): PipelineResult {
       needsLongContext: options.needsLongContext,
       needsMultilingual: options.needsMultilingual,
       isAgentic: options.isAgentic,
-    })
+    }, options.models)
     return {
       stage: stage.stage,
       description: stage.description,

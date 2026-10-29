@@ -13,7 +13,7 @@ import {
 } from '@/db/comparisons'
 import {
   getAllModelsFromDb,
-  getModelFromDb,
+  getModelForAdmin,
   getOpenRouterId,
 } from '@/db/models'
 import { createTask } from '@/db/tasks'
@@ -88,6 +88,13 @@ export async function startComparison(
       }
     }
 
+    // A model may have been retired since the selection list was loaded.
+    const [selectedA, selectedB] = await Promise.all([
+      getModelForAdmin(modelASlug), getModelForAdmin(modelBSlug),
+    ])
+    if (!selectedA?.active || !selectedB?.active) {
+      return { error: 'One or both models are no longer live. Please choose available models.' }
+    }
     const comparisonId = await createComparison(taskId, user.id, modelASlug, modelBSlug)
     return { comparisonId }
   } catch (error) {
@@ -144,9 +151,14 @@ export async function runComparison(comparisonId: string, formData: FormData) {
     const [orIdA, orIdB, modelA, modelB] = await Promise.all([
       getOpenRouterId(comparison.model_a_slug),
       getOpenRouterId(comparison.model_b_slug),
-      getModelFromDb(comparison.model_a_slug),
-      getModelFromDb(comparison.model_b_slug),
+      getModelForAdmin(comparison.model_a_slug),
+      getModelForAdmin(comparison.model_b_slug),
     ])
+
+    // Historical comparisons remain visible but retired models cannot be run.
+    if (!modelA?.active || !modelB?.active) {
+      return comparisonRunFailure('A model in this comparison has been retired. Start a new comparison using live models.')
+    }
 
     const directA = DIRECT_PROVIDERS[comparison.model_a_slug]
     const directB = DIRECT_PROVIDERS[comparison.model_b_slug]

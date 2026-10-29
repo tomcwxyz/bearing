@@ -37,6 +37,7 @@ export default function LiveModelsQueue({
   const router = useRouter()
   const [selected, setSelected] = useState<string[]>([])
   const [view, setView] = useState<View>('all')
+  const [search, setSearch] = useState('')
   const [isVerifying, startVerifying] = useTransition()
   const [result, setResult] = useState<BatchResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -52,6 +53,8 @@ export default function LiveModelsQueue({
     [result],
   )
   const displayed = models.filter(model => {
+    const query = search.trim().toLocaleLowerCase()
+    if (query && ![model.name, model.provider, model.slug].some(value => value.toLocaleLowerCase().includes(query))) return false
     const status = statusOf(bySlug.get(model.slug), latest.get(model.slug))
     if (view === 'needs-check') return status.bad
     if (view === 'unverified') return status.label === 'No catalogue ID' || status.label === 'Not verified' || status.label === 'Verification stale'
@@ -186,6 +189,14 @@ export default function LiveModelsQueue({
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
+        <label className="flex min-w-56 flex-1 flex-col gap-1 text-xs text-navy/60">
+          Find a live model to retire or verify
+          <input type="search" className="input-field w-full" value={search}
+            onChange={event => setSearch(event.target.value)}
+            placeholder="Search model, provider or ID…" />
+        </label>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2" role="group" aria-label="Filter live models">
           {([
             ['all', 'All'],
@@ -252,6 +263,10 @@ export default function LiveModelsQueue({
                     <div className="flex gap-3 text-xs">
                       <Link href={`/admin/models/${encodeURIComponent(model.slug)}/identifiers`} className="text-navy/70 underline">IDs</Link>
                       <Link href={`/admin/models/${encodeURIComponent(model.slug)}`} className="text-teal underline">Edit</Link>
+                      <button type="button" className="text-coral underline"
+                        disabled={isVerifying}
+                        onClick={() => { setSelected([model.slug]); setRetirementReview(true); setRetirementFeedback(null) }}
+                        aria-label={`Retire ${model.name}`}>Retire</button>
                     </div>
                   </td>
                 </tr>

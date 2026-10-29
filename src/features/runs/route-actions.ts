@@ -22,6 +22,7 @@ import { costFromTokenUsage, estimateCostFromPricing, scoreModels } from '@/lib/
 import { scoringInputFromTask } from '@/features/recommendations/scoring-input'
 import { originalRecommendationRank } from './route-metadata'
 import { getOllamaCloudRoute, ollamaCloudPricing } from '@/lib/ollama-cloud'
+import { getAllModelsLive } from '@/lib/registry'
 import { saveExecutionObservation } from '@/db/execution-observations'
 import { buildRunMessages, type RunFileData } from './run-messages'
 
@@ -69,7 +70,7 @@ export async function routeAndRun(taskId: string, formData: FormData) {
     if (!task) return { error: 'Task not found.' }
 
     const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
-    const ranked = scoreModels(scoringInputFromTask(task, benchmarkScores))
+    const ranked = scoreModels(scoringInputFromTask(task, benchmarkScores), await getAllModelsLive())
     const orIds = await getOpenRouterIdsBySlug()
     const runnable = (slug: string) => canExecuteHostedModel(slug, orIds.get(slug))
     const anchorSlug = formData.get('modelSlug') as string | null
