@@ -235,34 +235,23 @@ export function getDefaultWeights(): Record<Factor, number> {
   return registryData.scoring_methodology.default_weights as Record<Factor, number>
 }
 
-/** Use the DB as the source of truth in production. Static registry
- * fallback is for offline/local development only: a stale bundle may still
- * contain a model that has since been retired. */
+/** Live catalogue is read on every request. A disconnected database never
+ * silently falls back to stale models, including in ordinary development.
+ * The explicitly enabled local contributor demo is the sole exception. */
 export async function getAllModelsLive(): Promise<Model[]> {
   if (contributorDemoEnabled()) return getAllModels()
-  try {
-    const { getAllModelsFromDb } = await import('@/db/models')
-    return await getAllModelsFromDb()
-  } catch (error) {
-    if (process.env.NODE_ENV === 'production') throw error
-    return getAllModels()
-  }
+  const { getAllModelsFromDb } = await import('@/db/models')
+  return getAllModelsFromDb()
 }
 
-/** Never serve a retired or draft model from the bundled registry after the
- * database has confirmed it is inactive or absent. */
+/** Only active models may be returned from the public detail endpoint. */
 export async function getModelLive(slug: string): Promise<Model | undefined> {
   if (contributorDemoEnabled()) return getModel(slug)
-  try {
-    const { getModelForAdmin } = await import('@/db/models')
-    const fromDb = await getModelForAdmin(slug)
-    if (!fromDb?.active) return undefined
-    const { active: _active, lifecycleStatus: _lifecycleStatus,
-      retiredAt: _retiredAt, retirementReason: _retirementReason,
-      retiredBy: _retiredBy, ...model } = fromDb
-    return model
-  } catch (error) {
-    if (process.env.NODE_ENV === 'production') throw error
-    return getModel(slug)
-  }
+  const { getModelForAdmin } = await import('@/db/models')
+  const fromDb = await getModelForAdmin(slug)
+  if (!fromDb?.active) return undefined
+  const { active: _active, lifecycleStatus: _lifecycleStatus,
+    retiredAt: _retiredAt, retirementReason: _retirementReason,
+    retiredBy: _retiredBy, ...model } = fromDb
+  return model
 }
