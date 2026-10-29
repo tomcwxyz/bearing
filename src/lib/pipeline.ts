@@ -72,6 +72,7 @@ export function scorePipelineStage(input: PipelineStageInput, catalogue?: Model[
 
   const capabilityMissing = knownCaps.length > 0 && filtered.length === 0
   const models = filtered.length > 0 ? filtered : scored
+  if (models.length === 0) throw new Error('No live models match this pipeline stage.')
 
   return {
     recommended: models[0],
