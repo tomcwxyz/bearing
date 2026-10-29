@@ -52,6 +52,13 @@ export interface ScoredModel {
   strengths: string[]
   weaknesses: string[]
   contextWindow: number
+  /** Live catalogue data carried with the ranking, never looked up in a build snapshot. */
+  modelClass?: Model['model_class']
+  inputPricePer1M?: number
+  embeddingDim?: number | null
+  maxInputTokens?: number | null
+  supportsMatryoshka?: boolean | null
+  curatedTaskFitness?: number
   openWeights?: number
   licenceOpenness?: number
   localCapable?: boolean
@@ -358,6 +365,11 @@ export function scoreModels(input: ScoringInput, catalogue?: Model[]): ScoredMod
 /** Production callers inject the live database catalogue. The bundled registry
  * remains a default only for standalone, offline and pure-scoring consumers. */
 export function scoreModelsDetailed(input: ScoringInput, catalogue?: Model[]): ScoringResult {
+  // Online scoring must always be given the current published catalogue.
+  // The bundled registry is retained solely for offline tests and evaluations.
+  if (!catalogue && process.env.NODE_ENV === 'production') {
+    throw new Error('Live model catalogue is required for production scoring')
+  }
   const models = catalogue ?? getAllModels()
   const weights = priorityToWeights(input.priorityOrder, {
     complexity: input.complexity,
@@ -477,6 +489,12 @@ export function scoreModelsDetailed(input: ScoringInput, catalogue?: Model[]): S
       strengths: model.strengths,
       weaknesses: model.weaknesses,
       contextWindow: model.context_window,
+      modelClass: model.model_class,
+      inputPricePer1M: model.pricing.input_per_1m,
+      embeddingDim: model.embedding_dim,
+      maxInputTokens: model.max_input_tokens,
+      supportsMatryoshka: model.supports_matryoshka,
+      curatedTaskFitness: model.task_fitness[input.taskType],
       openWeights: openLocalEvidence?.weightAccess === 'provider_only'
         ? 0
         : model.transparency.open_weights,
