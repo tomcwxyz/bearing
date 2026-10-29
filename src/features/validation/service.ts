@@ -3,6 +3,7 @@ import { getTask } from '@/db/tasks'
 import type { ScoredModel } from '@/lib/scoring'
 import { scoreModels } from '@/lib/scoring'
 import { scoringInputFromTask } from '@/features/recommendations/scoring-input'
+import { getAllModelsLive } from '@/lib/registry'
 
 export type ValidationAssessment = 'good_fit' | 'overpaying' | 'better_options'
 
@@ -33,7 +34,7 @@ export async function getValidationResults(taskId: string, currentModelSlug: str
     if (!task) return { error: 'Task not found.' as const }
 
     const benchmarkScores = await getLatestBenchmarkScores().catch(() => undefined)
-    const models = scoreModels(scoringInputFromTask(task, benchmarkScores))
+    const models = scoreModels(scoringInputFromTask(task, benchmarkScores), await getAllModelsLive())
 
     const currentModelIndex = models.findIndex((model) => model.slug === currentModelSlug)
     const currentModel = currentModelIndex >= 0 ? models[currentModelIndex] : null
