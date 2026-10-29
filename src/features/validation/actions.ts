@@ -6,7 +6,7 @@ import { isRedirectError } from 'next/dist/client/components/redirect-error'
 
 import { classifyTask } from '@/lib/classification'
 import { createTask, updateTaskPriorities } from '@/db/tasks'
-import type { Factor } from '@/lib/registry'
+import { getModelLive, type Factor } from '@/lib/registry'
 
 const VALIDATION_PRIORITY_ORDER: Factor[] = [
   'quality',
@@ -26,6 +26,11 @@ export async function submitValidation(formData: FormData) {
 
     if (!modelSlug?.trim() || !description?.trim()) {
       return { error: 'Please provide both a model and task description.' }
+    }
+    // The picker can become stale between display and submission.
+    // Never create new validation tasks for a retired or draft model.
+    if (!await getModelLive(modelSlug)) {
+      return { error: 'This model is no longer in the live catalogue. Please select another model.' }
     }
 
     const trimmedDescription = description.trim()
