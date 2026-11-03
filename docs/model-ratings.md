@@ -76,11 +76,11 @@ Bearing can ingest benchmark evidence and map source-side model names to canonic
 
 Current sources include:
 
-- **Artificial Analysis** — model evaluation, coding, mathematics and performance signals;
-- **LMArena** — human preference ratings across several categories;
-- **LiveBench** — contamination-resistant task benchmarks;
-- **MTEB** — embedding-model quality evidence;
-- **EcoLogits** — environmental evidence used for supported sustainability fields.
+- **[Artificial Analysis](https://artificialanalysis.ai/)** — model evaluation, coding, mathematics and performance signals;
+- **[LMArena](https://lmarena.ai/)** — human preference ratings across several categories;
+- **[LiveBench](https://livebench.ai/)** — contamination-resistant task benchmarks;
+- **[MTEB](https://huggingface.co/spaces/mteb/leaderboard)** — embedding-model quality evidence;
+- **[EcoLogits](https://ecologits.ai/)** — environmental evidence used for supported sustainability fields.
 
 Source categories are mapped onto Bearing task types and normalised within the relevant source cohort.
 
