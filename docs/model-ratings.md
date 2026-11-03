@@ -84,6 +84,8 @@ Current sources include:
 
 Source categories are mapped onto Bearing task types and normalised within the relevant source cohort.
 
+For source links, coverage, freshness caveats, limitations and reuse considerations, see the [evidence sources directory](evidence-sources.md).
+
 ## Benchmark evidence does not automatically control production ranking
 
 External benchmarks are useful but imperfect. They can differ in task construction, cohort, model variant, recency and how closely they represent a user's real job.
