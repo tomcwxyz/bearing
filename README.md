@@ -10,7 +10,7 @@
 
 AI model leaderboards tell you which models perform well on a benchmark. Bearing asks a different question: **which model fits this job?**
 
-Recommendations combine task requirements, curated assessments and available evidence. They are **comparative judgements, not guaranteed outcomes**. Some catalogue facts remain unverified or subject to change; sources, uncertainty and [how models are rated](docs/model-ratings.md) are documented openly.
+Recommendations combine task requirements, curated assessments and available evidence. They are **comparative judgements, not guaranteed outcomes**. Some catalogue facts remain unverified or subject to change; sources, uncertainty and [how models are rated](docs/model-ratings.md) are documented openly. See also the [evidence sources directory](docs/evidence-sources.md).
 
 ## Contribute
 
